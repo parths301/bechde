@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#FBF6ED;font-family:Karla,system-ui,sans-serif;color:#2E2A24}a{color:#B4552D;text-decoration:none}a:hover{color:#8E3F1E}
+@keyframes bd-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@keyframes bd-pulse{0%{transform:scale(.6);opacity:.55}100%{transform:scale(1.6);opacity:0}}
+@keyframes bd-pop{0%{transform:scale(.85);opacity:0}100%{transform:scale(1);opacity:1}}
+</style></helmet>
+
+<!-- ================= SIGN UP ================= -->
+<sc-if value="{{ isSignup }}" hint-placeholder-val="{{ true }}">
+<div data-screen-label="Sign up" style="min-height:100vh;display:grid;place-items:center;padding:30px;background:radial-gradient(circle at 20% 20%,#F6EEDD 0%,#FBF6ED 60%)">
+  <div style="width:960px;max-width:100%;background:#FBF6ED;border:1.5px solid #EEE3CE;border-radius:26px;overflow:hidden;box-shadow:0 24px 60px rgba(60,45,20,.12);display:grid;grid-template-columns:1fr 1fr">
+    <div style="background:#2E2A24;color:#FBF6ED;padding:44px 40px;display:flex;flex-direction:column;gap:22px;position:relative;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:36px;height:36px;border-radius:11px 11px 11px 4px;background:#F2A93B;display:grid;place-items:center;font:800 18px 'Bricolage Grotesque',sans-serif;color:#3B2A10;transform:rotate(-6deg)">B</div>
+        <div style="font:800 22px 'Bricolage Grotesque',sans-serif">Bech De<span style="color:#E86A4F">.</span></div>
+      </div>
+      <h1 style="margin:8px 0 0;font:800 38px/1.12 'Bricolage Grotesque',sans-serif;letter-spacing:-1px">Your stuff has a<br><span style="color:#F2A93B">second life</span> waiting<br>next door.</h1>
+      <div style="display:flex;flex-direction:column;gap:14px;font-size:14.5px;line-height:1.5;color:rgba(251,246,237,.85)">
+        <div style="display:flex;gap:12px">🏠 Buy &amp; sell within your own neighbourhood</div>
+        <div style="display:flex;gap:12px">💬 Chat, haggle, meet — no shipping drama</div>
+        <div style="display:flex;gap:12px">✓ Phone-verified people only</div>
+      </div>
+      <div style="position:absolute;right:-90px;bottom:-90px;width:260px;height:260px;border-radius:50%;border:2px dashed rgba(242,169,59,.4)"></div>
+      <div style="position:absolute;right:-30px;bottom:-30px;width:140px;height:140px;border-radius:50%;border:2px dashed rgba(242,169,59,.5)"></div>
+    </div>
+    <div style="padding:44px 42px;display:flex;flex-direction:column;gap:18px;justify-content:center">
+      <sc-if value="{{ otpStage }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:bd-pop .25s ease-out">
+          <h2 style="margin:0 0 4px;font:800 26px 'Bricolage Grotesque',sans-serif;letter-spacing:-.6px">Check your phone 📲</h2>
+          <div style="font-size:13.5px;color:#8A7A5E;font-weight:600;margin-bottom:22px">We sent a code to +91 98765 43210</div>
+          <div style="display:flex;gap:10px;margin-bottom:22px">
+            <div style="width:56px;height:62px;background:#fff;border:2px solid #F2A93B;border-radius:14px;display:grid;place-items:center;font:800 24px 'Bricolage Grotesque',sans-serif">4</div>
+            <div style="width:56px;height:62px;background:#fff;border:2px solid #F2A93B;border-radius:14px;display:grid;place-items:center;font:800 24px 'Bricolage Grotesque',sans-serif">2</div>
+            <div style="width:56px;height:62px;background:#fff;border:2px solid #F2A93B;border-radius:14px;display:grid;place-items:center;font:800 24px 'Bricolage Grotesque',sans-serif">1</div>
+            <div style="width:56px;height:62px;background:#fff;border:1.5px solid #E9DDC8;border-radius:14px;display:grid;place-items:center;font:800 24px 'Bricolage Grotesque',sans-serif;color:#D8C9AE"><span style="border-left:2px solid #E86A4F;height:26px"></span></div>
+          </div>
+          <div onClick="{{ goHome }}" style="display:block;text-align:center;background:#2E2A24;color:#FBF6ED;border-radius:999px;padding:15px 0;font-weight:800;font-size:15.5px;cursor:pointer" style-hover="background:#E86A4F">Verify &amp; start browsing →</div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ notOtpStage }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:18px">
+          <div>
+            <h2 style="margin:0 0 4px;font:800 26px 'Bricolage Grotesque',sans-serif;letter-spacing:-.6px">Join in 30 seconds</h2>
+            <div style="font-size:13.5px;color:#8A7A5E;font-weight:600">Just your phone. No passwords to forget.</div>
+          </div>
+          <div>
+            <div style="font-weight:800;font-size:13px;margin-bottom:7px">Phone number</div>
+            <div style="display:flex;gap:10px">
+              <div style="background:#fff;border:1.5px solid #E9DDC8;border-radius:12px;padding:13px 14px;font-weight:700;font-size:14.5px;color:#6E6250">🇮🇳 +91</div>
+              <input value="{{ phone }}" onChange="{{ onPhone }}" placeholder="98765 43210" style="flex:1;background:#fff;border:1.5px solid #E9DDC8;border-radius:12px;padding:13px 16px;font-size:14.5px;font-weight:600;font-family:Karla,sans-serif;color:#2E2A24;outline:none">
+            </div>
+          </div>
+          <div>
+            <div style="font-weight:800;font-size:13px;margin-bottom:7px">What should we call you?</div>
+            <input value="{{ name }}" onChange="{{ onName }}" placeholder="First name is enough" style="width:100%;box-sizing:border-box;background:#fff;border:1.5px solid #E9DDC8;border-radius:12px;padding:13px 16px;font-size:14.5px;font-weight:600;font-family:Karla,sans-serif;color:#2E2A24;outline:none">
+          </div>
+          <div>
+            <div style="font-weight:800;font-size:13px;margin-bottom:7px">Your neighbourhood</div>
+            <div style="display:flex;align-items:center;gap:8px;background:#E7F0EC;border:1.5px solid #BFD8CE;border-radius:12px;padding:13px 16px;font-size:14px;font-weight:700;color:#2F6B60">📍 Koramangala, Bengaluru <span style="margin-left:auto;font-size:12px;font-weight:800;cursor:pointer">change</span></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px"><span style="font-weight:800;font-size:13px">How far will you go for a deal?</span><span style="font:800 15px 'Bricolage Grotesque',sans-serif;color:#B4552D">{{ radiusKm }} km</span></div>
+            <input type="range" min="1" max="10" value="{{ radiusKm }}" onChange="{{ onRadius }}" style="width:100%;accent-color:#E86A4F;cursor:pointer">
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:#A2917A"><span>my street</span><span>my whole city</span></div>
+          </div>
+          <div onClick="{{ sendOtp }}" style="display:block;text-align:center;background:#2E2A24;color:#FBF6ED;border-radius:999px;padding:15px 0;font-weight:800;font-size:15.5px;cursor:pointer" style-hover="background:#E86A4F">Send OTP →</div>
+          <div style="text-align:center;font-size:12px;color:#A2917A;font-weight:600">By joining you agree to be a decent neighbour ✌️</div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ================= APP SHELL ================= -->
+<sc-if value="{{ isApp }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:100vh;display:flex;flex-direction:column">
+  <header style="display:flex;align-items:center;gap:22px;padding:16px 36px;border-bottom:1px dashed #E3D6BF;background:#FBF6ED;position:sticky;top:0;z-index:20">
+    <div onClick="{{ goHome }}" style="display:flex;align-items:center;gap:10px;cursor:pointer">
+      <div style="width:38px;height:38px;border-radius:12px 12px 12px 4px;background:#F2A93B;display:grid;place-items:center;font:800 19px 'Bricolage Grotesque',sans-serif;color:#3B2A10;transform:rotate(-6deg)">B</div>
+      <div style="font:800 24px 'Bricolage Grotesque',sans-serif;letter-spacing:-.5px">Bech De<span style="color:#E86A4F">.</span></div>
+    </div>
+    <div style="flex:1;display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid #E9DDC8;border-radius:999px;padding:10px 20px;color:#9C8F79;font-size:14.5px;cursor:text" style-hover="border-color:#F2A93B">⌕ Search "study table", "iPhone 12", "kurta"…
+      <span style="margin-left:auto;display:flex;align-items:center;gap:6px;background:#F6EEDD;border-radius:999px;padding:4px 12px;font-size:12.5px;color:#6E6250;font-weight:600;white-space:nowrap">📍 Koramangala ▾</span>
+    </div>
+    <nav style="display:flex;align-items:center;gap:18px;font-weight:700;font-size:14.5px">
+      <div onClick="{{ goMap }}" style="cursor:pointer;color:{{ navMapColor }}" style-hover="color:#B4552D">🗺️ Map</div>
+      <div onClick="{{ goChat }}" style="cursor:pointer;color:{{ navChatColor }};position:relative" style-hover="color:#B4552D">Chats<span style="position:absolute;top:-6px;right:-13px;background:#E86A4F;color:#fff;font-size:9.5px;font-weight:800;border-radius:999px;padding:1px 6px">2</span></div>
+      <div onClick="{{ goSell }}" style="background:#2E2A24;color:#FBF6ED;border-radius:999px;padding:11px 22px;font-weight:700;cursor:pointer" style-hover="background:#E86A4F;transform:rotate(-2deg)">+ Bech de!</div>
+      <div onClick="{{ goProfile }}" style="width:38px;height:38px;border-radius:50%;background:#3E9B8F;display:grid;place-items:center;color:#fff;font:800 15px 'Bricolage Grotesque',sans-serif;border:2px solid #fff;box-shadow:0 0 0 1.5px #E9DDC8;cursor:pointer" style-hover="transform:scale(1.08)">{{ avatarInitial }}</div>
+    </nav>
+  </header>
+
+  <!-- ============ HOME ============ -->
+  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="Home">
+    <div style="display:grid;grid-template-columns:1fr 560px;gap:30px;padding:40px 36px 26px;align-items:center;max-width:1240px;margin:0 auto;box-sizing:border-box">
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <div style="align-self:flex-start;background:#E7F0EC;color:#2F6B60;border-radius:999px;padding:6px 14px;font-size:12.5px;font-weight:700;white-space:nowrap">✦ {{ nearbyCount }} things for sale near you right now</div>
+        <h1 style="margin:0;font:800 54px/1.05 'Bricolage Grotesque',sans-serif;letter-spacing:-1.5px">Good stuff,<br>walking distance.</h1>
+        <p style="margin:0;max-width:400px;font-size:16.5px;line-height:1.6;color:#6E6250">Buy and sell with people in your own neighbourhood. No shipping, no strangers from far away — just meet, check, and take it home.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:10px">
+          <sc-for list="{{ cats }}" as="c" hint-placeholder-count="6">
+            <div onClick="{{ goMap }}" style="display:flex;align-items:center;gap:7px;background:#fff;border:1.5px solid #E9DDC8;border-radius:999px;padding:9px 16px;font-size:14px;font-weight:600;color:#4E4536;cursor:pointer" style-hover="border-color:#E86A4F;color:#B4552D;transform:translateY(-2px)"><span>{{ c.icon }}</span>{{ c.name }}</div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="position:relative;width:560px;height:520px;display:grid;place-items:center">
+        <div style="position:absolute;inset:20px;border-radius:50%;background:radial-gradient(circle,#F3EADA 0%,#FBF6ED 70%)"></div>
+        <div style="position:absolute;width:480px;height:480px;border-radius:50%;border:1.5px dashed #DCCCAE"></div>
+        <div style="position:absolute;width:340px;height:340px;border-radius:50%;border:1.5px dashed #DCCCAE"></div>
+        <div style="position:absolute;width:200px;height:200px;border-radius:50%;border:1.5px dashed #DCCCAE"></div>
+        <div style="position:absolute;width:{{ ringPx }}px;height:{{ ringPx }}px;border-radius:50%;border:2.5px solid #F2A93B;box-shadow:0 0 0 8px rgba(242,169,59,.10);transition:width .3s,height .3s"></div>
+        <div style="position:absolute;display:grid;place-items:center">
+          <div style="position:absolute;width:46px;height:46px;border-radius:50%;background:#E86A4F;animation:bd-pulse 2.2s ease-out infinite"></div>
+          <div style="width:46px;height:46px;border-radius:50%;background:#E86A4F;border:3px solid #fff;box-shadow:0 3px 10px rgba(232,106,79,.45);display:grid;place-items:center;font-size:19px;position:relative">🏠</div>
+          <div style="position:absolute;top:52px;background:#2E2A24;color:#FBF6ED;font-size:11px;font-weight:700;border-radius:6px;padding:3px 9px;white-space:nowrap">you</div>
+        </div>
+        <sc-for list="{{ bubbles }}" as="b" hint-placeholder-count="7">
+          <div onClick="{{ goProduct }}" style="position:absolute;left:{{ b.x }}px;top:{{ b.y }}px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;animation:bd-bob {{ b.dur }} ease-in-out infinite;animation-delay:{{ b.delay }};z-index:2" style-hover="z-index:5;transform:scale(1.12)">
+            <div style="width:{{ b.size }}px;height:{{ b.size }}px;border-radius:50%;border:3px solid #fff;box-shadow:0 4px 12px rgba(60,45,20,.18);background:repeating-linear-gradient({{ b.angle }},#EFE7DA 0 7px,#E0D2BA 7px 14px);display:grid;place-items:center;font:10px ui-monospace,monospace;color:#8A7A5E;text-align:center">{{ b.label }}</div>
+            <div style="background:#fff;border:1.5px solid #E9DDC8;border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:700;color:#2E2A24;box-shadow:0 2px 6px rgba(60,45,20,.1);white-space:nowrap">{{ b.price }}</div>
+          </div>
+        </sc-for>
+        <div style="position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px;background:#fff;border:1.5px solid #E9DDC8;border-radius:999px;padding:10px 20px;box-shadow:0 6px 18px rgba(60,45,20,.08)">
+          <span style="font-size:12.5px;font-weight:700;color:#6E6250;white-space:nowrap">Radius</span>
+          <input type="range" min="1" max="10" value="{{ radiusKm }}" onChange="{{ onRadius }}" style="accent-color:#E86A4F;width:150px;cursor:pointer">
+          <span style="font:800 15px 'Bricolage Grotesque',sans-serif;color:#B4552D;white-space:nowrap;min-width:44px">{{ radiusKm }} km</span>
+        </div>
+      </div>
+    </div>
+    <div style="padding:10px 36px 44px;max-width:1240px;margin:0 auto;box-sizing:border-box">
+      <div style="display:flex;align-items:baseline;gap:12px;margin:0 0 18px">
+        <h2 style="margin:0;font:800 26px 'Bricolage Grotesque',sans-serif;letter-spacing:-.5px">Fresh within {{ radiusKm }} km</h2>
+        <div onClick="{{ goMap }}" style="font-size:13.5px;font-weight:700;color:#B4552D;cursor:pointer" style-hover="color:#8E3F1E">see all on map →</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px">
+        <sc-for list="{{ feed }}" as="f" hint-placeholder-count="4">
+          <div onClick="{{ goProduct }}" style="background:#fff;border:1.5px solid #EEE3CE;border-radius:18px;overflow:hidden;cursor:pointer;transition:transform .15s" style-hover="transform:translateY(-4px);box-shadow:0 10px 24px rgba(60,45,20,.1)">
+            <div style="height:150px;background:repeating-linear-gradient(45deg,#F1E9DB 0 9px,#E4D7C1 9px 18px);display:grid;place-items:center;font:11px ui-monospace,monospace;color:#8A7A5E;position:relative">{{ f.img }}
+              <div style="position:absolute;top:10px;left:10px;background:#2E2A24;color:#FBF6ED;font-size:11px;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap">{{ f.dist }}</div>
+            </div>
+            <div style="padding:14px 16px;display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+                <div style="font-weight:700;font-size:15px">{{ f.name }}</div>
+                <div style="font:800 16px 'Bricolage Grotesque',sans-serif;color:#B4552D;white-space:nowrap">{{ f.price }}</div>
+              </div>
+              <div style="font-size:12.5px;line-height:1.5;color:#8A7A5E;font-style:italic">“{{ f.note }}”</div>
+              <div style="display:flex;align-items:center;gap:7px;margin-top:2px;font-size:12px;color:#6E6250;font-weight:600"><span style="width:20px;height:20px;border-radius:50%;background:{{ f.avatar }};flex:none"></span>{{ f.seller }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ============ MAP ============ -->
+  <sc-if value="{{ isMap }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="Map" style="flex:1;display:grid;grid-template-columns:1fr 320px;min-height:calc(100vh - 76px)">
+    <div style="position:relative;background:radial-gradient(circle at 50% 50%,#F3EADA 0%,#FBF6ED 75%);overflow:hidden">
+      <!-- street doodles -->
+      <div style="position:absolute;left:0;right:0;top:30%;border-top:2px dashed rgba(200,180,140,.4);transform:rotate(-4deg)"></div>
+      <div style="position:absolute;left:0;right:0;top:64%;border-top:2px dashed rgba(200,180,140,.4);transform:rotate(3deg)"></div>
+      <div style="position:absolute;top:0;bottom:0;left:38%;border-left:2px dashed rgba(200,180,140,.4);transform:rotate(6deg)"></div>
+      <!-- rings centered -->
+      <div style="position:absolute;left:50%;top:50%;width:760px;height:760px;transform:translate(-50%,-50%);border-radius:50%;border:1.5px dashed #DCCCAE"></div>
+      <div style="position:absolute;left:50%;top:50%;width:520px;height:520px;transform:translate(-50%,-50%);border-radius:50%;border:1.5px dashed #DCCCAE"></div>
+      <div style="position:absolute;left:50%;top:50%;width:300px;height:300px;transform:translate(-50%,-50%);border-radius:50%;border:1.5px dashed #DCCCAE"></div>
+      <div style="position:absolute;left:50%;top:50%;width:{{ mapRingPx }}px;height:{{ mapRingPx }}px;transform:translate(-50%,-50%);border-radius:50%;border:2.5px solid #F2A93B;box-shadow:0 0 0 10px rgba(242,169,59,.09);transition:width .3s,height .3s"></div>
+      <!-- you -->
+      <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:grid;place-items:center;z-index:3">
+        <div style="position:absolute;width:52px;height:52px;border-radius:50%;background:#E86A4F;animation:bd-pulse 2.2s ease-out infinite"></div>
+        <div style="width:52px;height:52px;border-radius:50%;background:#E86A4F;border:3px solid #fff;box-shadow:0 3px 10px rgba(232,106,79,.45);display:grid;place-items:center;font-size:21px">🏠</div>
+        <div style="position:absolute;top:58px;background:#2E2A24;color:#FBF6ED;font-size:11px;font-weight:700;border-radius:6px;padding:3px 9px;white-space:nowrap">you · 5th Block</div>
+      </div>
+      <!-- items -->
+      <sc-for list="{{ mapItems }}" as="m" hint-placeholder-count="9">
+        <div onClick="{{ goProduct }}" style="position:absolute;left:{{ m.x }};top:{{ m.y }};display:{{ m.display }};flex-direction:column;align-items:center;gap:4px;cursor:pointer;animation:bd-bob {{ m.dur }} ease-in-out infinite;animation-delay:{{ m.delay }};z-index:2" style-hover="z-index:6;transform:scale(1.14)">
+          <div style="width:{{ m.size }}px;height:{{ m.size }}px;border-radius:50%;border:3px solid #fff;box-shadow:0 4px 12px rgba(60,45,20,.18);background:repeating-linear-gradient({{ m.angle }},#EFE7DA 0 7px,#E0D2BA 7px 14px);display:grid;place-items:center;font:10px ui-monospace,monospace;color:#8A7A5E;text-align:center">{{ m.label }}</div>
+          <div style="background:#fff;border:1.5px solid #E9DDC8;border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:700;box-shadow:0 2px 6px rgba(60,45,20,.1);white-space:nowrap">{{ m.price }}</div>
+        </div>
+      </sc-for>
+      <!-- count pill -->
+      <div style="position:absolute;top:22px;left:26px;background:#2E2A24;color:#FBF6ED;border-radius:999px;padding:9px 18px;font-size:13px;font-weight:800;box-shadow:0 6px 16px rgba(60,45,20,.2)">{{ mapCount }} items within {{ mapRadius }} km</div>
+    </div>
+    <!-- filter rail -->
+    <div style="border-left:1.5px dashed #E3D6BF;padding:26px 24px;display:flex;flex-direction:column;gap:24px;background:#FBF6ED">
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px"><span style="font:800 16px 'Bricolage Grotesque',sans-serif">Radius</span><span style="font:800 16px 'Bricolage Grotesque',sans-serif;color:#B4552D">{{ mapRadius }} km</span></div>
+        <input type="range" min="1" max="10" value="{{ mapRadius }}" onChange="{{ onMapRadius }}" style="width:100%;accent-color:#E86A4F;cursor:pointer">
+        <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:#A2917A"><span>1 km</span><span>10 km</span></div>
+      </div>
+      <div>
+        <div style="font:800 16px 'Bricolage Grotesque',sans-serif;margin-bottom:10px">Category</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <sc-for list="{{ mapCats }}" as="mc" hint-placeholder-count="6">
+            <div onClick="{{ mc.onPick }}" style="background:{{ mc.bg }};border:1.5px solid {{ mc.border }};color:{{ mc.color }};border-radius:999px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap" style-hover="transform:translateY(-2px)">{{ mc.icon }} {{ mc.name }}</div>
+          </sc-for>
+        </div>
+      </div>
+      <div>
+        <div style="font:800 16px 'Bricolage Grotesque',sans-serif;margin-bottom:10px">Price</div>
+        <div style="display:flex;gap:8px">
+          <div style="flex:1;background:#fff;border:1.5px solid #E9DDC8;border-radius:12px;padding:10px 14px;font-size:13px;font-weight:700;color:#9C8F79">₹ min</div>
+          <div style="flex:1;background:#fff;border:1.5px solid #E9DDC8;border-radius:12px;padding:10px 14px;font-size:13px;font-weight:700;color:#9C8F79">₹ max</div>
+        </div>
+      </div>
+      <div style="background:#E7F0EC;border-radius:16px;padding:16px 18px;font-size:13px;color:#2F6B60;line-height:1.55;font-weight:600">💡 Tip: save this search and we'll ping you when something new pops up nearby.</div>
+      <div onClick="{{ goHome }}" style="margin-top:auto;text-align:center;background:#fff;border:2px solid #2E2A24;border-radius:999px;padding:12px 0;font-weight:800;font-size:14px;cursor:pointer" style-hover="border-color:#E86A4F;color:#B4552D">← Back to home</div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ============ PRODUCT ============ -->
+  <sc-if value="{{ isProduct }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="Product" style="max-width:1240px;margin:0 auto;box-sizing:border-box;width:100%">
+    <div style="padding:16px 36px 8px;font-size:13px;color:#A2917A;font-weight:600"><span onClick="{{ goHome }}" style="cursor:pointer;color:#B4552D">← Browse</span> → 🎸 Music → <span style="color:#2E2A24">Acoustic guitar</span></div>
+    <div style="display:grid;grid-template-columns:560px 1fr;gap:34px;padding:14px 36px 40px">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="height:420px;border-radius:22px;background:repeating-linear-gradient(45deg,#F1E9DB 0 10px,#E4D7C1 10px 20px);display:grid;place-items:center;font:12px ui-monospace,monospace;color:#8A7A5E;position:relative">main product photo
+          <div style="position:absolute;top:14px;left:14px;background:#2E2A24;color:#FBF6ED;font-size:12px;font-weight:700;border-radius:999px;padding:4px 12px;white-space:nowrap">📍 1.1 km · Koramangala</div>
+          <div onClick="{{ toggleLike }}" style="position:absolute;top:14px;right:14px;width:42px;height:42px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:18px;cursor:pointer;box-shadow:0 3px 8px rgba(60,45,20,.15);color:{{ likeColor }}" style-hover="transform:scale(1.12)">{{ likeIcon }}</div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <sc-for list="{{ pdThumbs }}" as="t" hint-placeholder-count="4">
+            <div style="width:88px;height:70px;border-radius:12px;background:repeating-linear-gradient({{ t.angle }},#F1E9DB 0 7px,#E4D7C1 7px 14px);display:grid;place-items:center;font:9.5px ui-monospace,monospace;color:#8A7A5E;cursor:pointer;border:2px solid transparent" style-hover="border-color:#F2A93B">{{ t.label }}</div>
+          </sc-for>
+        </div>
+        <div style="margin-top:10px;background:#fff;border:1.5px solid #EEE3CE;border-radius:18px;padding:20px 22px">
+          <div style="font:800 17px 'Bricolage Grotesque',sans-serif;margin-bottom:14px">This guitar's story 📖</div>
+          <div style="display:flex;flex-direction:column">
+            <sc-for list="{{ pdTimeline }}" as="tl" hint-placeholder-count="3">
+              <div style="display:flex;gap:14px">
+                <div style="display:flex;flex-direction:column;align-items:center">
+                  <div style="width:12px;height:12px;border-radius:50%;background:{{ tl.dot }};flex:none;margin-top:4px"></div>
+                  <div style="width:2px;flex:1;background:#EEE3CE"></div>
+                </div>
+                <div style="padding-bottom:16px">
+                  <div style="font-weight:700;font-size:13.5px">{{ tl.title }} <span style="color:#A2917A;font-weight:600;font-size:12px">· {{ tl.when }}</span></div>
+                  <div style="font-size:13px;color:#6E6250;line-height:1.5">{{ tl.text }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div>
+          <h1 style="margin:0 0 6px;font:800 32px/1.15 'Bricolage Grotesque',sans-serif;letter-spacing:-.8px">Yamaha F310 acoustic guitar</h1>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="font:800 34px 'Bricolage Grotesque',sans-serif;color:#B4552D">₹3,200</div>
+            <div style="background:#E7F0EC;color:#2F6B60;border-radius:999px;padding:4px 12px;font-size:12px;font-weight:700;white-space:nowrap">negotiable</div>
+            <div style="font-size:13px;color:#A2917A;font-weight:600">listed 2 days ago</div>
+          </div>
+        </div>
+        <div style="background:#FCEED3;border-radius:4px 18px 18px 18px;padding:16px 20px;font-size:14.5px;line-height:1.65;color:#6B5320;font-style:italic">“This guitar got me through 3 years of hostel life. Selling because I finally upgraded — it deserves someone who'll actually play it.”</div>
+        <div style="display:flex;align-items:center;gap:14px;background:#fff;border:1.5px solid #EEE3CE;border-radius:16px;padding:14px 18px">
+          <div style="width:48px;height:48px;border-radius:50%;background:#3E9B8F;display:grid;place-items:center;color:#fff;font:800 18px 'Bricolage Grotesque',sans-serif">R</div>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:15px">Rohan T. <span style="color:#F2A93B">★ 4.9</span></div>
+            <div style="font-size:12.5px;color:#A2917A;font-weight:600">11 items sold · usually replies in 10 min</div>
+          </div>
+          <div onClick="{{ goProfile }}" style="font-size:13px;font-weight:700;color:#B4552D;cursor:pointer" style-hover="color:#8E3F1E">view profile →</div>
+        </div>
+        <div style="display:flex;gap:12px">
+          <div onClick="{{ goChat }}" style="flex:1;text-align:center;background:#2E2A24;color:#FBF6ED;border-radius:999px;padding:15px 0;font-weight:800;font-size:15.5px;cursor:pointer" style-hover="background:#E86A4F">💬 Chat with Rohan</div>
+          <div onClick="{{ goChat }}" style="flex:1;text-align:center;background:#fff;border:2px solid #2E2A24;border-radius:999px;padding:13px 0;font-weight:800;font-size:15.5px;cursor:pointer" style-hover="border-color:#E86A4F;color:#B4552D">Make an offer</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <sc-for list="{{ pdFacts }}" as="fa" hint-placeholder-count="4">
+            <div style="background:#fff;border:1.5px solid #EEE3CE;border-radius:14px;padding:12px 16px">
+              <div style="font-size:11.5px;font-weight:700;color:#A2917A;text-transform:uppercase;letter-spacing:.5px">{{ fa.k }}</div>
+              <div style="font-weight:700;font-size:14.5px;margin-top:3px">{{ fa.v }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;align-items:center;gap:18px;background:#E7F0EC;border-radius:18px;padding:16px 20px">
+          <div style="position:relative;width:84px;height:84px;flex:none">
+            <div style="position:absolute;inset:0;border-radius:50%;border:1.5px dashed #9DBFB2"></div>
+            <div style="position:absolute;inset:22px;border-radius:50%;border:1.5px dashed #9DBFB2"></div>
+            <div style="position:absolute;left:50%;top:50%;width:10px;height:10px;transform:translate(-50%,-50%);border-radius:50%;background:#E86A4F"></div>
+            <div style="position:absolute;left:14px;top:16px;width:22px;height:22px;border-radius:50%;border:2px solid #fff;background:repeating-linear-gradient(45deg,#DCE9E2 0 4px,#C7DBD1 4px 8px)"></div>
+          </div>
+          <div>
+            <div style="font-weight:800;font-size:14.5px;color:#2F6B60">Pickup near 5th Block, Koramangala</div>
+            <div style="font-size:13px;color:#57776D;line-height:1.5">Exact spot shared after you chat. Public meetup points suggested.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ============ SELL ============ -->
+  <sc-if value="{{ isSell }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="Sell" style="max-width:1240px;margin:0 auto;box-sizing:border-box;width:100%;position:relative">
+    <sc-if value="{{ sellDone }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;background:rgba(251,246,237,.94);z-index:10;display:grid;place-items:center">
+        <div style="text-align:center;animation:bd-pop .3s ease-out;display:flex;flex-direction:column;gap:14px;align-items:center">
+          <div style="width:92px;height:92px;border-radius:50%;background:#2F6B60;display:grid;place-items:center;font-size:42px;transform:rotate(-6deg)">🎉</div>
+          <div style="font:800 34px 'Bricolage Grotesque',sans-serif;letter-spacing:-1px">Bech diya!</div>
+          <div style="font-size:15px;color:#6E6250;max-width:340px;line-height:1.6">Your guitar is live. We pinged <b>~40 people nearby</b> who were looking for one.</div>
+          <div style="display:flex;gap:10px;margin-top:6px">
+            <div onClick="{{ goProduct }}" style="background:#2E2A24;color:#FBF6ED;border-radius:999px;padding:13px 26px;font-weight:800;font-size:14.5px;cursor:pointer" style-hover="background:#E86A4F">View listing →</div>
+            <div onClick="{{ goProfile }}" style="background:#fff;border:2px solid #2E2A24;border-radius:999px;padding:11px 24px;font-weight:800;font-size:14.5px;cursor:pointer" style-hover="border-color:#E86A4F;color:#B4552D">My listings</div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+    <div style="display:grid;grid-template-columns:1fr 400px;gap:34px;padding:34px 36px 44px">
+      <div style="display:flex;flex-direction:column;gap:22px">
+        <h1 style="margin:0;font:800 36px 'Bricolage Grotesque',sans-serif;letter-spacing:-1px">What are you letting go? 👋</h1>
+        <div style="display:flex;gap:12px">
+          <div style="flex:1;height:170px;border:2.5px dashed #E0B45C;border-radius:20px;background:#FDF4DE;display:grid;place-items:center;text-align:center;cursor:pointer" style-hover="background:#FCEED3;border-color:#E86A4F">
+            <div><div style="font-size:26px;margin-bottom:6px">📸</div><div style="font-weight:800;font-size:15px">Drop photos here</div><div style="font-size:12.5px;color:#A2917A;font-weight:600">up to 6 · first one becomes the cover</div></div>
+          </div>
+          <div style="width:120px;height:170px;border-radius:16px;background:repeating-linear-gradient(45deg,#F1E9DB 0 8px,#E4D7C1 8px 16px);display:grid;place-items:center;font:10px ui-monospace,monospace;color:#8A7A5E;position:relative">photo 1
+            <div style="position:absolute;top:8px;left:8px;background:#2E2A24;color:#FBF6ED;font-size:10px;font-weight:800;border-radius:6px;padding:2px 7px">cover</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-weight:800;font-size:14px;margin-bottom:8px">Give it a name</div>
+          <input value="{{ sellTitle }}" onChange="{{ onSellTitle }}" style="width:100%;box-sizing:border-box;background:#fff;border:1.5px solid #E9DDC8;border-radius:14px;padding:14px 18px;font-size:15.5px;font-weight:600;font-family:Karla,sans-serif;color:#2E2A24;outline:none">
+        </div>
+        <div>
+          <div style="font-weight:800;font-size:14px;margin-bottom:8px">Where does it belong?</div>
+          <div style="display:flex;flex-wrap:wrap;gap:9px">
+            <sc-for list="{{ sellCats }}" as="sc" hint-placeholder-count="6">
+              <div onClick="{{ sc.onPick }}" style="background:{{ sc.bg }};border:1.5px solid {{ sc.border }};color:{{ sc.color }};border-radius:999px;padding:9px 16px;font-size:13.5px;font-weight:700;cursor:pointer;white-space:nowrap" style-hover="transform:translateY(-2px)">{{ sc.icon }} {{ sc.name }}</div>
+            </sc-for>
+          </div>
+        </div>
+        <div>
+          <div style="font-weight:800;font-size:14px;margin-bottom:8px">Your price</div>
+          <div style="display:flex;gap:14px;align-items:center">
+            <input value="{{ sellPrice }}" onChange="{{ onSellPrice }}" style="background:#fff;border:1.5px solid #E9DDC8;border-radius:14px;padding:14px 18px;font:800 22px 'Bricolage Grotesque',sans-serif;color:#B4552D;width:150px;outline:none">
+            <div style="background:#E7F0EC;border-radius:12px;padding:10px 16px;font-size:13px;color:#2F6B60;font-weight:600;line-height:1.45">💡 Similar guitars near you sold for <b>₹2,800–3,500</b> — you're in the sweet spot.</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-weight:800;font-size:14px;margin-bottom:8px">Tell its story <span style="color:#A2917A;font-weight:600">(listings with a story sell 2× faster)</span></div>
+          <textarea onChange="{{ onSellNote }}" value="{{ sellNote }}" rows="3" style="width:100%;box-sizing:border-box;background:#fff;border:1.5px solid #E9DDC8;border-radius:14px;padding:16px 18px;font-size:14.5px;line-height:1.6;color:#4E4536;font-style:italic;font-family:Karla,sans-serif;outline:none;resize:vertical"></textarea>
+        </div>
+        <div onClick="{{ publishListing }}" style="align-self:flex-start;background:#2E2A24;color:#FBF6ED;border-radius:999px;padding:15px 34px;font-weight:800;font-size:16px;cursor:pointer" style-hover="background:#E86A4F;transform:rotate(-1.5deg)">Bech de! →</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:12px;font-weight:800;color:#A2917A;text-transform:uppercase;letter-spacing:1px">Live preview · how buyers see it</div>
+        <div style="background:#fff;border:1.5px solid #EEE3CE;border-radius:20px;overflow:hidden;box-shadow:0 14px 30px rgba(60,45,20,.1);transform:rotate(1.2deg)">
+          <div style="height:190px;background:repeating-linear-gradient(45deg,#F1E9DB 0 9px,#E4D7C1 9px 18px);display:grid;place-items:center;font:11px ui-monospace,monospace;color:#8A7A5E;position:relative">cover photo
+            <div style="position:absolute;top:12px;left:12px;background:#2E2A24;color:#FBF6ED;font-size:11px;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap">📍 0 km · that's you!</div>
+          </div>
+          <div style="padding:16px 18px;display:flex;flex-direction:column;gap:7px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><div style="font-weight:800;font-size:16px">{{ sellTitle }}</div><div style="font:800 18px 'Bricolage Grotesque',sans-serif;color:#B4552D;white-space:nowrap">₹{{ sellPrice }}</div></div>
+            <div style="font-size:12.5px;font-style:italic;color:#8A7A5E;line-height:1.5">“{{ sellNotePreview }}”</div>
+            <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:#6E6250;font-weight:600"><span style="width:20px;height:20px;border-radius:50%;background:#3E9B8F;flex:none"></span>{{ name }} · new seller ✨</div>
+          </div>
+        </div>
+        <div style="background:#FCEED3;border-radius:14px;padding:14px 18px;font-size:13px;color:#6B5320;line-height:1.55;margin-top:8px">🔔 We'll ping the <b>~40 people within 3 km</b> with saved searches for “{{ sellPingWord }}”.</div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ============ CHAT ============ -->
+  <sc-if value="{{ isChat }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="Chat" style="flex:1;display:grid;grid-template-columns:340px 1fr;min-height:calc(100vh - 76px)">
+    <div style="border-right:1.5px dashed #E3D6BF;padding:22px 0;display:flex;flex-direction:column">
+      <div style="padding:0 22px 16px;font:800 22px 'Bricolage Grotesque',sans-serif;letter-spacing:-.5px">Chats</div>
+      <sc-for list="{{ chatList }}" as="cl" hint-placeholder-count="4">
+        <div style="display:flex;gap:12px;padding:13px 22px;cursor:pointer;background:{{ cl.bg }}" style-hover="background:#F6EEDD">
+          <div style="position:relative;flex:none">
+            <div style="width:46px;height:46px;border-radius:14px;background:repeating-linear-gradient({{ cl.angle }},#F1E9DB 0 6px,#E4D7C1 6px 12px)"></div>
+            <div style="position:absolute;right:-5px;bottom:-5px;width:22px;height:22px;border-radius:50%;background:{{ cl.avatar }};border:2px solid #FBF6ED;display:grid;place-items:center;color:#fff;font:800 10px 'Bricolage Grotesque',sans-serif">{{ cl.initial }}</div>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;justify-content:space-between;gap:8px"><span style="font-weight:800;font-size:13.5px">{{ cl.item }}</span><span style="font-size:11px;color:#A2917A;font-weight:700;white-space:nowrap">{{ cl.time }}</span></div>
+            <div style="font-size:12.5px;color:#8A7A5E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ cl.last }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 26px;border-bottom:1.5px dashed #E3D6BF;background:#fff">
+        <div style="width:52px;height:52px;border-radius:14px;background:repeating-linear-gradient(60deg,#F1E9DB 0 6px,#E4D7C1 6px 12px);flex:none;cursor:pointer" onClick="{{ goProduct }}"></div>
+        <div style="flex:1">
+          <div style="font-weight:800;font-size:15px">Yamaha F310 acoustic guitar</div>
+          <div style="font-size:12.5px;color:#A2917A;font-weight:600">with Rohan T. · ★ 4.9 · 1.1 km away</div>
+        </div>
+        <div style="font:800 20px 'Bricolage Grotesque',sans-serif;color:#B4552D">₹3,200</div>
+      </div>
+      <div style="flex:1;padding:24px 26px;display:flex;flex-direction:column;gap:14px;background:radial-gradient(circle at 80% 10%,#F6EEDD 0%,#FBF6ED 55%)">
+        <div style="align-self:center;background:#EFE7DA;color:#8A7A5E;font-size:11.5px;font-weight:700;border-radius:999px;padding:4px 14px">Today, 4:12 PM</div>
+        <div style="align-self:flex-end;max-width:420px;background:#2E2A24;color:#FBF6ED;border-radius:18px 4px 18px 18px;padding:12px 16px;font-size:14.5px;line-height:1.55">Hi! Is the guitar still available? Are the strings original?</div>
+        <div style="align-self:flex-start;max-width:420px;background:#fff;border:1.5px solid #EEE3CE;border-radius:4px 18px 18px 18px;padding:12px 16px;font-size:14.5px;line-height:1.55">Yes, available! Changed the strings 3 months ago — D'Addario. Sounds warm 🙂</div>
+        <sc-if value="{{ offerPending }}" hint-placeholder-val="{{ true }}">
+          <div style="align-self:flex-end;background:#FCEED3;border:1.5px dashed #E0B45C;border-radius:16px;padding:14px 18px;display:flex;align-items:center;gap:16px">
+            <div>
+              <div style="font-size:11px;font-weight:800;color:#9A6B14;text-transform:uppercase;letter-spacing:.5px">Your offer</div>
+              <div style="font:800 22px 'Bricolage Grotesque',sans-serif;color:#B4552D">₹2,900</div>
+            </div>
+            <div style="font-size:12.5px;color:#9A6B14;font-weight:700">waiting for Rohan…</div>
+            <div onClick="{{ acceptOffer }}" style="background:#2F6B60;color:#fff;border-radius:999px;padding:8px 18px;font-size:13px;font-weight:800;cursor:pointer" style-hover="background:#3E9B8F">simulate: Rohan accepts ✓</div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ offerAccepted }}" hint-placeholder-val="{{ false }}">
+          <div style="align-self:center;background:#E7F0EC;border:1.5px solid #BFD8CE;border-radius:16px;padding:16px 24px;text-align:center;animation:bd-pop .3s ease-out">
+            <div style="font-size:22px;margin-bottom:4px">🤝</div>
+            <div style="font:800 18px 'Bricolage Grotesque',sans-serif;color:#2F6B60">Deal at ₹2,900!</div>
+            <div style="font-size:12.5px;color:#57776D;font-weight:600">Rohan accepted your offer</div>
+          </div>
+          <div style="align-self:flex-start;background:#E7F0EC;border-radius:16px;padding:14px 18px;max-width:400px;animation:bd-pop .35s ease-out">
+            <div style="font-size:11px;font-weight:800;color:#2F6B60;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">📍 Meet-up suggestion</div>
+            <div style="font-weight:800;font-size:14.5px;color:#12332E">Third Wave Coffee, 5th Block</div>
+            <div style="font-size:12.5px;color:#57776D;margin:2px 0 10px">Tomorrow · 6:00 PM · public spot, well lit</div>
+            <div style="display:flex;gap:8px">
+              <div style="background:#2F6B60;color:#fff;border-radius:999px;padding:7px 16px;font-size:12.5px;font-weight:800;cursor:pointer" style-hover="background:#3E9B8F">Works for me ✓</div>
+              <div style="background:#fff;color:#2F6B60;border-radius:999px;padding:7px 16px;font-size:12.5px;font-weight:800;cursor:pointer">Suggest another</div>
+            </div>
+          </div>
+        </sc-if>
+        <sc-for list="{{ sentMsgs }}" as="sm" hint-placeholder-count="0">
+          <div style="align-self:flex-end;max-width:420px;background:#2E2A24;color:#FBF6ED;border-radius:18px 4px 18px 18px;padding:12px 16px;font-size:14.5px;line-height:1.55;animation:bd-pop .25s ease-out">{{ sm }}</div>
+        </sc-for>
+      </div>
+      <div style="padding:16px 26px;border-top:1.5px dashed #E3D6BF;background:#FBF6ED">
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+          <sc-for list="{{ quickReplies }}" as="q" hint-placeholder-count="3">
+            <div onClick="{{ q.onSend }}" style="background:#fff;border:1.5px solid #E9DDC8;border-radius:999px;padding:7px 14px;font-size:12.5px;font-weight:700;color:#6E6250;cursor:pointer;white-space:nowrap;flex:none" style-hover="border-color:#F2A93B;color:#B4552D">{{ q.text }}</div>
+          </sc-for>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center">
+          <input value="{{ draft }}" onChange="{{ onDraft }}" onKeyDown="{{ onDraftKey }}" placeholder="Type a message…" style="flex:1;background:#fff;border:1.5px solid #E9DDC8;border-radius:999px;padding:13px 20px;font-size:14.5px;font-family:Karla,sans-serif;color:#2E2A24;outline:none">
+          <div onClick="{{ sendDraft }}" style="width:46px;height:46px;border-radius:50%;background:#E86A4F;display:grid;place-items:center;color:#fff;font-size:17px;cursor:pointer;flex:none" style-hover="transform:scale(1.08) rotate(-8deg)">➤</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ============ PROFILE ============ -->
+  <sc-if value="{{ isProfile }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="Profile" style="max-width:1240px;margin:0 auto;box-sizing:border-box;width:100%">
+    <div style="height:130px;background:repeating-linear-gradient(-45deg,#F2A93B 0 18px,#EFA032 18px 36px);position:relative;border-radius:0 0 26px 26px">
+      <div style="position:absolute;left:36px;bottom:-44px;width:104px;height:104px;border-radius:32px;background:#3E9B8F;border:5px solid #FBF6ED;display:grid;place-items:center;color:#fff;font:800 38px 'Bricolage Grotesque',sans-serif;transform:rotate(-3deg)">{{ avatarInitial }}</div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:22px;padding:14px 36px 0 164px">
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:10px"><h1 style="margin:0;font:800 28px 'Bricolage Grotesque',sans-serif;letter-spacing:-.7px">{{ name }}</h1><span style="background:#E7F0EC;color:#2F6B60;border-radius:999px;padding:4px 12px;font-size:12px;font-weight:800;white-space:nowrap">✓ phone verified</span></div>
+        <div style="font-size:13.5px;color:#8A7A5E;font-weight:600;margin-top:3px">Koramangala, Bengaluru · joined Jul 2026 · “hostel room minimalist in progress”</div>
+      </div>
+      <div style="display:flex;gap:26px;padding-bottom:4px">
+        <sc-for list="{{ profStats }}" as="ps" hint-placeholder-count="3">
+          <div style="text-align:center"><div style="font:800 24px 'Bricolage Grotesque',sans-serif;color:#B4552D;white-space:nowrap">{{ ps.v }}</div><div style="font-size:11.5px;font-weight:700;color:#A2917A;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">{{ ps.k }}</div></div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;padding:18px 36px 0;flex-wrap:wrap">
+      <sc-for list="{{ profBadges }}" as="pb" hint-placeholder-count="3">
+        <div style="display:flex;align-items:center;gap:7px;background:#fff;border:1.5px solid #EEE3CE;border-radius:999px;padding:7px 15px;font-size:12.5px;font-weight:700;color:#6E6250;white-space:nowrap;flex:none">{{ pb }}</div>
+      </sc-for>
+    </div>
+    <div style="display:flex;gap:26px;padding:24px 36px 0;border-bottom:1.5px dashed #E3D6BF;font-weight:800;font-size:14.5px">
+      <sc-for list="{{ profTabs }}" as="pt" hint-placeholder-count="4">
+        <div onClick="{{ pt.onPick }}" style="padding-bottom:12px;border-bottom:3px solid {{ pt.line }};color:{{ pt.color }};cursor:pointer" style-hover="color:#2E2A24">{{ pt.label }}</div>
+      </sc-for>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;padding:24px 36px 40px">
+      <sc-for list="{{ profGrid }}" as="pl" hint-placeholder-count="4">
+        <div onClick="{{ goProduct }}" style="background:#fff;border:1.5px solid #EEE3CE;border-radius:18px;overflow:hidden;cursor:pointer" style-hover="transform:translateY(-4px);box-shadow:0 10px 24px rgba(60,45,20,.1)">
+          <div style="height:130px;background:repeating-linear-gradient({{ pl.angle }},#F1E9DB 0 8px,#E4D7C1 8px 16px);display:grid;place-items:center;font:10px ui-monospace,monospace;color:#8A7A5E;position:relative">product photo
+            <div style="position:absolute;top:10px;left:10px;background:{{ pl.tagBg }};color:{{ pl.tagColor }};font-size:11px;font-weight:800;border-radius:999px;padding:3px 10px;white-space:nowrap">{{ pl.tag }}</div>
+          </div>
+          <div style="padding:13px 15px;display:flex;flex-direction:column;gap:5px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><div style="font-weight:700;font-size:14px">{{ pl.name }}</div><div style="font:800 15px 'Bricolage Grotesque',sans-serif;color:#B4552D;white-space:nowrap">{{ pl.price }}</div></div>
+            <div style="font-size:12px;color:#A2917A;font-weight:600">{{ pl.meta }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+</div>
+</sc-if>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    screen: "signup", otpStage: false,
+    phone: "", name: "Aisha",
+    radiusKm: 3, mapRadius: 3, activeCat: "All",
+    liked: false, offerAccepted: false, sellDone: false,
+    sellTitle: "Yamaha F310 acoustic guitar", sellPrice: "3,200", sellCat: "Music",
+    sellNote: "This guitar got me through 3 years of hostel life. Selling because I finally upgraded — it deserves someone who'll actually play it.",
+    draft: "", sentMsgs: [], profTab: "listings",
+  };
+
+  go(screen) { this.setState({ screen }); window.scrollTo(0, 0); }
+
+  renderVals() {
+    const s = this.state;
+    const catStyle = (active) => active
+      ? { bg: "#2E2A24", border: "#2E2A24", color: "#FBF6ED" }
+      : { bg: "#fff", border: "#E9DDC8", color: "#4E4536" };
+
+    const allBubbles = [
+      { x: 96,  y: 74,  size: 64, label: "desk lamp",  price: "₹450",    dur: "3.4s", delay: "0s",   angle: "45deg", km: 1 },
+      { x: 388, y: 60,  size: 78, label: "acoustic guitar", price: "₹3,200", dur: "4.1s", delay: ".6s", angle: "60deg", km: 2 },
+      { x: 448, y: 232, size: 60, label: "sneakers",   price: "₹900",    dur: "3.1s", delay: ".3s",  angle: "30deg", km: 4 },
+      { x: 60,  y: 250, size: 72, label: "bookshelf",  price: "₹1,500",  dur: "3.8s", delay: ".9s",  angle: "75deg", km: 3 },
+      { x: 170, y: 372, size: 66, label: "iPhone 12",  price: "₹22,000", dur: "3.5s", delay: ".2s",  angle: "45deg", km: 2 },
+      { x: 356, y: 356, size: 58, label: "kettle",     price: "₹350",    dur: "3s",   delay: ".7s",  angle: "60deg", km: 5 },
+      { x: 262, y: 34,  size: 56, label: "denim jacket", price: "₹700",  dur: "3.6s", delay: ".4s",  angle: "30deg", km: 1 },
+    ];
+
+    const mapItemsAll = [
+      { x: "22%", y: "18%", size: 62, label: "desk lamp",   price: "₹450",    cat: "Furniture", km: 2, dur: "3.4s", delay: "0s",  angle: "45deg" },
+      { x: "64%", y: "12%", size: 76, label: "guitar",      price: "₹3,200",  cat: "Everything", km: 2, dur: "4.1s", delay: ".6s", angle: "60deg" },
+      { x: "80%", y: "38%", size: 58, label: "sneakers",    price: "₹900",    cat: "Fashion",   km: 5, dur: "3.1s", delay: ".3s", angle: "30deg" },
+      { x: "12%", y: "48%", size: 70, label: "bookshelf",   price: "₹1,500",  cat: "Furniture", km: 3, dur: "3.8s", delay: ".9s", angle: "75deg" },
+      { x: "30%", y: "72%", size: 66, label: "iPhone 12",   price: "₹22,000", cat: "Gadgets",   km: 2, dur: "3.5s", delay: ".2s", angle: "45deg" },
+      { x: "62%", y: "76%", size: 56, label: "kettle",      price: "₹350",    cat: "Everything", km: 6, dur: "3s",  delay: ".7s", angle: "60deg" },
+      { x: "45%", y: "22%", size: 54, label: "denim jacket", price: "₹700",   cat: "Fashion",   km: 1, dur: "3.6s", delay: ".4s", angle: "30deg" },
+      { x: "74%", y: "60%", size: 64, label: "monitor 24\"", price: "₹5,500", cat: "Gadgets",   km: 4, dur: "3.3s", delay: ".5s", angle: "75deg" },
+      { x: "18%", y: "30%", size: 52, label: "bean bag",    price: "₹950",    cat: "Furniture", km: 7, dur: "3.7s", delay: ".1s", angle: "45deg" },
+      { x: "52%", y: "58%", size: 58, label: "kindle",      price: "₹4,800",  cat: "Gadgets",   km: 3, dur: "3.2s", delay: ".8s", angle: "60deg" },
+      { x: "38%", y: "40%", size: 50, label: "wall mirror", price: "₹400",    cat: "Furniture", km: 1, dur: "3.9s", delay: ".35s", angle: "30deg" },
+    ];
+    const catNames = ["All", "Gadgets", "Furniture", "Fashion", "Books", "Everything"];
+    const catIcons = { All: "✨", Gadgets: "📱", Furniture: "🛋️", Fashion: "👕", Books: "📚", Everything: "🧺" };
+    const visible = (m) => m.km <= s.mapRadius && (s.activeCat === "All" || m.cat === s.activeCat);
+    const mapCount = mapItemsAll.filter(visible).length;
+
+    const sellCatNames = [
+      { icon: "📱", name: "Gadgets" }, { icon: "🛋️", name: "Furniture" }, { icon: "🎸", name: "Music" },
+      { icon: "👕", name: "Fashion" }, { icon: "📚", name: "Books" }, { icon: "✨", name: "Everything else" },
+    ];
+
+    const tabs = [
+      { key: "listings", label: "My listings · 2" },
+      { key: "sold", label: "Sold · 1" },
+      { key: "saved", label: "Saved ♡ · " + (s.liked ? 2 : 1) },
+      { key: "reviews", label: "Reviews · 1" },
+    ];
+    const grids = {
+      listings: [
+        { name: "Yamaha F310 guitar", price: "₹3,200", meta: "23 views · 3 chats", tag: "● Active", tagBg: "#E7F0EC", tagColor: "#2F6B60", angle: "60deg" },
+        { name: "Desk lamp", price: "₹450", meta: "9 views · 1 chat", tag: "● Active", tagBg: "#E7F0EC", tagColor: "#2F6B60", angle: "45deg" },
+      ],
+      sold: [
+        { name: "Boat Rockerz 550", price: "₹850", meta: "sold in 3 days 🎉", tag: "✓ Sold", tagBg: "#2E2A24", tagColor: "#FBF6ED", angle: "30deg" },
+      ],
+      saved: [
+        { name: "Study table + chair", price: "₹1,800", meta: "0.4 km away", tag: "♡ Saved", tagBg: "#FDE2D6", tagColor: "#B4552D", angle: "75deg" },
+      ].concat(s.liked ? [{ name: "Yamaha F310 guitar", price: "₹3,200", meta: "1.1 km away", tag: "♡ Saved", tagBg: "#FDE2D6", tagColor: "#B4552D", angle: "60deg" }] : []),
+      reviews: [
+        { name: "“Super smooth pickup”", price: "★ 5", meta: "from Kabir M. · buyer", tag: "review", tagBg: "#FCEED3", tagColor: "#9A6B14", angle: "45deg" },
+      ],
+    };
+
+    const sendMsg = (text) => this.setState((st) => ({ sentMsgs: st.sentMsgs.concat(text) }));
+    const noteTrim = s.sellNote.length > 70 ? s.sellNote.slice(0, 70) + "…" : s.sellNote;
+
+    return {
+      // routing
+      isSignup: s.screen === "signup", isApp: s.screen !== "signup",
+      isHome: s.screen === "home", isMap: s.screen === "map", isProduct: s.screen === "product",
+      isSell: s.screen === "sell", isChat: s.screen === "chat", isProfile: s.screen === "profile",
+      goHome: () => this.go("home"), goMap: () => this.go("map"), goProduct: () => this.go("product"),
+      goSell: () => { this.setState({ sellDone: false }); this.go("sell"); },
+      goChat: () => this.go("chat"), goProfile: () => this.go("profile"),
+      navMapColor: s.screen === "map" ? "#B4552D" : "#6E6250",
+      navChatColor: s.screen === "chat" ? "#B4552D" : "#6E6250",
+      // signup
+      otpStage: s.otpStage, notOtpStage: !s.otpStage,
+      phone: s.phone, onPhone: (e) => this.setState({ phone: e.target.value }),
+      name: s.name || "Aisha", onName: (e) => this.setState({ name: e.target.value }),
+      avatarInitial: (s.name || "A").trim().charAt(0).toUpperCase() || "A",
+      sendOtp: () => this.setState({ otpStage: true }),
+      // home
+      radiusKm: s.radiusKm, ringPx: 130 + s.radiusKm * 35,
+      onRadius: (e) => this.setState({ radiusKm: Number(e.target.value) }),
+      nearbyCount: 120 + s.radiusKm * 31,
+      cats: sellCatNames.slice(0, 5).concat([{ icon: "✨", name: "Everything" }]),
+      bubbles: allBubbles,
+      feed: [
+        { name: "Study table + chair", price: "₹1,800", dist: "0.4 km", img: "product photo", note: "Survived two semesters of all-nighters. Solid wood, zero wobble.", seller: "Ananya S.", avatar: "#F2A93B" },
+        { name: "Boat Rockerz 550",    price: "₹850",   dist: "1.1 km", img: "product photo", note: "Bought a fancier pair, these still slap. Box included.",           seller: "Kabir M.", avatar: "#3E9B8F" },
+        { name: "Single mattress",     price: "₹1,200", dist: "1.8 km", img: "product photo", note: "Moving back home after graduation. Barely 8 months old.",         seller: "Priya R.", avatar: "#E86A4F" },
+        { name: "Cricket kit (full)",  price: "₹2,400", dist: "2.6 km", img: "product photo", note: "Bat, pads, gloves — retiring from gully cricket, sadly.",         seller: "Arjun V.", avatar: "#8A5A2B" },
+      ],
+      // map
+      mapRadius: s.mapRadius, mapRingPx: 220 + s.mapRadius * 54, mapCount,
+      onMapRadius: (e) => this.setState({ mapRadius: Number(e.target.value) }),
+      mapItems: mapItemsAll.map((m) => Object.assign({}, m, { display: visible(m) ? "flex" : "none" })),
+      mapCats: catNames.map((n) => Object.assign({ icon: catIcons[n], name: n, onPick: () => this.setState({ activeCat: n }) }, catStyle(s.activeCat === n))),
+      // product
+      toggleLike: () => this.setState({ liked: !s.liked }),
+      likeIcon: s.liked ? "♥" : "♡", likeColor: s.liked ? "#E86A4F" : "#2E2A24",
+      pdThumbs: [
+        { label: "front", angle: "45deg" }, { label: "back", angle: "60deg" },
+        { label: "headstock", angle: "30deg" }, { label: "with case", angle: "75deg" },
+      ],
+      pdTimeline: [
+        { dot: "#F2A93B", title: "Bought new", when: "Jun 2023", text: "From Furtados, MG Road. Bill and warranty card included." },
+        { dot: "#3E9B8F", title: "Well loved", when: "2023–2026", text: "Hostel jam sessions, two open mics, zero drops. New strings 3 months ago." },
+        { dot: "#E86A4F", title: "Listed on Bech De", when: "2 days ago", text: "Upgraded to an electro-acoustic. This one needs a new home." },
+      ],
+      pdFacts: [
+        { k: "Condition", v: "Great · minor scuffs" }, { k: "Age", v: "3 years" },
+        { k: "Includes", v: "Soft case + picks" }, { k: "Reason", v: "Upgraded" },
+      ],
+      // sell
+      sellDone: s.sellDone,
+      publishListing: () => this.setState({ sellDone: true }),
+      sellTitle: s.sellTitle, onSellTitle: (e) => this.setState({ sellTitle: e.target.value }),
+      sellPrice: s.sellPrice, onSellPrice: (e) => this.setState({ sellPrice: e.target.value }),
+      sellNote: s.sellNote, onSellNote: (e) => this.setState({ sellNote: e.target.value }),
+      sellNotePreview: noteTrim,
+      sellPingWord: (s.sellTitle.split(" ").pop() || "guitar").toLowerCase(),
+      sellCats: sellCatNames.map((c) => Object.assign({ icon: c.icon, name: c.name, onPick: () => this.setState({ sellCat: c.name }) }, catStyle(s.sellCat === c.name))),
+      // chat
+      offerPending: !s.offerAccepted, offerAccepted: s.offerAccepted,
+      acceptOffer: () => this.setState({ offerAccepted: true }),
+      chatList: [
+        { item: "Yamaha F310 guitar", last: s.offerAccepted ? "Deal at ₹2,900 🤝" : "Offer made: ₹2,900", time: "4:26 PM", initial: "R", avatar: "#3E9B8F", bg: "#F6EEDD", angle: "60deg" },
+        { item: "Study table + chair", last: "Can you do ₹1,500?", time: "1:10 PM", initial: "A", avatar: "#F2A93B", bg: "transparent", angle: "45deg" },
+        { item: "Boat Rockerz 550", last: "You: sold, congrats! 🎉", time: "Mon", initial: "K", avatar: "#E86A4F", bg: "transparent", angle: "30deg" },
+        { item: "Mini fridge", last: "Is it still available?", time: "Sun", initial: "P", avatar: "#8A5A2B", bg: "transparent", angle: "75deg" },
+      ],
+      quickReplies: ["Is it available?", "Last price?", "Can I see it today?"].map((t) => ({ text: t, onSend: () => sendMsg(t) })),
+      sentMsgs: s.sentMsgs,
+      draft: s.draft, onDraft: (e) => this.setState({ draft: e.target.value }),
+      onDraftKey: (e) => { if (e.key === "Enter" && s.draft.trim()) { sendMsg(s.draft.trim()); this.setState({ draft: "" }); } },
+      sendDraft: () => { if (s.draft.trim()) { sendMsg(s.draft.trim()); this.setState({ draft: "" }); } },
+      // profile
+      profStats: [
+        { v: "1", k: "sold" }, { v: "★ 5.0", k: "rating" }, { v: "4 min", k: "avg reply" },
+      ],
+      profBadges: ["🤝 Reliable meeter — never flaked", "⚡ Fast replier", "🌱 Gave 1 thing a second life"],
+      profTabs: tabs.map((t) => ({
+        label: t.label,
+        onPick: () => this.setState({ profTab: t.key }),
+        line: s.profTab === t.key ? "#E86A4F" : "transparent",
+        color: s.profTab === t.key ? "#2E2A24" : "#A2917A",
+      })),
+      profGrid: grids[s.profTab] || grids.listings,
+    };
+  }
+}
+</script>
+</body>
+</html>

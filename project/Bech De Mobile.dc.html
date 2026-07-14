@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#f0eee9;font-family:Karla,system-ui,sans-serif;color:#2E2A24}a{color:#B4552D;text-decoration:none}a:hover{color:#8E3F1E}
+@keyframes bd-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes bd-pulse{0%{transform:scale(.6);opacity:.55}100%{transform:scale(1.6);opacity:0}}
+</style></helmet>
+
+<div style="padding:40px 44px">
+  <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:26px">
+    <span style="font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px">MOBILE</span>
+    <span style="font:600 13px system-ui,sans-serif">Bech De — app screens (Home radar · Product · Chat)</span>
+  </div>
+  <div style="display:flex;gap:36px;align-items:flex-start;flex-wrap:wrap">
+
+    <!-- HOME -->
+    <div data-screen-label="Mobile Home">
+    <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="390px,844px">
+      <div style="height:100%;background:#FBF6ED;display:flex;flex-direction:column;font-family:Karla,sans-serif;color:#2E2A24;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 18px 4px">
+          <div style="width:32px;height:32px;border-radius:10px 10px 10px 3px;background:#F2A93B;display:grid;place-items:center;font:800 16px 'Bricolage Grotesque',sans-serif;color:#3B2A10;transform:rotate(-6deg)">B</div>
+          <div style="font:800 20px 'Bricolage Grotesque',sans-serif">Bech De<span style="color:#E86A4F">.</span></div>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:5px;background:#F6EEDD;border-radius:999px;padding:5px 12px;font-size:11.5px;font-weight:700;color:#6E6250;white-space:nowrap">📍 Koramangala ▾</div>
+        </div>
+        <div style="margin:10px 18px 0;display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid #E9DDC8;border-radius:999px;padding:11px 16px;color:#9C8F79;font-size:13.5px">⌕ Search nearby…</div>
+        <!-- radar -->
+        <div style="position:relative;height:330px;display:grid;place-items:center;margin-top:6px">
+          <div style="position:absolute;width:300px;height:300px;border-radius:50%;border:1.5px dashed #DCCCAE"></div>
+          <div style="position:absolute;width:200px;height:200px;border-radius:50%;border:1.5px dashed #DCCCAE"></div>
+          <div style="position:absolute;width:110px;height:110px;border-radius:50%;border:1.5px dashed #DCCCAE"></div>
+          <div style="position:absolute;width:236px;height:236px;border-radius:50%;border:2.5px solid #F2A93B;box-shadow:0 0 0 6px rgba(242,169,59,.1)"></div>
+          <div style="position:absolute;display:grid;place-items:center">
+            <div style="position:absolute;width:36px;height:36px;border-radius:50%;background:#E86A4F;animation:bd-pulse 2.2s ease-out infinite"></div>
+            <div style="width:36px;height:36px;border-radius:50%;background:#E86A4F;border:2.5px solid #fff;box-shadow:0 3px 8px rgba(232,106,79,.45);display:grid;place-items:center;font-size:15px">🏠</div>
+          </div>
+          <sc-for list="{{ mBubbles }}" as="b" hint-placeholder-count="6">
+            <div style="position:absolute;left:{{ b.x }}px;top:{{ b.y }}px;display:flex;flex-direction:column;align-items:center;gap:3px;animation:bd-bob {{ b.dur }} ease-in-out infinite;animation-delay:{{ b.delay }}">
+              <div style="width:{{ b.size }}px;height:{{ b.size }}px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 3px 9px rgba(60,45,20,.18);background:repeating-linear-gradient({{ b.angle }},#EFE7DA 0 6px,#E0D2BA 6px 12px);display:grid;place-items:center;font:8.5px ui-monospace,monospace;color:#8A7A5E;text-align:center">{{ b.label }}</div>
+              <div style="background:#fff;border:1px solid #E9DDC8;border-radius:999px;padding:1px 7px;font-size:10px;font-weight:700;white-space:nowrap;box-shadow:0 2px 5px rgba(60,45,20,.1)">{{ b.price }}</div>
+            </div>
+          </sc-for>
+          <div style="position:absolute;bottom:2px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid #E9DDC8;border-radius:999px;padding:8px 16px;box-shadow:0 5px 14px rgba(60,45,20,.09)">
+            <span style="font-size:11px;font-weight:700;color:#6E6250;white-space:nowrap">Radius</span>
+            <input type="range" min="1" max="10" value="3" style="accent-color:#E86A4F;width:110px">
+            <span style="font:800 13px 'Bricolage Grotesque',sans-serif;color:#B4552D;white-space:nowrap">3 km</span>
+          </div>
+        </div>
+        <!-- feed -->
+        <div style="flex:1;overflow:hidden;padding:14px 18px 0">
+          <div style="font:800 18px 'Bricolage Grotesque',sans-serif;margin-bottom:10px">Fresh within 3 km</div>
+          <div style="display:flex;gap:12px">
+            <sc-for list="{{ mFeed }}" as="f" hint-placeholder-count="2">
+              <div style="flex:1;background:#fff;border:1.5px solid #EEE3CE;border-radius:16px;overflow:hidden">
+                <div style="height:86px;background:repeating-linear-gradient({{ f.angle }},#F1E9DB 0 7px,#E4D7C1 7px 14px);display:grid;place-items:center;font:9px ui-monospace,monospace;color:#8A7A5E;position:relative">photo
+                  <div style="position:absolute;top:7px;left:7px;background:#2E2A24;color:#FBF6ED;font-size:9.5px;font-weight:700;border-radius:999px;padding:2px 8px;white-space:nowrap">{{ f.dist }}</div>
+                </div>
+                <div style="padding:9px 11px">
+                  <div style="font-weight:700;font-size:12.5px">{{ f.name }}</div>
+                  <div style="font:800 13.5px 'Bricolage Grotesque',sans-serif;color:#B4552D">{{ f.price }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <!-- tab bar -->
+        <div style="display:flex;justify-content:space-around;align-items:center;padding:10px 10px 6px;border-top:1.5px dashed #E3D6BF;background:#FBF6ED">
+          <div style="text-align:center;color:#E86A4F"><div style="font-size:19px">🏠</div><div style="font-size:9.5px;font-weight:800">Home</div></div>
+          <div style="text-align:center;color:#A2917A"><div style="font-size:19px">🗺️</div><div style="font-size:9.5px;font-weight:700">Map</div></div>
+          <div style="width:52px;height:52px;border-radius:50%;background:#2E2A24;color:#FBF6ED;display:grid;place-items:center;font:800 22px 'Bricolage Grotesque',sans-serif;margin-top:-22px;border:4px solid #FBF6ED;box-shadow:0 6px 14px rgba(46,42,36,.3)">+</div>
+          <div style="text-align:center;color:#A2917A;position:relative"><div style="font-size:19px">💬</div><div style="font-size:9.5px;font-weight:700">Chats</div><div style="position:absolute;top:-3px;right:-6px;background:#E86A4F;color:#fff;font-size:8px;font-weight:800;border-radius:999px;padding:1px 5px">2</div></div>
+          <div style="text-align:center;color:#A2917A"><div style="font-size:19px">👤</div><div style="font-size:9.5px;font-weight:700">Me</div></div>
+        </div>
+      </div>
+    </x-import>
+    </div>
+
+    <!-- PRODUCT -->
+    <div data-screen-label="Mobile Product">
+    <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="390px,844px">
+      <div style="height:100%;background:#FBF6ED;display:flex;flex-direction:column;font-family:Karla,sans-serif;color:#2E2A24;overflow:hidden">
+        <div style="position:relative;height:290px;background:repeating-linear-gradient(45deg,#F1E9DB 0 9px,#E4D7C1 9px 18px);display:grid;place-items:center;font:11px ui-monospace,monospace;color:#8A7A5E;flex:none">main product photo
+          <div style="position:absolute;top:12px;left:14px;width:36px;height:36px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:15px;box-shadow:0 3px 8px rgba(60,45,20,.15)">←</div>
+          <div style="position:absolute;top:12px;right:14px;width:36px;height:36px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:15px;box-shadow:0 3px 8px rgba(60,45,20,.15);color:#E86A4F">♥</div>
+          <div style="position:absolute;bottom:12px;left:14px;background:#2E2A24;color:#FBF6ED;font-size:11px;font-weight:700;border-radius:999px;padding:3px 11px;white-space:nowrap">📍 1.1 km · Koramangala</div>
+        </div>
+        <div style="flex:1;padding:16px 18px;display:flex;flex-direction:column;gap:12px;overflow:hidden">
+          <div>
+            <div style="font:800 21px/1.2 'Bricolage Grotesque',sans-serif;letter-spacing:-.5px">Yamaha F310 acoustic guitar</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+              <div style="font:800 24px 'Bricolage Grotesque',sans-serif;color:#B4552D">₹3,200</div>
+              <div style="background:#E7F0EC;color:#2F6B60;border-radius:999px;padding:2px 10px;font-size:10.5px;font-weight:700;white-space:nowrap">negotiable</div>
+            </div>
+          </div>
+          <div style="background:#FCEED3;border-radius:3px 14px 14px 14px;padding:12px 14px;font-size:12.5px;line-height:1.55;color:#6B5320;font-style:italic">“This guitar got me through 3 years of hostel life. It deserves someone who'll actually play it.”</div>
+          <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid #EEE3CE;border-radius:14px;padding:10px 13px">
+            <div style="width:38px;height:38px;border-radius:50%;background:#3E9B8F;display:grid;place-items:center;color:#fff;font:800 15px 'Bricolage Grotesque',sans-serif">R</div>
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:13px">Rohan T. <span style="color:#F2A93B">★ 4.9</span></div>
+              <div style="font-size:10.5px;color:#A2917A;font-weight:600">11 sold · replies in 10 min</div>
+            </div>
+            <div style="font-size:11px;font-weight:800;color:#B4552D">profile →</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="background:#fff;border:1.5px solid #EEE3CE;border-radius:12px;padding:9px 12px"><div style="font-size:9.5px;font-weight:700;color:#A2917A;text-transform:uppercase;letter-spacing:.5px">Condition</div><div style="font-weight:700;font-size:12.5px;margin-top:2px">Great · minor scuffs</div></div>
+            <div style="background:#fff;border:1.5px solid #EEE3CE;border-radius:12px;padding:9px 12px"><div style="font-size:9.5px;font-weight:700;color:#A2917A;text-transform:uppercase;letter-spacing:.5px">Includes</div><div style="font-weight:700;font-size:12.5px;margin-top:2px">Soft case + picks</div></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;padding:12px 18px 8px;border-top:1.5px dashed #E3D6BF;background:#FBF6ED">
+          <div style="flex:1.4;text-align:center;background:#2E2A24;color:#FBF6ED;border-radius:999px;padding:14px 0;font-weight:800;font-size:14px">💬 Chat with Rohan</div>
+          <div style="flex:1;text-align:center;background:#fff;border:2px solid #2E2A24;border-radius:999px;padding:12px 0;font-weight:800;font-size:14px">Make offer</div>
+        </div>
+      </div>
+    </x-import>
+    </div>
+
+    <!-- CHAT -->
+    <div data-screen-label="Mobile Chat">
+    <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="390px,844px">
+      <div style="height:100%;background:#FBF6ED;display:flex;flex-direction:column;font-family:Karla,sans-serif;color:#2E2A24;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:11px;padding:12px 16px;border-bottom:1.5px dashed #E3D6BF;background:#fff">
+          <div style="font-size:16px">←</div>
+          <div style="width:40px;height:40px;border-radius:12px;background:repeating-linear-gradient(60deg,#F1E9DB 0 5px,#E4D7C1 5px 10px);flex:none"></div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:800;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Yamaha F310 guitar</div>
+            <div style="font-size:10.5px;color:#A2917A;font-weight:600">Rohan T. · ★ 4.9 · 1.1 km</div>
+          </div>
+          <div style="font:800 16px 'Bricolage Grotesque',sans-serif;color:#B4552D;white-space:nowrap">₹3,200</div>
+        </div>
+        <div style="flex:1;padding:16px;display:flex;flex-direction:column;gap:11px;background:radial-gradient(circle at 80% 10%,#F6EEDD 0%,#FBF6ED 55%);overflow:hidden">
+          <div style="align-self:center;background:#EFE7DA;color:#8A7A5E;font-size:10px;font-weight:700;border-radius:999px;padding:3px 12px">Today, 4:12 PM</div>
+          <div style="align-self:flex-end;max-width:250px;background:#2E2A24;color:#FBF6ED;border-radius:15px 3px 15px 15px;padding:10px 13px;font-size:13px;line-height:1.5">Hi! Is the guitar still available?</div>
+          <div style="align-self:flex-start;max-width:250px;background:#fff;border:1.5px solid #EEE3CE;border-radius:3px 15px 15px 15px;padding:10px 13px;font-size:13px;line-height:1.5">Yes! New strings 3 months ago. Sounds warm 🙂</div>
+          <div style="align-self:flex-end;background:#FCEED3;border:1.5px dashed #E0B45C;border-radius:14px;padding:11px 14px">
+            <div style="font-size:9.5px;font-weight:800;color:#9A6B14;text-transform:uppercase;letter-spacing:.5px">Your offer</div>
+            <div style="font:800 19px 'Bricolage Grotesque',sans-serif;color:#B4552D">₹2,900</div>
+          </div>
+          <div style="align-self:center;background:#E7F0EC;border:1.5px solid #BFD8CE;border-radius:14px;padding:12px 20px;text-align:center">
+            <div style="font-size:17px">🤝</div>
+            <div style="font:800 14.5px 'Bricolage Grotesque',sans-serif;color:#2F6B60">Deal at ₹2,900!</div>
+          </div>
+          <div style="align-self:flex-start;background:#E7F0EC;border-radius:14px;padding:11px 14px;max-width:265px">
+            <div style="font-size:9.5px;font-weight:800;color:#2F6B60;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">📍 Meet-up suggestion</div>
+            <div style="font-weight:800;font-size:12.5px;color:#12332E">Third Wave Coffee, 5th Block</div>
+            <div style="font-size:11px;color:#57776D;margin:1px 0 8px">Tomorrow · 6:00 PM</div>
+            <div style="display:flex;gap:6px">
+              <div style="background:#2F6B60;color:#fff;border-radius:999px;padding:6px 13px;font-size:11px;font-weight:800">Works ✓</div>
+              <div style="background:#fff;color:#2F6B60;border-radius:999px;padding:6px 13px;font-size:11px;font-weight:800">Another time</div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:10px 14px 8px;border-top:1.5px dashed #E3D6BF;background:#FBF6ED">
+          <div style="display:flex;gap:6px;margin-bottom:9px">
+            <div style="background:#fff;border:1.5px solid #E9DDC8;border-radius:999px;padding:5px 11px;font-size:10.5px;font-weight:700;color:#6E6250;white-space:nowrap">Is it available?</div>
+            <div style="background:#fff;border:1.5px solid #E9DDC8;border-radius:999px;padding:5px 11px;font-size:10.5px;font-weight:700;color:#6E6250;white-space:nowrap">Last price?</div>
+            <div style="background:#fff;border:1.5px solid #E9DDC8;border-radius:999px;padding:5px 11px;font-size:10.5px;font-weight:700;color:#6E6250;white-space:nowrap">📍 Meet-up</div>
+          </div>
+          <div style="display:flex;gap:9px;align-items:center">
+            <div style="flex:1;background:#fff;border:1.5px solid #E9DDC8;border-radius:999px;padding:11px 16px;font-size:13px;color:#9C8F79">Type a message…</div>
+            <div style="width:40px;height:40px;border-radius:50%;background:#E86A4F;display:grid;place-items:center;color:#fff;font-size:15px;flex:none">➤</div>
+          </div>
+        </div>
+      </div>
+    </x-import>
+    </div>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      mBubbles: [
+        { x: 52,  y: 52,  size: 48, label: "lamp",    price: "₹450",   dur: "3.4s", delay: "0s",  angle: "45deg" },
+        { x: 258, y: 44,  size: 58, label: "guitar",  price: "₹3,200", dur: "4.1s", delay: ".6s", angle: "60deg" },
+        { x: 300, y: 160, size: 44, label: "shoes",   price: "₹900",   dur: "3.1s", delay: ".3s", angle: "30deg" },
+        { x: 36,  y: 178, size: 52, label: "shelf",   price: "₹1,500", dur: "3.8s", delay: ".9s", angle: "75deg" },
+        { x: 118, y: 236, size: 48, label: "iPhone",  price: "₹22k",   dur: "3.5s", delay: ".2s", angle: "45deg" },
+        { x: 236, y: 226, size: 42, label: "kettle",  price: "₹350",   dur: "3s",   delay: ".7s", angle: "60deg" },
+      ],
+      mFeed: [
+        { name: "Study table", price: "₹1,800", dist: "0.4 km", angle: "45deg" },
+        { name: "Rockerz 550", price: "₹850", dist: "1.1 km", angle: "60deg" },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

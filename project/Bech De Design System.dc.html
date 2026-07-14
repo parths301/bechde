@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#FBF6ED;font-family:Karla,system-ui,sans-serif;color:#2E2A24}a{color:#B4552D;text-decoration:none}a:hover{color:#8E3F1E}</style></helmet>
+
+<div style="max-width:1180px;margin:0 auto;padding:56px 40px 80px;display:flex;flex-direction:column;gap:48px">
+
+  <div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      <div style="width:44px;height:44px;border-radius:14px 14px 14px 5px;background:#F2A93B;display:grid;place-items:center;font:800 22px 'Bricolage Grotesque',sans-serif;color:#3B2A10;transform:rotate(-6deg)">B</div>
+      <h1 style="margin:0;font:800 38px 'Bricolage Grotesque',sans-serif;letter-spacing:-1px">Bech De — Mini Design System</h1>
+    </div>
+    <p style="margin:0;max-width:640px;font-size:15px;line-height:1.65;color:#6E6250">Reference sheet for engineering handoff. Playful &amp; cozy resale marketplace for young Indians. Everything below is the source of truth for colors, type, radii, and core components.</p>
+  </div>
+
+  <!-- 1 COLORS -->
+  <div>
+    <h2 style="margin:0 0 16px;font:800 24px 'Bricolage Grotesque',sans-serif;letter-spacing:-.5px">1 · Color tokens</h2>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+      <sc-for list="{{ colors }}" as="c" hint-placeholder-count="8">
+        <div style="background:#fff;border:1.5px solid #EEE3CE;border-radius:16px;overflow:hidden">
+          <div style="height:76px;background:{{ c.hex }};border-bottom:1.5px solid #EEE3CE"></div>
+          <div style="padding:11px 14px">
+            <div style="font-weight:800;font-size:13.5px">{{ c.name }}</div>
+            <div style="font:12px ui-monospace,Menlo,monospace;color:#8A7A5E;margin-top:2px">{{ c.hex }} · {{ c.token }}</div>
+            <div style="font-size:11.5px;color:#A2917A;font-weight:600;margin-top:3px">{{ c.use }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- 2 TYPE -->
+  <div>
+    <h2 style="margin:0 0 16px;font:800 24px 'Bricolage Grotesque',sans-serif;letter-spacing:-.5px">2 · Typography</h2>
+    <div style="background:#fff;border:1.5px solid #EEE3CE;border-radius:20px;padding:26px 30px;display:flex;flex-direction:column;gap:0">
+      <div style="display:grid;grid-template-columns:230px 1fr;gap:20px;align-items:baseline;padding:12px 0">
+        <div style="font:12px ui-monospace,Menlo,monospace;color:#8A7A5E">display-xl<br>Bricolage 800 · 54/1.05 · -1.5px</div>
+        <div style="font:800 54px/1.05 'Bricolage Grotesque',sans-serif;letter-spacing:-1.5px">Good stuff, walking distance.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:230px 1fr;gap:20px;align-items:baseline;border-top:1px dashed #EEE3CE;padding:14px 0">
+        <div style="font:12px ui-monospace,Menlo,monospace;color:#8A7A5E">heading-lg<br>Bricolage 800 · 26 · -0.5px</div>
+        <div style="font:800 26px 'Bricolage Grotesque',sans-serif;letter-spacing:-.5px">Fresh within 3 km</div>
+      </div>
+      <div style="display:grid;grid-template-columns:230px 1fr;gap:20px;align-items:baseline;border-top:1px dashed #EEE3CE;padding:14px 0">
+        <div style="font:12px ui-monospace,Menlo,monospace;color:#8A7A5E">price<br>Bricolage 800 · 16–34 · terracotta</div>
+        <div style="font:800 28px 'Bricolage Grotesque',sans-serif;color:#B4552D">₹3,200</div>
+      </div>
+      <div style="display:grid;grid-template-columns:230px 1fr;gap:20px;align-items:baseline;border-top:1px dashed #EEE3CE;padding:14px 0">
+        <div style="font:12px ui-monospace,Menlo,monospace;color:#8A7A5E">body<br>Karla 400 · 14.5–16.5/1.6</div>
+        <div style="font-size:15.5px;line-height:1.6;color:#6E6250;max-width:560px">Buy and sell with people in your own neighbourhood. No shipping, no strangers from far away.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:230px 1fr;gap:20px;align-items:baseline;border-top:1px dashed #EEE3CE;padding:14px 0">
+        <div style="font:12px ui-monospace,Menlo,monospace;color:#8A7A5E">seller-note<br>Karla 400 italic · 14.5/1.65</div>
+        <div style="font-size:14.5px;line-height:1.65;font-style:italic;color:#6B5320">“This guitar got me through 3 years of hostel life…”</div>
+      </div>
+      <div style="display:grid;grid-template-columns:230px 1fr;gap:20px;align-items:baseline;border-top:1px dashed #EEE3CE;padding:14px 0 4px">
+        <div style="font:12px ui-monospace,Menlo,monospace;color:#8A7A5E">label / caption<br>Karla 600–800 · 11–13</div>
+        <div style="font-size:11.5px;font-weight:700;color:#A2917A;text-transform:uppercase;letter-spacing:.5px">Condition · Includes · Avg reply</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 COMPONENTS -->
+  <div>
+    <h2 style="margin:0 0 16px;font:800 24px 'Bricolage Grotesque',sans-serif;letter-spacing:-.5px">3 · Core components</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+
+      <div style="background:#fff;border:1.5px solid #EEE3CE;border-radius:20px;padding:22px 26px">
+        <div style="font:800 15px 'Bricolage Grotesque',sans-serif;margin-bottom:14px">Buttons</div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+          <div style="background:#2E2A24;color:#FBF6ED;border-radius:999px;padding:13px 26px;font-weight:800;font-size:14.5px;cursor:pointer" style-hover="background:#E86A4F">Primary</div>
+          <div style="background:#fff;border:2px solid #2E2A24;border-radius:999px;padding:11px 24px;font-weight:800;font-size:14.5px;cursor:pointer" style-hover="border-color:#E86A4F;color:#B4552D">Secondary</div>
+          <div style="background:#F2A93B;color:#3B2A10;border-radius:999px;padding:13px 26px;font-weight:800;font-size:14.5px;cursor:pointer" style-hover="background:#E86A4F;color:#fff">Accent</div>
+          <div style="font-size:13.5px;font-weight:700;color:#B4552D;cursor:pointer">Text link →</div>
+        </div>
+        <div style="font-size:12px;color:#A2917A;font-weight:600;margin-top:14px">Pill radius (999px) always. Hover: fill → terracotta, optional -2° rotate on playful CTAs ("+ Bech de!").</div>
+      </div>
+
+      <div style="background:#fff;border:1.5px solid #EEE3CE;border-radius:20px;padding:22px 26px">
+        <div style="font:800 15px 'Bricolage Grotesque',sans-serif;margin-bottom:14px">Chips &amp; badges</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+          <div style="background:#fff;border:1.5px solid #E9DDC8;border-radius:999px;padding:9px 16px;font-size:13.5px;font-weight:700;color:#4E4536">📱 Category</div>
+          <div style="background:#2E2A24;border:1.5px solid #2E2A24;border-radius:999px;padding:9px 16px;font-size:13.5px;font-weight:700;color:#FBF6ED">📱 Selected</div>
+          <div style="background:#2E2A24;color:#FBF6ED;font-size:11px;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap">📍 1.1 km</div>
+          <div style="background:#E7F0EC;color:#2F6B60;border-radius:999px;padding:4px 12px;font-size:12px;font-weight:700">✓ verified</div>
+          <div style="background:#FCEED3;color:#9A6B14;border-radius:999px;padding:4px 12px;font-size:12px;font-weight:800">₹ Offer in</div>
+          <div style="background:#FDE2D6;color:#B4552D;border-radius:999px;padding:4px 12px;font-size:12px;font-weight:800">♡ Saved</div>
+        </div>
+        <div style="font-size:12px;color:#A2917A;font-weight:600;margin-top:14px">Always white-space:nowrap. Distance badge sits top-left on every photo.</div>
+      </div>
+
+      <div style="background:#fff;border:1.5px solid #EEE3CE;border-radius:20px;padding:22px 26px">
+        <div style="font:800 15px 'Bricolage Grotesque',sans-serif;margin-bottom:14px">Listing card</div>
+        <div style="width:250px;background:#fff;border:1.5px solid #EEE3CE;border-radius:18px;overflow:hidden;cursor:pointer" style-hover="transform:translateY(-4px);box-shadow:0 10px 24px rgba(60,45,20,.1)">
+          <div style="height:120px;background:repeating-linear-gradient(45deg,#F1E9DB 0 9px,#E4D7C1 9px 18px);display:grid;place-items:center;font:10px ui-monospace,monospace;color:#8A7A5E;position:relative">product photo
+            <div style="position:absolute;top:10px;left:10px;background:#2E2A24;color:#FBF6ED;font-size:11px;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap">0.4 km</div>
+          </div>
+          <div style="padding:13px 15px;display:flex;flex-direction:column;gap:5px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><div style="font-weight:700;font-size:14px">Study table</div><div style="font:800 15px 'Bricolage Grotesque',sans-serif;color:#B4552D;white-space:nowrap">₹1,800</div></div>
+            <div style="font-size:12px;font-style:italic;color:#8A7A5E;line-height:1.5">“Survived two semesters of all-nighters.”</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:#A2917A;font-weight:600;margin-top:14px">18px radius · 1.5px #EEE3CE border · hover lift -4px + soft shadow. Seller note always italic, quoted.</div>
+      </div>
+
+      <div style="background:#fff;border:1.5px solid #EEE3CE;border-radius:20px;padding:22px 26px">
+        <div style="font:800 15px 'Bricolage Grotesque',sans-serif;margin-bottom:14px">Inputs</div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="background:#fff;border:1.5px solid #E9DDC8;border-radius:14px;padding:13px 18px;font-size:14.5px;color:#9C8F79">Placeholder text…</div>
+          <div style="background:#fff;border:2px solid #F2A93B;border-radius:14px;padding:12px 18px;font-size:14.5px;font-weight:600">Focused input</div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:12.5px;font-weight:700;color:#6E6250;white-space:nowrap">Radius</span>
+            <input type="range" min="1" max="10" value="3" style="accent-color:#E86A4F;flex:1">
+            <span style="font:800 15px 'Bricolage Grotesque',sans-serif;color:#B4552D;white-space:nowrap">3 km</span>
+          </div>
+        </div>
+        <div style="font-size:12px;color:#A2917A;font-weight:600;margin-top:14px">12–14px radius · border #E9DDC8 → focus #F2A93B (2px). Slider accent #E86A4F.</div>
+      </div>
+
+      <div style="background:#fff;border:1.5px solid #EEE3CE;border-radius:20px;padding:22px 26px">
+        <div style="font:800 15px 'Bricolage Grotesque',sans-serif;margin-bottom:14px">Chat bubbles</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="align-self:flex-end;background:#2E2A24;color:#FBF6ED;border-radius:18px 4px 18px 18px;padding:11px 15px;font-size:13.5px;max-width:240px">Mine · dark, top-right notch</div>
+          <div style="align-self:flex-start;background:#fff;border:1.5px solid #EEE3CE;border-radius:4px 18px 18px 18px;padding:11px 15px;font-size:13.5px;max-width:240px">Theirs · white, top-left notch</div>
+          <div style="align-self:flex-start;background:#FCEED3;border:1.5px dashed #E0B45C;border-radius:14px;padding:10px 14px;font:800 16px 'Bricolage Grotesque',sans-serif;color:#B4552D">Offer ₹2,900</div>
+        </div>
+        <div style="font-size:12px;color:#A2917A;font-weight:600;margin-top:14px">Offers = cream card with dashed marigold border. System cards (deal, meet-up) = sage #E7F0EC.</div>
+      </div>
+
+      <div style="background:#fff;border:1.5px solid #EEE3CE;border-radius:20px;padding:22px 26px">
+        <div style="font:800 15px 'Bricolage Grotesque',sans-serif;margin-bottom:14px">The radar (signature)</div>
+        <div style="position:relative;height:170px;display:grid;place-items:center">
+          <div style="position:absolute;width:160px;height:160px;border-radius:50%;border:1.5px dashed #DCCCAE"></div>
+          <div style="position:absolute;width:100px;height:100px;border-radius:50%;border:1.5px dashed #DCCCAE"></div>
+          <div style="position:absolute;width:126px;height:126px;border-radius:50%;border:2.5px solid #F2A93B;box-shadow:0 0 0 6px rgba(242,169,59,.1)"></div>
+          <div style="width:30px;height:30px;border-radius:50%;background:#E86A4F;border:2.5px solid #fff;box-shadow:0 3px 8px rgba(232,106,79,.45);display:grid;place-items:center;font-size:13px">🏠</div>
+          <div style="position:absolute;left:24px;top:22px;width:38px;height:38px;border-radius:50%;border:2.5px solid #fff;background:repeating-linear-gradient(45deg,#EFE7DA 0 6px,#E0D2BA 6px 12px);box-shadow:0 3px 9px rgba(60,45,20,.18)"></div>
+        </div>
+        <div style="font-size:12px;color:#A2917A;font-weight:600">Dashed #DCCCAE rings · active radius ring solid marigold + soft glow · items = circular photo bubbles (white 3px border) with price pill below · "you" = terracotta dot with pulse. Bob animation 3–4s, staggered delays.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4 RULES -->
+  <div>
+    <h2 style="margin:0 0 16px;font:800 24px 'Bricolage Grotesque',sans-serif;letter-spacing:-.5px">4 · Rules of thumb</h2>
+    <div style="background:#fff;border:1.5px solid #EEE3CE;border-radius:20px;padding:24px 30px;font-size:14px;line-height:1.9;color:#4E4536;columns:2;column-gap:44px">
+      Background is always warm cream #FBF6ED — never pure white pages (white is for cards).<br>
+      Dashed borders (#E3D6BF) = section dividers; solid (#EEE3CE) = card edges.<br>
+      Prices always Bricolage 800 in terracotta #B4552D with ₹ and Indian comma format.<br>
+      Every listing shows distance before anything else — proximity is the product.<br>
+      Seller notes are italic, quoted, first-person. Never marketing copy.<br>
+      Playful rotation (-6° logo tile, ±1–3° hovers) is a garnish: max 1–2 rotated elements per view.<br>
+      Emoji are the icon set (🏠 💬 📍 ♡) — no icon font.<br>
+      Hit targets ≥ 44px on mobile · body text ≥ 13px.<br>
+      Motion: bob (float), pulse (you-dot), pop (.25–.35s ease-out) for new content. Nothing else.
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      colors: [
+        { name: "Cream",      hex: "#FBF6ED", token: "--bg",           use: "Page background" },
+        { name: "Ink",        hex: "#2E2A24", token: "--ink",          use: "Text, primary buttons" },
+        { name: "Marigold",   hex: "#F2A93B", token: "--accent",       use: "Logo, active ring, focus" },
+        { name: "Terracotta", hex: "#E86A4F", token: "--accent-warm",  use: "You-dot, hovers, alerts" },
+        { name: "Clay",       hex: "#B4552D", token: "--price",        use: "Prices, links" },
+        { name: "Sage",       hex: "#E7F0EC", token: "--positive-bg",  use: "Trust, deals, location" },
+        { name: "Pine",       hex: "#2F6B60", token: "--positive",     use: "Positive text/actions" },
+        { name: "Sand",       hex: "#E9DDC8", token: "--border",       use: "Input borders, dividers" },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>
