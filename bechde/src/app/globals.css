@@ -57,7 +57,21 @@ input[type="range"] {
   }
 }
 
+@keyframes bd-map-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 0.92;
+    transform: scale(1);
+  }
+}
+
 /* --- OpenStreetMap / Leaflet map styling --- */
+.bd-map-fade {
+  animation: bd-map-in 0.9s ease-out both;
+}
 .bd-pin {
   position: relative;
   transform-origin: 50% 100%;

@@ -4,10 +4,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { colors } from "@/lib/colors";
 import { useAppState } from "@/lib/store";
-import { homeBubbles, homeCategories, feedItems } from "@/lib/data";
+import { homeBubbles, homeCategories, feedItems, USER_LOCATION } from "@/lib/data";
 import Chip from "@/components/Chip";
 import RadarBubble from "@/components/RadarBubble";
 import ListingCard from "@/components/ListingCard";
+import OsmMap from "@/components/OsmMap";
 
 export default function HomePage() {
   const router = useRouter();
@@ -59,7 +60,36 @@ export default function HomePage() {
         </div>
 
         <div style={{ position: "relative", width: 560, height: 520, display: "grid", placeItems: "center" }}>
-          <div style={{ position: "absolute", inset: 20, borderRadius: "50%", background: "radial-gradient(circle,#F3EADA 0%,#FBF6ED 70%)" }} />
+          {/* faded square map backdrop */}
+          <div
+            className="bd-map-fade"
+            style={{
+              position: "absolute",
+              width: 468,
+              height: 468,
+              borderRadius: 30,
+              overflow: "hidden",
+              pointerEvents: "none",
+              opacity: 0.92,
+            }}
+          >
+            <OsmMap
+              center={{ lat: USER_LOCATION.lat, lng: USER_LOCATION.lng }}
+              zoom={14}
+              interactive={false}
+              height="100%"
+            />
+            {/* feather the edges into the page background */}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                borderRadius: 30,
+                pointerEvents: "none",
+                boxShadow: "inset 0 0 48px 26px #FBF6ED, inset 0 0 14px 3px rgba(251,246,237,.55)",
+              }}
+            />
+          </div>
           <div style={{ position: "absolute", width: 480, height: 480, borderRadius: "50%", border: `1.5px dashed ${colors.ring}` }} />
           <div style={{ position: "absolute", width: 340, height: 340, borderRadius: "50%", border: `1.5px dashed ${colors.ring}` }} />
           <div style={{ position: "absolute", width: 200, height: 200, borderRadius: "50%", border: `1.5px dashed ${colors.ring}` }} />
