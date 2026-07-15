@@ -188,7 +188,7 @@ export default function HomePage() {
 
         {/* mobile-only: full-width square map + radius */}
         <div className="bd-hero-mobilemap" style={{ flexDirection: "column", gap: 14 }}>
-          <div style={{ position: "relative", width: "100%", aspectRatio: "1 / 1", borderRadius: 24, overflow: "hidden", border: `1.5px solid ${colors.cardBorder}` }}>
+          <div className="bd-map-fade" style={{ position: "relative", width: "100%", aspectRatio: "1 / 1", borderRadius: 26, overflow: "hidden" }}>
             <OsmMap
               center={{ lat: USER_LOCATION.lat, lng: USER_LOCATION.lng }}
               zoom={14}
@@ -196,6 +196,16 @@ export default function HomePage() {
               user={USER_LOCATION}
               radiusKm={radiusKm}
               height="100%"
+            />
+            {/* feather the edges into the page background, like the desktop map */}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                borderRadius: 26,
+                pointerEvents: "none",
+                boxShadow: "inset 0 0 44px 24px #FBF6ED, inset 0 0 14px 3px rgba(251,246,237,.55)",
+              }}
             />
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", border: `1.5px solid ${colors.sand}`, borderRadius: 999, padding: "10px 18px" }}>

@@ -114,6 +114,9 @@ input[type="range"] {
 .bd-hero-mobilemap {
   display: none;
 }
+.bd-chat-back {
+  display: none;
+}
 
 /* =========================================================
    MOBILE / RESPONSIVE  (phone + small tablet)
@@ -139,6 +142,9 @@ input[type="range"] {
     display: none !important;
   }
   .bd-desktop-nav {
+    display: none !important;
+  }
+  .bd-header-avatar {
     display: none !important;
   }
   .bd-bottomnav {
@@ -186,21 +192,44 @@ input[type="range"] {
     padding: 18px 16px 24px !important;
   }
 
-  /* ---- chat ---- */
+  /* ---- chat: master-detail on mobile ---- */
   .bd-chat-grid {
     grid-template-columns: 1fr !important;
+    min-height: 0 !important;
   }
+  /* default (no thread open): show the list, hide the conversation */
   .bd-chat-list {
+    display: flex !important;
+    border-right: none !important;
+  }
+  .bd-chat-convo {
     display: none !important;
   }
+  /* a thread is open: hide the list, show the conversation full-screen */
+  .bd-chat-grid.bd-chat-open .bd-chat-list {
+    display: none !important;
+  }
+  .bd-chat-grid.bd-chat-open .bd-chat-convo {
+    display: flex !important;
+    height: calc(100dvh - 125px) !important; /* viewport - header - bottom nav */
+  }
+  /* drop the bottom-nav padding while a conversation fills the screen */
+  .bd-app-shell:has(.bd-chat-grid.bd-chat-open) {
+    padding-bottom: 0 !important;
+  }
+  .bd-chat-back {
+    display: grid !important;
+  }
   .bd-chat-head {
-    padding: 12px 16px !important;
+    padding: 10px 14px !important;
   }
   .bd-chat-body {
-    padding: 18px 16px !important;
+    padding: 16px 16px !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
   }
   .bd-chat-input {
-    padding: 12px 16px !important;
+    padding: 12px 14px !important;
   }
 
   /* ---- sell ---- */

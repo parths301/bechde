@@ -4,13 +4,19 @@ import { useState } from "react";
 import Link from "next/link";
 import { colors } from "@/lib/colors";
 import { useAppState } from "@/lib/store";
-import { chatThreads } from "@/lib/data";
+import { chatThreads, getItem } from "@/lib/data";
 import Stripe from "@/components/Stripe";
 
 const quickReplyTexts = ["Is it available?", "Last price?", "Can I see it today?"];
 
 export default function ChatPage() {
   const { offerAccepted, acceptOffer, draft, setDraft, sentMsgs, sendMsg } = useAppState();
+  // On mobile this drives the master-detail view: null = show the list,
+  // a thread id = show that conversation. Desktop shows both panes regardless.
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  const activeThread = chatThreads.find((t) => t.id === openId) ?? chatThreads[0];
+  const activeItem = getItem(activeThread.itemId)!;
 
   const handleSend = () => {
     if (draft.trim()) {
@@ -20,24 +26,35 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="bd-chat-grid" style={{ flex: 1, display: "grid", gridTemplateColumns: "340px 1fr", minHeight: "calc(100vh - 76px)" }}>
+    <div className={`bd-chat-grid${openId ? " bd-chat-open" : ""}`} style={{ flex: 1, display: "grid", gridTemplateColumns: "340px 1fr", minHeight: "calc(100vh - 76px)" }}>
       <div className="bd-chat-list" style={{ borderRight: `1.5px dashed ${colors.divider}`, padding: "22px 0", display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "0 22px 16px", fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 22, letterSpacing: "-.5px" }}>Chats</div>
         {chatThreads.map((cl) => (
-          <ChatListRow key={cl.id} thread={cl} offerAccepted={offerAccepted} />
+          <ChatListRow key={cl.id} thread={cl} offerAccepted={offerAccepted} active={activeThread.id === cl.id} onOpen={() => setOpenId(cl.id)} />
         ))}
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        <div className="bd-chat-head" style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 26px", borderBottom: `1.5px dashed ${colors.divider}`, background: "#fff" }}>
-          <Link href="/product/yamaha-f310" style={{ display: "block", flex: "none" }}>
-            <Stripe angle="60deg" band={6} style={{ width: 52, height: 52, borderRadius: 14, cursor: "pointer" }} />
-          </Link>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 800, fontSize: 15 }}>Yamaha F310 acoustic guitar</div>
-            <div style={{ fontSize: 12.5, color: colors.textFaint, fontWeight: 600 }}>with Rohan T. · ★ 4.9 · 1.1 km away</div>
+      <div className="bd-chat-convo" style={{ display: "flex", flexDirection: "column" }}>
+        <div className="bd-chat-head" style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 26px", borderBottom: `1.5px dashed ${colors.divider}`, background: "#fff" }}>
+          <div
+            className="bd-chat-back"
+            onClick={() => setOpenId(null)}
+            role="button"
+            aria-label="Back to chats"
+            style={{ flex: "none", width: 36, height: 36, borderRadius: "50%", placeItems: "center", background: colors.bg2, color: colors.ink, fontSize: 18, cursor: "pointer" }}
+          >
+            ←
           </div>
-          <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 20, color: colors.clay }}>₹3,200</div>
+          <Link href={`/product/${activeThread.itemId}`} style={{ display: "block", flex: "none" }}>
+            <Stripe angle={activeThread.angle} band={6} style={{ width: 52, height: 52, borderRadius: 14, cursor: "pointer" }} />
+          </Link>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 800, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{activeItem.name}</div>
+            <div style={{ fontSize: 12.5, color: colors.textFaint, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              with {activeItem.seller.name} · {activeItem.seller.rating} · {activeItem.dist} away
+            </div>
+          </div>
+          <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 20, color: colors.clay, flex: "none" }}>{activeItem.price}</div>
         </div>
 
         <div className="bd-chat-body" style={{ flex: 1, padding: "24px 26px", display: "flex", flexDirection: "column", gap: 14, background: "radial-gradient(circle at 80% 10%,#F6EEDD 0%,#FBF6ED 55%)" }}>
@@ -166,14 +183,25 @@ export default function ChatPage() {
   );
 }
 
-function ChatListRow({ thread, offerAccepted }: { thread: (typeof chatThreads)[number]; offerAccepted: boolean }) {
+function ChatListRow({
+  thread,
+  offerAccepted,
+  active,
+  onOpen,
+}: {
+  thread: (typeof chatThreads)[number];
+  offerAccepted: boolean;
+  active: boolean;
+  onOpen: () => void;
+}) {
   const [hover, setHover] = useState(false);
   const last = thread.id === "yamaha-f310" ? (offerAccepted ? "Deal at ₹2,900 🤝" : "Offer made: ₹2,900") : thread.last;
   return (
     <div
+      onClick={onOpen}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      style={{ display: "flex", gap: 12, padding: "13px 22px", cursor: "pointer", background: hover || thread.active ? "#F6EEDD" : "transparent" }}
+      style={{ display: "flex", gap: 12, padding: "13px 22px", cursor: "pointer", background: hover || active ? "#F6EEDD" : "transparent" }}
     >
       <div style={{ position: "relative", flex: "none" }}>
         <Stripe angle={thread.angle} band={6} style={{ width: 46, height: 46, borderRadius: 14 }} />

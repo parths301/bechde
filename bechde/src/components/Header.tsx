@@ -80,7 +80,7 @@ export default function Header() {
           </NavLink>
           <SellButton />
         </div>
-        <Link href="/profile" style={{ display: "block" }}>
+        <Link href="/profile" className="bd-header-avatar" style={{ display: "block" }}>
           <Avatar initial={avatarInitial} />
         </Link>
       </nav>
