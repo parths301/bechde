@@ -20,8 +20,8 @@ export default function ChatPage() {
   };
 
   return (
-    <div style={{ flex: 1, display: "grid", gridTemplateColumns: "340px 1fr", minHeight: "calc(100vh - 76px)" }}>
-      <div style={{ borderRight: `1.5px dashed ${colors.divider}`, padding: "22px 0", display: "flex", flexDirection: "column" }}>
+    <div className="bd-chat-grid" style={{ flex: 1, display: "grid", gridTemplateColumns: "340px 1fr", minHeight: "calc(100vh - 76px)" }}>
+      <div className="bd-chat-list" style={{ borderRight: `1.5px dashed ${colors.divider}`, padding: "22px 0", display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "0 22px 16px", fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 22, letterSpacing: "-.5px" }}>Chats</div>
         {chatThreads.map((cl) => (
           <ChatListRow key={cl.id} thread={cl} offerAccepted={offerAccepted} />
@@ -29,7 +29,7 @@ export default function ChatPage() {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 26px", borderBottom: `1.5px dashed ${colors.divider}`, background: "#fff" }}>
+        <div className="bd-chat-head" style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 26px", borderBottom: `1.5px dashed ${colors.divider}`, background: "#fff" }}>
           <Link href="/product/yamaha-f310" style={{ display: "block", flex: "none" }}>
             <Stripe angle="60deg" band={6} style={{ width: 52, height: 52, borderRadius: 14, cursor: "pointer" }} />
           </Link>
@@ -40,7 +40,7 @@ export default function ChatPage() {
           <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 20, color: colors.clay }}>₹3,200</div>
         </div>
 
-        <div style={{ flex: 1, padding: "24px 26px", display: "flex", flexDirection: "column", gap: 14, background: "radial-gradient(circle at 80% 10%,#F6EEDD 0%,#FBF6ED 55%)" }}>
+        <div className="bd-chat-body" style={{ flex: 1, padding: "24px 26px", display: "flex", flexDirection: "column", gap: 14, background: "radial-gradient(circle at 80% 10%,#F6EEDD 0%,#FBF6ED 55%)" }}>
           <div style={{ alignSelf: "center", background: "#EFE7DA", color: colors.textMuted, fontSize: 11.5, fontWeight: 700, borderRadius: 999, padding: "4px 14px" }}>
             Today, 4:12 PM
           </div>
@@ -133,7 +133,7 @@ export default function ChatPage() {
           ))}
         </div>
 
-        <div style={{ padding: "16px 26px", borderTop: `1.5px dashed ${colors.divider}`, background: colors.bg }}>
+        <div className="bd-chat-input" style={{ padding: "16px 26px", borderTop: `1.5px dashed ${colors.divider}`, background: colors.bg }}>
           <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
             {quickReplyTexts.map((t) => (
               <QuickReplyChip key={t} text={t} onSend={() => sendMsg(t)} />

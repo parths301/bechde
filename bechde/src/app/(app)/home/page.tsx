@@ -19,6 +19,7 @@ export default function HomePage() {
   return (
     <div>
       <div
+        className="bd-hero-grid"
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 560px",
@@ -44,7 +45,7 @@ export default function HomePage() {
           >
             ✦ {nearbyCount} things for sale near you right now
           </div>
-          <h1 style={{ margin: 0, fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 54, lineHeight: 1.05, letterSpacing: "-1.5px" }}>
+          <h1 className="bd-hero-h1" style={{ margin: 0, fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 54, lineHeight: 1.05, letterSpacing: "-1.5px" }}>
             Good stuff,
             <br />
             walking distance.
@@ -59,7 +60,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div style={{ position: "relative", width: 560, height: 520, display: "grid", placeItems: "center" }}>
+        <div className="bd-hero-radar" style={{ position: "relative", width: 560, height: 520, display: "grid", placeItems: "center" }}>
           {/* faded square map backdrop */}
           <div
             className="bd-map-fade"
@@ -184,18 +185,37 @@ export default function HomePage() {
             </span>
           </div>
         </div>
+
+        {/* mobile-only: full-width square map + radius */}
+        <div className="bd-hero-mobilemap" style={{ flexDirection: "column", gap: 14 }}>
+          <div style={{ position: "relative", width: "100%", aspectRatio: "1 / 1", borderRadius: 24, overflow: "hidden", border: `1.5px solid ${colors.cardBorder}` }}>
+            <OsmMap
+              center={{ lat: USER_LOCATION.lat, lng: USER_LOCATION.lng }}
+              zoom={14}
+              interactive={false}
+              user={USER_LOCATION}
+              radiusKm={radiusKm}
+              height="100%"
+            />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", border: `1.5px solid ${colors.sand}`, borderRadius: 999, padding: "10px 18px" }}>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: colors.textBody, whiteSpace: "nowrap" }}>Radius</span>
+            <input type="range" min={1} max={10} value={radiusKm} onChange={(e) => setRadiusKm(Number(e.target.value))} style={{ flex: 1, cursor: "pointer" }} />
+            <span style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 15, color: colors.clay, whiteSpace: "nowrap", minWidth: 44 }}>{radiusKm} km</span>
+          </div>
+        </div>
       </div>
 
-      <div style={{ padding: "10px 36px 44px", maxWidth: 1240, margin: "0 auto" }}>
+      <div className="bd-feed-sec" style={{ padding: "10px 36px 44px", maxWidth: 1240, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 12, margin: "0 0 18px" }}>
-          <h2 style={{ margin: 0, fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 26, letterSpacing: "-.5px" }}>
+          <h2 className="bd-feed-h2" style={{ margin: 0, fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 26, letterSpacing: "-.5px" }}>
             Fresh within {radiusKm} km
           </h2>
           <Link href="/map" style={{ fontSize: 13.5, fontWeight: 700, color: colors.clay, cursor: "pointer" }}>
             see all on map →
           </Link>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 18 }}>
+        <div className="bd-feed-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 18 }}>
           {feedItems.map((f) => (
             <ListingCard key={f.id} item={f} />
           ))}

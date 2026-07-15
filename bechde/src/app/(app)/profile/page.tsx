@@ -58,6 +58,7 @@ export default function ProfilePage() {
     <div style={{ maxWidth: 1240, margin: "0 auto", width: "100%" }}>
       <div style={{ height: 130, background: "repeating-linear-gradient(-45deg,#F2A93B 0 18px,#EFA032 18px 36px)", position: "relative", borderRadius: "0 0 26px 26px" }}>
         <div
+          className="bd-prof-avatar"
           style={{
             position: "absolute",
             left: 36,
@@ -80,7 +81,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 22, padding: "14px 36px 0 164px" }}>
+      <div className="bd-prof-headrow" style={{ display: "flex", alignItems: "flex-end", gap: 22, padding: "14px 36px 0 164px" }}>
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <h1 style={{ margin: 0, fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 28, letterSpacing: "-.7px" }}>{name}</h1>
@@ -90,7 +91,7 @@ export default function ProfilePage() {
             Koramangala, Bengaluru · joined Jul 2026 · &ldquo;hostel room minimalist in progress&rdquo;
           </div>
         </div>
-        <div style={{ display: "flex", gap: 26, paddingBottom: 4 }}>
+        <div className="bd-prof-stats" style={{ display: "flex", gap: 26, paddingBottom: 4 }}>
           {profStats.map((ps) => (
             <div key={ps.k} style={{ textAlign: "center" }}>
               <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 24, color: colors.clay, whiteSpace: "nowrap" }}>{ps.v}</div>
@@ -100,7 +101,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 10, padding: "18px 36px 0", flexWrap: "wrap" }}>
+      <div className="bd-prof-badges" style={{ display: "flex", gap: 10, padding: "18px 36px 0", flexWrap: "wrap" }}>
         {profBadges.map((pb) => (
           <div
             key={pb}
@@ -124,13 +125,13 @@ export default function ProfilePage() {
         ))}
       </div>
 
-      <div style={{ display: "flex", gap: 26, padding: "24px 36px 0", borderBottom: `1.5px dashed ${colors.divider}`, fontWeight: 800, fontSize: 14.5 }}>
+      <div className="bd-prof-tabs" style={{ display: "flex", gap: 26, padding: "24px 36px 0", borderBottom: `1.5px dashed ${colors.divider}`, fontWeight: 800, fontSize: 14.5 }}>
         {tabs.map((t) => (
           <ProfileTabButton key={t.key} label={t.label} active={profTab === t.key} onClick={() => setProfTab(t.key)} />
         ))}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 18, padding: "24px 36px 40px" }}>
+      <div className="bd-prof-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 18, padding: "24px 36px 40px" }}>
         {grids[profTab].map((pl, i) => (
           <ProfileGridCard key={`${pl.name}-${i}`} card={pl} />
         ))}
@@ -151,6 +152,8 @@ function ProfileTabButton({ label, active, onClick }: { label: string; active: b
         borderBottom: `3px solid ${active ? colors.terracotta : "transparent"}`,
         color: active || hover ? colors.ink : colors.textFaint,
         cursor: "pointer",
+        whiteSpace: "nowrap",
+        flex: "none",
       }}
     >
       {label}

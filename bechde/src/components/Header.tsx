@@ -13,6 +13,7 @@ export default function Header() {
 
   return (
     <header
+      className="bd-header"
       style={{
         display: "flex",
         alignItems: "center",
@@ -48,33 +49,37 @@ export default function Header() {
         </div>
       </Link>
 
-      <SearchBar />
+      <div className="bd-search-wrap" style={{ flex: 1, display: "flex" }}>
+        <SearchBar />
+      </div>
 
-      <nav style={{ display: "flex", alignItems: "center", gap: 18, fontWeight: 700, fontSize: 14.5 }}>
-        <NavLink href="/map" active={pathname === "/map"}>
-          🗺️ Map
-        </NavLink>
-        <NavLink href="/chat" active={pathname === "/chat"}>
-          <span style={{ position: "relative" }}>
-            Chats
-            <span
-              style={{
-                position: "absolute",
-                top: -6,
-                right: -13,
-                background: colors.terracotta,
-                color: "#fff",
-                fontSize: 9.5,
-                fontWeight: 800,
-                borderRadius: 999,
-                padding: "1px 6px",
-              }}
-            >
-              2
+      <nav style={{ display: "flex", alignItems: "center", gap: 16, fontWeight: 700, fontSize: 14.5 }}>
+        <div className="bd-desktop-nav" style={{ display: "flex", alignItems: "center", gap: 18 }}>
+          <NavLink href="/map" active={pathname === "/map"}>
+            🗺️ Map
+          </NavLink>
+          <NavLink href="/chat" active={pathname === "/chat"}>
+            <span style={{ position: "relative" }}>
+              Chats
+              <span
+                style={{
+                  position: "absolute",
+                  top: -6,
+                  right: -13,
+                  background: colors.terracotta,
+                  color: "#fff",
+                  fontSize: 9.5,
+                  fontWeight: 800,
+                  borderRadius: 999,
+                  padding: "1px 6px",
+                }}
+              >
+                2
+              </span>
             </span>
-          </span>
-        </NavLink>
-        <SellButton />
+          </NavLink>
+          <SellButton />
+        </div>
         <Link href="/profile" style={{ display: "block" }}>
           <Avatar initial={avatarInitial} />
         </Link>

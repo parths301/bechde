@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Karla } from "next/font/google";
 import { AppStateProvider } from "@/lib/store";
 import "./globals.css";
@@ -17,6 +17,13 @@ const karla = Karla({
 export const metadata: Metadata = {
   title: "Bech De — buy & sell nearby",
   description: "Bech De — a neighbourhood resale marketplace. Buy and sell with people near you.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#FBF6ED",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

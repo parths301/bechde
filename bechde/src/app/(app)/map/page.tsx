@@ -26,8 +26,8 @@ export default function MapPage() {
   }));
 
   return (
-    <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 320px", minHeight: "calc(100vh - 76px)" }}>
-      <div style={{ position: "relative", overflow: "hidden" }}>
+    <div className="bd-map-grid" style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 320px", minHeight: "calc(100vh - 76px)" }}>
+      <div className="bd-map-canvas" style={{ position: "relative", overflow: "hidden" }}>
         <OsmMap
           center={{ lat: USER_LOCATION.lat, lng: USER_LOCATION.lng }}
           zoom={12}
@@ -60,7 +60,7 @@ export default function MapPage() {
       </div>
 
       {/* filter rail */}
-      <div style={{ borderLeft: `1.5px dashed ${colors.divider}`, padding: "26px 24px", display: "flex", flexDirection: "column", gap: 24, background: colors.bg }}>
+      <div className="bd-map-rail" style={{ borderLeft: `1.5px dashed ${colors.divider}`, padding: "26px 24px", display: "flex", flexDirection: "column", gap: 24, background: colors.bg }}>
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
             <span style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 16 }}>Radius</span>

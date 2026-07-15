@@ -39,9 +39,9 @@ export default function SellPage() {
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 400px", gap: 34, padding: "34px 36px 44px" }}>
+      <div className="bd-sell-grid" style={{ display: "grid", gridTemplateColumns: "1fr 400px", gap: 34, padding: "34px 36px 44px" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-          <h1 style={{ margin: 0, fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 36, letterSpacing: "-1px" }}>What are you letting go? 👋</h1>
+          <h1 className="bd-sell-h1" style={{ margin: 0, fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 36, letterSpacing: "-1px" }}>What are you letting go? 👋</h1>
 
           <div style={{ display: "flex", gap: 12 }}>
             <PhotoDropzone />
@@ -82,8 +82,9 @@ export default function SellPage() {
 
           <div>
             <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 8 }}>Your price</div>
-            <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+            <div className="bd-sell-price-row" style={{ display: "flex", gap: 14, alignItems: "center" }}>
               <input
+                className="bd-sell-price-input"
                 value={sellPrice}
                 onChange={(e) => setSellPrice(e.target.value)}
                 style={{

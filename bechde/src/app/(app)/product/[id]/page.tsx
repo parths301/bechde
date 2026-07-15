@@ -38,14 +38,14 @@ export default function ProductPage() {
 
   return (
     <div style={{ maxWidth: 1240, margin: "0 auto", width: "100%" }}>
-      <div style={{ padding: "16px 36px 8px", fontSize: 13, color: colors.textFaint, fontWeight: 600 }}>
+      <div className="bd-product-crumb" style={{ padding: "16px 36px 8px", fontSize: 13, color: colors.textFaint, fontWeight: 600 }}>
         <Link href="/home" style={{ cursor: "pointer", color: colors.clay }}>
           ← Browse
         </Link>{" "}
         → {categoryIcons[item.category]} {item.category} → <span style={{ color: colors.ink }}>{item.name}</span>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "560px 1fr", gap: 34, padding: "14px 36px 40px" }}>
+      <div className="bd-product-grid" style={{ display: "grid", gridTemplateColumns: "560px 1fr", gap: 34, padding: "14px 36px 40px" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <Stripe angle={item.angle} band={10} label="main product photo" style={{ height: 420, borderRadius: 22, fontSize: 12 }}>
             <div
@@ -94,7 +94,7 @@ export default function ProductPage() {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div>
-            <h1 style={{ margin: "0 0 6px", fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 32, lineHeight: 1.15, letterSpacing: "-.8px" }}>
+            <h1 className="bd-product-h1" style={{ margin: "0 0 6px", fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 32, lineHeight: 1.15, letterSpacing: "-.8px" }}>
               {item.name}
             </h1>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
