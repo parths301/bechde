@@ -24,6 +24,7 @@ export interface Seller {
 export interface Item {
   id: string;
   name: string;
+  label: string; // short label shown inside radar bubbles
   price: string;
   km: number;
   dist: string;
@@ -46,6 +47,7 @@ export interface Item {
 export const items: Item[] = [
   {
     id: "yamaha-f310",
+    label: "acoustic guitar",
     name: "Yamaha F310 acoustic guitar",
     price: "₹3,200",
     km: 1.1,
@@ -74,6 +76,7 @@ export const items: Item[] = [
   },
   {
     id: "desk-lamp",
+    label: "desk lamp",
     name: "Wooden-base desk lamp",
     price: "₹450",
     km: 1,
@@ -101,6 +104,7 @@ export const items: Item[] = [
   },
   {
     id: "sneakers",
+    label: "sneakers",
     name: "Sneakers, size UK 9",
     price: "₹900",
     km: 4,
@@ -128,6 +132,7 @@ export const items: Item[] = [
   },
   {
     id: "bookshelf",
+    label: "bookshelf",
     name: "3-tier wooden bookshelf",
     price: "₹1,500",
     km: 3,
@@ -155,6 +160,7 @@ export const items: Item[] = [
   },
   {
     id: "iphone-12",
+    label: "iPhone 12",
     name: "iPhone 12, 128GB",
     price: "₹22,000",
     km: 2,
@@ -183,6 +189,7 @@ export const items: Item[] = [
   },
   {
     id: "kettle",
+    label: "kettle",
     name: "Electric kettle, 1.5L",
     price: "₹350",
     km: 5,
@@ -210,6 +217,7 @@ export const items: Item[] = [
   },
   {
     id: "denim-jacket",
+    label: "denim jacket",
     name: "Oversized denim jacket",
     price: "₹700",
     km: 1,
@@ -237,6 +245,7 @@ export const items: Item[] = [
   },
   {
     id: "monitor-24",
+    label: "monitor 24\"",
     name: "24\" monitor, Full HD",
     price: "₹5,500",
     km: 4,
@@ -263,6 +272,7 @@ export const items: Item[] = [
   },
   {
     id: "bean-bag",
+    label: "bean bag",
     name: "XXL bean bag",
     price: "₹950",
     km: 7,
@@ -289,6 +299,7 @@ export const items: Item[] = [
   },
   {
     id: "kindle",
+    label: "kindle",
     name: "Kindle Paperwhite",
     price: "₹4,800",
     km: 3,
@@ -315,6 +326,7 @@ export const items: Item[] = [
   },
   {
     id: "wall-mirror",
+    label: "wall mirror",
     name: "Round wall mirror",
     price: "₹400",
     km: 1,
@@ -341,6 +353,7 @@ export const items: Item[] = [
   },
   {
     id: "study-table",
+    label: "study table",
     name: "Study table + chair",
     price: "₹1,800",
     km: 0.4,
@@ -366,6 +379,7 @@ export const items: Item[] = [
   },
   {
     id: "boat-rockerz-550",
+    label: "headphones",
     name: "Boat Rockerz 550",
     price: "₹850",
     km: 1.1,
@@ -391,6 +405,7 @@ export const items: Item[] = [
   },
   {
     id: "single-mattress",
+    label: "mattress",
     name: "Single mattress",
     price: "₹1,200",
     km: 1.8,
@@ -416,6 +431,7 @@ export const items: Item[] = [
   },
   {
     id: "cricket-kit",
+    label: "cricket kit",
     name: "Cricket kit (full)",
     price: "₹2,400",
     km: 2.6,

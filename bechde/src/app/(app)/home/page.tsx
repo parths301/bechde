@@ -116,7 +116,7 @@ export default function HomePage() {
               top={b.home!.y}
               size={b.home!.size}
               angle={b.angle}
-              label={b.name.split(" ").slice(0, 2).join(" ")}
+              label={b.label}
               price={b.price}
               dur={b.home!.dur}
               delay={b.home!.delay}

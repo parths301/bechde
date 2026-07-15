@@ -75,7 +75,7 @@ export default function MapPage() {
             top={m.map!.y}
             size={m.map!.size}
             angle={m.angle}
-            label={m.name.split(" ").slice(0, 2).join(" ")}
+            label={m.label}
             price={m.price}
             dur={m.map!.dur}
             delay={m.map!.delay}

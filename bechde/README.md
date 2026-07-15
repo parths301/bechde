@@ -1,36 +1,33 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Bech De — neighbourhood resale marketplace
 
-## Getting Started
+Implementation of the Claude Design prototype (`../project/Bech De Prototype.dc.html`)
+as a Next.js 16 + TypeScript app. A cozy, playful hyperlocal resale marketplace
+for young Indians — the "radar" of nearby items is the signature feature.
 
-First, run the development server:
+## Run it
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000 — the flow starts at signup:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+signup → OTP → home (radar + radius slider) → map (radius/category filters)
+→ product (story timeline, like) → chat (offer → deal → meet-up)
+→ sell (live preview → publish) → profile (tabs; likes sync into Saved)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Structure
 
-## Learn More
+- `src/lib/colors.ts` — color tokens from the mini design system sheet
+- `src/lib/data.ts` — mock item/chat data (in-memory, no backend)
+- `src/lib/store.tsx` — React context for cross-screen state (radius, likes, offer, sell form)
+- `src/components/` — shared pieces (Header, radar bubbles, chips, cards, striped photo placeholders)
+- `src/app/` — one route per screen; `(app)/` group shares the header shell
 
-To learn more about Next.js, take a look at the following resources:
+Design rules (fonts Bricolage Grotesque + Karla, cream `#FBF6ED` background,
+pill buttons, dashed dividers, prices in clay `#B4552D`) follow
+`../project/Bech De Design System.dc.html`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Product photos are intentionally striped placeholders, same as the prototype —
+swap in real imagery later.
