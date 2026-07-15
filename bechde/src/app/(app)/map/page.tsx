@@ -5,85 +5,38 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { colors } from "@/lib/colors";
 import { useAppState } from "@/lib/store";
-import { mapItemsAll, mapCategoryNames, mapCategoryIcons } from "@/lib/data";
-import RadarBubble from "@/components/RadarBubble";
+import { mapItemsAll, mapCategoryNames, mapCategoryIcons, USER_LOCATION } from "@/lib/data";
+import OsmMap, { MapMarker } from "@/components/OsmMap";
 import Chip from "@/components/Chip";
 
 export default function MapPage() {
   const router = useRouter();
   const { mapRadius, setMapRadius, activeCat, setActiveCat } = useAppState();
-  const mapRingPx = 220 + mapRadius * 54;
 
   const visible = (km: number, cat: string) => km <= mapRadius && (activeCat === "All" || cat === activeCat);
-  const mapCount = mapItemsAll.filter((m) => visible(m.km, m.category)).length;
+  const shown = mapItemsAll.filter((m) => visible(m.km, m.category));
+  const mapCount = shown.length;
+
+  const markers: MapMarker[] = shown.map((m) => ({
+    id: m.id,
+    lat: m.lat,
+    lng: m.lng,
+    price: m.price,
+    label: m.name,
+  }));
 
   return (
     <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 320px", minHeight: "calc(100vh - 76px)" }}>
-      <div style={{ position: "relative", background: "radial-gradient(circle at 50% 50%,#F3EADA 0%,#FBF6ED 75%)", overflow: "hidden" }}>
-        {/* street doodles */}
-        <div style={{ position: "absolute", left: 0, right: 0, top: "30%", borderTop: "2px dashed rgba(200,180,140,.4)", transform: "rotate(-4deg)" }} />
-        <div style={{ position: "absolute", left: 0, right: 0, top: "64%", borderTop: "2px dashed rgba(200,180,140,.4)", transform: "rotate(3deg)" }} />
-        <div style={{ position: "absolute", top: 0, bottom: 0, left: "38%", borderLeft: "2px dashed rgba(200,180,140,.4)", transform: "rotate(6deg)" }} />
-
-        {/* rings centered */}
-        <div style={{ position: "absolute", left: "50%", top: "50%", width: 760, height: 760, transform: "translate(-50%,-50%)", borderRadius: "50%", border: `1.5px dashed ${colors.ring}` }} />
-        <div style={{ position: "absolute", left: "50%", top: "50%", width: 520, height: 520, transform: "translate(-50%,-50%)", borderRadius: "50%", border: `1.5px dashed ${colors.ring}` }} />
-        <div style={{ position: "absolute", left: "50%", top: "50%", width: 300, height: 300, transform: "translate(-50%,-50%)", borderRadius: "50%", border: `1.5px dashed ${colors.ring}` }} />
-        <div
-          style={{
-            position: "absolute",
-            left: "50%",
-            top: "50%",
-            width: mapRingPx,
-            height: mapRingPx,
-            transform: "translate(-50%,-50%)",
-            borderRadius: "50%",
-            border: `2.5px solid ${colors.marigold}`,
-            boxShadow: "0 0 0 10px rgba(242,169,59,.09)",
-            transition: "width .3s,height .3s",
-          }}
+      <div style={{ position: "relative", overflow: "hidden" }}>
+        <OsmMap
+          center={{ lat: USER_LOCATION.lat, lng: USER_LOCATION.lng }}
+          zoom={12}
+          user={USER_LOCATION}
+          radiusKm={mapRadius}
+          markers={markers}
+          onMarkerClick={(id) => router.push(`/product/${id}`)}
+          height="100%"
         />
-
-        {/* you */}
-        <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", display: "grid", placeItems: "center", zIndex: 3 }}>
-          <div style={{ position: "absolute", width: 52, height: 52, borderRadius: "50%", background: colors.terracotta, animation: "bd-pulse 2.2s ease-out infinite" }} />
-          <div
-            style={{
-              width: 52,
-              height: 52,
-              borderRadius: "50%",
-              background: colors.terracotta,
-              border: "3px solid #fff",
-              boxShadow: "0 3px 10px rgba(232,106,79,.45)",
-              display: "grid",
-              placeItems: "center",
-              fontSize: 21,
-            }}
-          >
-            🏠
-          </div>
-          <div style={{ position: "absolute", top: 58, background: colors.ink, color: colors.bg, fontSize: 11, fontWeight: 700, borderRadius: 6, padding: "3px 9px", whiteSpace: "nowrap" }}>
-            you · 5th Block
-          </div>
-        </div>
-
-        {/* items */}
-        {mapItemsAll.map((m) => (
-          <RadarBubble
-            key={m.id}
-            left={m.map!.x}
-            top={m.map!.y}
-            size={m.map!.size}
-            angle={m.angle}
-            label={m.label}
-            price={m.price}
-            dur={m.map!.dur}
-            delay={m.map!.delay}
-            hidden={!visible(m.km, m.category)}
-            hoverZ={6}
-            onClick={() => router.push(`/product/${m.id}`)}
-          />
-        ))}
 
         {/* count pill */}
         <div
@@ -91,6 +44,8 @@ export default function MapPage() {
             position: "absolute",
             top: 22,
             left: 26,
+            zIndex: 1000,
+            pointerEvents: "none",
             background: colors.ink,
             color: colors.bg,
             borderRadius: 999,

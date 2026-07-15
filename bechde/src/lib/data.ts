@@ -38,13 +38,39 @@ export interface Item {
   facts: Fact[];
   pickup: string;
   neighbourhood: string;
+  // real-world coordinates (approx neighbourhood centre) for OpenStreetMap
+  lat: number;
+  lng: number;
   // home radar hero position (px, within 560x520 box)
   home?: { x: number; y: number; size: number; dur: string; delay: string };
   // full map position (percentages)
   map?: { x: string; y: string; size: number; dur: string; delay: string };
 }
 
-export const items: Item[] = [
+// Approx neighbourhood-centre coordinates (Bangalore) for each listing.
+// Real geocoding replaces these once listings carry captured lat/lng.
+const COORDS: Record<string, { lat: number; lng: number }> = {
+  "yamaha-f310": { lat: 12.9345, lng: 77.6275 }, // 5th Block, Koramangala
+  "desk-lamp": { lat: 12.937, lng: 77.6215 }, // 1st Cross, Koramangala
+  sneakers: { lat: 12.9116, lng: 77.6389 }, // HSR Layout
+  bookshelf: { lat: 12.944, lng: 77.6285 }, // Ejipura
+  "iphone-12": { lat: 12.9166, lng: 77.6101 }, // BTM Layout
+  kettle: { lat: 12.925, lng: 77.5938 }, // Jayanagar
+  "denim-jacket": { lat: 12.933, lng: 77.622 }, // Koramangala 4th Block
+  "monitor-24": { lat: 12.9719, lng: 77.6412 }, // Indiranagar
+  "bean-bag": { lat: 12.9569, lng: 77.7011 }, // Marathahalli
+  kindle: { lat: 12.9304, lng: 77.6784 }, // Bellandur
+  "wall-mirror": { lat: 12.9358, lng: 77.6255 }, // Koramangala 5th Block
+  "study-table": { lat: 12.9352, lng: 77.6245 }, // Koramangala
+  "boat-rockerz-550": { lat: 12.9126, lng: 77.641 }, // HSR Layout
+  "single-mattress": { lat: 12.9425, lng: 77.63 }, // Ejipura
+  "cricket-kit": { lat: 12.918, lng: 77.612 }, // BTM Layout
+};
+
+// The user's own location (Koramangala 5th Block) — centre of the radar/map.
+export const USER_LOCATION = { lat: 12.9352, lng: 77.6245, label: "you · 5th Block" };
+
+const rawItems: Omit<Item, "lat" | "lng">[] = [
   {
     id: "yamaha-f310",
     label: "acoustic guitar",
@@ -456,6 +482,12 @@ export const items: Item[] = [
     pickup: "Pickup near BTM Layout",
   },
 ];
+
+export const items: Item[] = rawItems.map((i) => ({
+  ...i,
+  lat: COORDS[i.id]?.lat ?? USER_LOCATION.lat,
+  lng: COORDS[i.id]?.lng ?? USER_LOCATION.lng,
+}));
 
 export function getItem(id: string): Item | undefined {
   return items.find((i) => i.id === id);

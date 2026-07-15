@@ -56,3 +56,35 @@ input[type="range"] {
     opacity: 1;
   }
 }
+
+/* --- OpenStreetMap / Leaflet map styling --- */
+.bd-pin {
+  position: relative;
+  transform-origin: 50% 100%;
+  transition: transform 0.15s ease;
+  cursor: pointer;
+}
+.bd-pin:hover {
+  transform: scale(1.12);
+  z-index: 500;
+}
+.bd-you-pulse {
+  animation: bd-pulse 2.2s ease-out infinite;
+}
+.bd-tip.leaflet-tooltip {
+  background: #2e2a24;
+  color: #fbf6ed;
+  border: none;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 11px;
+  padding: 3px 9px;
+  box-shadow: 0 4px 10px rgba(60, 45, 20, 0.25);
+}
+.bd-tip.leaflet-tooltip::before {
+  border-bottom-color: #2e2a24;
+}
+.leaflet-container {
+  font-family: inherit;
+  background: #f3eada;
+}

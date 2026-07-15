@@ -8,6 +8,7 @@ import { useAppState } from "@/lib/store";
 import { getItem } from "@/lib/data";
 import Stripe from "@/components/Stripe";
 import Button from "@/components/Button";
+import OsmMap from "@/components/OsmMap";
 
 const categoryIcons: Record<string, string> = {
   Gadgets: "📱",
@@ -157,27 +158,22 @@ export default function ProductPage() {
             ))}
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 18, background: colors.sage, borderRadius: 18, padding: "16px 20px" }}>
-            <div style={{ position: "relative", width: 84, height: 84, flex: "none" }}>
-              <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "1.5px dashed #9DBFB2" }} />
-              <div style={{ position: "absolute", inset: 22, borderRadius: "50%", border: "1.5px dashed #9DBFB2" }} />
-              <div style={{ position: "absolute", left: "50%", top: "50%", width: 10, height: 10, transform: "translate(-50%,-50%)", borderRadius: "50%", background: colors.terracotta }} />
-              <div
-                style={{
-                  position: "absolute",
-                  left: 14,
-                  top: 16,
-                  width: 22,
-                  height: 22,
-                  borderRadius: "50%",
-                  border: "2px solid #fff",
-                  background: "repeating-linear-gradient(45deg,#DCE9E2 0 4px,#C7DBD1 4px 8px)",
-                }}
-              />
-            </div>
-            <div>
-              <div style={{ fontWeight: 800, fontSize: 14.5, color: colors.pine }}>{item.pickup}</div>
-              <div style={{ fontSize: 13, color: colors.pineMuted, lineHeight: 1.5 }}>Exact spot shared after you chat. Public meetup points suggested.</div>
+          <div style={{ background: colors.sage, borderRadius: 18, padding: 14, display: "flex", flexDirection: "column", gap: 12 }}>
+            <OsmMap
+              center={{ lat: item.lat, lng: item.lng }}
+              zoom={14}
+              interactive={false}
+              fuzzy
+              markers={[{ id: item.id, lat: item.lat, lng: item.lng }]}
+              height={150}
+              radius={14}
+            />
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ fontSize: 22, flex: "none" }}>📍</div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 14.5, color: colors.pine }}>{item.pickup}</div>
+                <div style={{ fontSize: 13, color: colors.pineMuted, lineHeight: 1.5 }}>Exact spot shared after you chat. Public meetup points suggested.</div>
+              </div>
             </div>
           </div>
         </div>
