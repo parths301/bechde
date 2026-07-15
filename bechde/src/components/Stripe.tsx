@@ -1,0 +1,35 @@
+import { CSSProperties, ReactNode } from "react";
+import { colors } from "@/lib/colors";
+
+interface StripeProps {
+  angle?: string;
+  band?: number;
+  c1?: string;
+  c2?: string;
+  style?: CSSProperties;
+  label?: string;
+  children?: ReactNode;
+}
+
+// The prototype's striped placeholder-photo pattern, e.g.
+// repeating-linear-gradient(45deg,#F1E9DB 0 9px,#E4D7C1 9px 18px)
+export default function Stripe({ angle = "45deg", band = 9, c1 = colors.stripe1, c2 = colors.stripe2, style, label, children }: StripeProps) {
+  return (
+    <div
+      style={{
+        background: `repeating-linear-gradient(${angle}, ${c1} 0 ${band}px, ${c2} ${band}px ${band * 2}px)`,
+        display: "grid",
+        placeItems: "center",
+        position: "relative",
+        fontFamily: "ui-monospace, Menlo, monospace",
+        fontSize: 11,
+        color: colors.textMuted,
+        textAlign: "center",
+        ...style,
+      }}
+    >
+      {label}
+      {children}
+    </div>
+  );
+}

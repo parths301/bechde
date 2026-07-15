@@ -1,0 +1,58 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #fbf6ed;
+  color: #2e2a24;
+  font-family: var(--font-karla), Karla, system-ui, sans-serif;
+}
+
+a {
+  color: #b4552d;
+  text-decoration: none;
+}
+
+input,
+textarea {
+  font-family: var(--font-karla), Karla, sans-serif;
+}
+
+input[type="range"] {
+  accent-color: #e86a4f;
+}
+
+@keyframes bd-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
+@keyframes bd-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+@keyframes bd-pop {
+  0% {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
