@@ -13,10 +13,16 @@ export interface Fact {
 }
 
 export interface Seller {
+  /** profiles.id — present on DB-backed items, absent in the static seed data */
+  id?: string;
   name: string;
   initial: string;
   color: string;
+  /** display string, derived from ratingAvg/ratingCount — "★ 4.8" or "new seller" */
   rating: string;
+  /** null until someone reviews them */
+  ratingAvg?: number | null;
+  ratingCount?: number;
   sold: number;
   replyTime: string;
 }
@@ -38,6 +44,14 @@ export interface Item {
   facts: Fact[];
   pickup: string;
   neighbourhood: string;
+  // cover photo URL (Supabase Storage) — undefined falls back to striped placeholder
+  cover?: string;
+  // every uploaded photo, cover first — drives the product gallery
+  images?: string[];
+  // when the listing was created (ISO) — DB rows only
+  createdAt?: string;
+  // 'active' | 'sold' — DB rows only
+  status?: string;
   // real-world coordinates (approx neighbourhood centre) for OpenStreetMap
   lat: number;
   lng: number;
@@ -517,15 +531,9 @@ export const homeCategories: { icon: string; name: string }[] = [
   { icon: "✨", name: "Everything" },
 ];
 
-export const mapCategoryNames = ["All", "Gadgets", "Furniture", "Fashion", "Books", "Everything"] as const;
-export const mapCategoryIcons: Record<string, string> = {
-  All: "✨",
-  Gadgets: "📱",
-  Furniture: "🛋️",
-  Fashion: "👕",
-  Books: "📚",
-  Everything: "🧺",
-};
+// The map's own category list used to live here and silently omitted Music, so a
+// guitar could never be filtered. Both the map and /search now share
+// `searchCategories` in src/lib/search.ts, built from homeCategories above.
 
 export interface ChatThread {
   id: string;

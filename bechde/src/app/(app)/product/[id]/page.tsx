@@ -1,14 +1,15 @@
 "use client";
 
-import { useParams, notFound } from "next/navigation";
+import { useParams, notFound, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
 import { colors } from "@/lib/colors";
 import { useAppState } from "@/lib/store";
-import { getItem } from "@/lib/data";
+import { useItem, useProfile, startChat, blockProfile, setListingStatus } from "@/lib/queries";
 import Stripe from "@/components/Stripe";
 import Button from "@/components/Button";
 import OsmMap from "@/components/OsmMap";
+import ReportDialog from "@/components/ReportDialog";
 
 const categoryIcons: Record<string, string> = {
   Gadgets: "📱",
@@ -28,18 +29,72 @@ const thumbLabels = [
 
 export default function ProductPage() {
   const params = useParams<{ id: string }>();
-  const item = getItem(params.id);
+  const router = useRouter();
+  const { data: item, loading } = useItem(params.id);
   const { isLiked, toggleLike } = useAppState();
+  const me = useProfile().data;
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [opening, setOpening] = useState(false);
+  const [reporting, setReporting] = useState(false);
+  const [blocked, setBlocked] = useState(false);
+  const [statusBusy, setStatusBusy] = useState(false);
+  const [localStatus, setLocalStatus] = useState<string | null>(null);
 
+  if (loading) {
+    return <div style={{ padding: "60px 36px", textAlign: "center", color: colors.textFaint, fontWeight: 700 }}>Loading…</div>;
+  }
   if (!item) notFound();
 
   const liked = isLiked(item.id);
+  const isMine = !!me && me.id === item.seller.id;
+
+  // Open (or reuse) this buyer's thread for the listing, then jump into it.
+  const openChat = async () => {
+    if (opening || !item.seller.id) return;
+    setOpening(true);
+    setChatError(null);
+    try {
+      const chatId = await startChat(item.id, item.seller.id);
+      router.push(`/chat?c=${encodeURIComponent(chatId)}`);
+    } catch (e: unknown) {
+      setChatError(e instanceof Error ? e.message : "Couldn't open the chat.");
+      setOpening(false);
+    }
+  };
+
+  const block = async () => {
+    if (!item.seller.id) return;
+    setChatError(null);
+    try {
+      await blockProfile(item.seller.id);
+      setBlocked(true);
+    } catch (e: unknown) {
+      setChatError(e instanceof Error ? e.message : "Couldn't block that seller.");
+    }
+  };
+
+  // Sellers withdraw or mark sold; the row stays so the thread history survives.
+  const status = localStatus ?? item.status ?? "active";
+  const changeStatus = async (next: "active" | "sold" | "removed") => {
+    if (statusBusy) return;
+    setStatusBusy(true);
+    setChatError(null);
+    try {
+      await setListingStatus(item.id, next);
+      setLocalStatus(next);
+    } catch (e: unknown) {
+      setChatError(e instanceof Error ? e.message : "Couldn't update the listing.");
+    } finally {
+      setStatusBusy(false);
+    }
+  };
+
   const storyTitle = item.id === "yamaha-f310" ? "This guitar's story 📖" : "This one's story 📖";
 
   return (
     <div style={{ maxWidth: 1240, margin: "0 auto", width: "100%" }}>
       <div className="bd-product-crumb" style={{ padding: "16px 36px 8px", fontSize: 13, color: colors.textFaint, fontWeight: 600 }}>
-        <Link href="/home" style={{ cursor: "pointer", color: colors.clay }}>
+        <Link href="/home" style={{ cursor: "pointer", color: colors.clay, textDecoration: "underline" }}>
           ← Browse
         </Link>{" "}
         → {categoryIcons[item.category]} {item.category} → <span style={{ color: colors.ink }}>{item.name}</span>
@@ -47,7 +102,7 @@ export default function ProductPage() {
 
       <div className="bd-product-grid" style={{ display: "grid", gridTemplateColumns: "560px 1fr", gap: 34, padding: "14px 36px 40px" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <Stripe angle={item.angle} band={10} label="main product photo" style={{ height: 420, borderRadius: 22, fontSize: 12 }}>
+          <Stripe angle={item.angle} src={item.cover} band={10} label="main product photo" style={{ height: 420, borderRadius: 22, fontSize: 12 }}>
             <div
               style={{
                 position: "absolute",
@@ -66,8 +121,13 @@ export default function ProductPage() {
             </div>
             <LikeButton liked={liked} onClick={() => toggleLike(item.id)} />
           </Stripe>
+          {/* Real uploads when there are any; the striped placeholders only fill the
+              remaining slots so the row keeps its shape. */}
           <div style={{ display: "flex", gap: 10 }}>
-            {thumbLabels.map((t) => (
+            {(item.images ?? []).slice(0, 4).map((url) => (
+              <Thumb key={url} src={url} />
+            ))}
+            {thumbLabels.slice((item.images ?? []).length, 4).map((t) => (
               <Thumb key={t.label} label={t.label} angle={t.angle} />
             ))}
           </div>
@@ -131,7 +191,7 @@ export default function ProductPage() {
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: 15 }}>
-                {item.seller.name} <span style={{ color: colors.marigold }}>{item.seller.rating}</span>
+                {item.seller.name} <span style={{ color: colors.offerText }}>{item.seller.rating}</span>
               </div>
               <div style={{ fontSize: 12.5, color: colors.textFaint, fontWeight: 600 }}>
                 {item.seller.sold} items sold · usually replies in {item.seller.replyTime}
@@ -140,14 +200,59 @@ export default function ProductPage() {
             <ViewProfileLink />
           </div>
 
-          <div style={{ display: "flex", gap: 12 }}>
-            <Button href="/chat" variant="primary" flex>
-              💬 Chat with {item.seller.name.split(" ")[0]}
-            </Button>
-            <Button href="/chat" variant="secondary" flex>
-              Make an offer
-            </Button>
-          </div>
+          {status !== "active" && (
+            <div style={{ background: colors.ink, color: colors.bg, borderRadius: 14, padding: "12px 18px", fontSize: 13.5, fontWeight: 800 }}>
+              {status === "sold" ? "✓ This one's sold" : "This listing has been withdrawn"}
+            </div>
+          )}
+
+          {isMine ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ background: colors.sage, color: colors.pine, borderRadius: 14, padding: "14px 18px", fontSize: 13.5, fontWeight: 700 }}>
+                This is your listing — buyers&apos; chats show up under 💬 Chats.
+              </div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                {status !== "sold" && (
+                  <SafetyAction label={statusBusy ? "Saving…" : "✓ Mark as sold"} onClick={() => changeStatus("sold")} />
+                )}
+                {status === "active" ? (
+                  <SafetyAction label="Withdraw listing" onClick={() => changeStatus("removed")} />
+                ) : (
+                  <SafetyAction label="Put it back up" onClick={() => changeStatus("active")} />
+                )}
+              </div>
+            </div>
+          ) : blocked ? (
+            <div style={{ background: colors.bg2, color: colors.textBody, borderRadius: 14, padding: "14px 18px", fontSize: 13.5, fontWeight: 700 }}>
+              You blocked {item.seller.name.split(" ")[0]}. Their listings and your shared chats are hidden — undo it from
+              your profile.
+            </div>
+          ) : (
+            <>
+              <div style={{ display: "flex", gap: 12 }}>
+                <Button onClick={openChat} variant="primary" flex>
+                  {opening ? "Opening…" : `💬 Chat with ${item.seller.name.split(" ")[0]}`}
+                </Button>
+                <Button onClick={openChat} variant="secondary" flex>
+                  Make an offer
+                </Button>
+              </div>
+              <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
+                <SafetyAction label="⚑ Report listing" onClick={() => setReporting(true)} />
+                <SafetyAction label="Block seller" onClick={block} />
+              </div>
+            </>
+          )}
+          {chatError && <div style={{ fontSize: 13, fontWeight: 700, color: colors.terracotta }}>{chatError}</div>}
+
+          {reporting && (
+            <ReportDialog
+              listingId={item.id}
+              sellerId={item.seller.id}
+              listingName={item.name}
+              onClose={() => setReporting(false)}
+            />
+          )}
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             {item.facts.map((fa) => (
@@ -211,7 +316,7 @@ function LikeButton({ liked, onClick }: { liked: boolean; onClick: () => void })
   );
 }
 
-function Thumb({ label, angle }: { label: string; angle: string }) {
+function Thumb({ src, label, angle }: { src?: string; label?: string; angle?: string }) {
   const [hover, setHover] = useState(false);
   return (
     <div
@@ -219,7 +324,7 @@ function Thumb({ label, angle }: { label: string; angle: string }) {
       onMouseLeave={() => setHover(false)}
       style={{ cursor: "pointer", border: `2px solid ${hover ? colors.marigold : "transparent"}`, borderRadius: 12 }}
     >
-      <Stripe angle={angle} band={7} label={label} style={{ width: 88, height: 70, borderRadius: 10, fontSize: 9.5 }} />
+      <Stripe angle={angle ?? "45deg"} src={src} band={7} label={label} style={{ width: 88, height: 70, borderRadius: 10, fontSize: 9.5 }} />
     </div>
   );
 }
@@ -235,5 +340,30 @@ function ViewProfileLink() {
     >
       view profile →
     </Link>
+  );
+}
+
+/** Quiet secondary action — report, block, mark sold, withdraw. */
+function SafetyAction({ label, onClick }: { label: string; onClick: () => void }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        background: "#fff",
+        border: `1.5px solid ${hover ? colors.terracotta : colors.sand}`,
+        color: hover ? colors.clay : colors.textBody,
+        borderRadius: 999,
+        padding: "8px 16px",
+        fontSize: 12.5,
+        fontWeight: 700,
+        cursor: "pointer",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {label}
+    </div>
   );
 }

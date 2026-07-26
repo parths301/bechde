@@ -18,8 +18,11 @@ export default function Chip({ icon, name, active, onClick, lift = true }: ChipP
     ? { background: colors.ink, borderColor: colors.ink, color: colors.bg }
     : { background: "#fff", borderColor: colors.sand, color: colors.textDark };
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
+      // Filter chips are toggles — screen readers should say which one is on.
+      aria-pressed={active ?? undefined}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
@@ -31,14 +34,15 @@ export default function Chip({ icon, name, active, onClick, lift = true }: ChipP
         padding: "9px 16px",
         fontSize: 13.5,
         fontWeight: 700,
+        fontFamily: "inherit",
         cursor: "pointer",
         whiteSpace: "nowrap",
         ...activeStyle,
         ...(hover && lift ? { transform: "translateY(-2px)" } : null),
       }}
     >
-      <span>{icon}</span>
+      <span aria-hidden="true">{icon}</span>
       {name}
-    </div>
+    </button>
   );
 }

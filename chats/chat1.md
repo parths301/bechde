@@ -6,7 +6,7 @@ _Started 2026-07-14 20:34 UTC_
 
 ## User
 
-An online resale website called "Bech De". Nice cozy theme. People can come and sign up and then list their products and resell them. Something like facebook marketplace and so many other such options. But we should stand out and have a very creative design not used by any others and that would be loved by the users. Ease of use, responsive design, clean UI. Perfect deign elements and all necessary things laid out where they should be to make the whole experience very calm and continious from visiting viewing and buying. We will also have an app for phones at a later time.
+An online resale website called "Bech De". Nice cozy theme. People can come and sign up and then list their products and resell them. Something like facebook marketplace and so many other such options. But we should stand out and have a very creative design not used by any others and that would be loved by the users. Ease of use, responsive design, clean UI. Perfect deign elements and all necessary things laid out where they should be to make the whole experience very /Users/parth/Downloads/WhatsAppcalm and continious from visiting viewing and buying. We will also have an app for phones at a later time.
 
 ## Assistant
 

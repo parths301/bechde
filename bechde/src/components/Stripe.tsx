@@ -8,16 +8,21 @@ interface StripeProps {
   c2?: string;
   style?: CSSProperties;
   label?: string;
+  /** real photo URL — when set, shows the image instead of the striped placeholder */
+  src?: string;
   children?: ReactNode;
 }
 
 // The prototype's striped placeholder-photo pattern, e.g.
 // repeating-linear-gradient(45deg,#F1E9DB 0 9px,#E4D7C1 9px 18px)
-export default function Stripe({ angle = "45deg", band = 9, c1 = colors.stripe1, c2 = colors.stripe2, style, label, children }: StripeProps) {
+// When `src` is provided, the real photo replaces the stripes (badges still overlay).
+export default function Stripe({ angle = "45deg", band = 9, c1 = colors.stripe1, c2 = colors.stripe2, style, label, src, children }: StripeProps) {
   return (
     <div
       style={{
-        background: `repeating-linear-gradient(${angle}, ${c1} 0 ${band}px, ${c2} ${band}px ${band * 2}px)`,
+        background: src
+          ? `#EDE3D2 center/cover no-repeat url("${src}")`
+          : `repeating-linear-gradient(${angle}, ${c1} 0 ${band}px, ${c2} ${band}px ${band * 2}px)`,
         display: "grid",
         placeItems: "center",
         position: "relative",
@@ -28,7 +33,7 @@ export default function Stripe({ angle = "45deg", band = 9, c1 = colors.stripe1,
         ...style,
       }}
     >
-      {label}
+      {!src && label}
       {children}
     </div>
   );

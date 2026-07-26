@@ -1,25 +1,50 @@
-# CODING AGENTS: READ THIS FIRST
+# Bech De — repository guide
 
-This is a **handoff bundle** from Claude Design (claude.ai/design).
+**The app is built.** This started as a handoff bundle from Claude Design
+(claude.ai/design); the designs in `project/` have since been implemented as a real
+Next.js + Supabase application in **`bechde/`**.
 
-A user mocked up designs in HTML/CSS/JS using an AI design tool, then exported this bundle so a coding agent can implement the designs for real.
+## CODING AGENTS: READ THIS FIRST
 
-## What you should do — IMPORTANT
+👉 **Start with [`bechde/CLAUDE.md`](./bechde/CLAUDE.md).** It is the current source of
+truth: architecture, every subsystem, the gotchas that cost real time, and a prioritized
+list of what to do next with acceptance criteria. Read it before touching code.
 
-**Read the chat transcripts first.** There are 1 chat transcript(s) in `chats/`. The transcripts show the full back-and-forth between the user and the design assistant — they tell you **what the user actually wants** and **where they landed** after iterating. Don't skip them. The final HTML files are the output, but the chat is where the intent lives.
+Then, depending on what you're doing:
 
-**Read `project/Bech De Prototype.dc.html` in full.** The user had this file open when they triggered the handoff, so it's almost certainly the primary design they want built. Read it top to bottom — don't skim. Then **follow its imports**: open every file it pulls in (shared components, CSS, scripts) so you understand how the pieces fit together before you start implementing.
+| You want to… | Read |
+|---|---|
+| Understand or change the app | [`bechde/CLAUDE.md`](./bechde/CLAUDE.md) |
+| Run it locally | [`bechde/README.md`](./bechde/README.md) |
+| Deploy it | [`bechde/DEPLOY.md`](./bechde/DEPLOY.md) |
+| See what's done per phase | [`bechde/ROADMAP.md`](./bechde/ROADMAP.md) |
+| Know what the user actually asked for | `chats/` (see below) |
+| Check a visual detail against the design | `project/*.dc.html` |
 
-**If anything is ambiguous, ask the user to confirm before you start implementing.** It's much cheaper to clarify scope up front than to build the wrong thing.
-
-## About the design files
-
-The design medium is **HTML/CSS/JS** — these are prototypes, not production code. Your job is to **recreate them pixel-perfectly** in whatever technology makes sense for the target codebase (React, Vue, native, whatever fits). Match the visual output; don't copy the prototype's internal structure unless it happens to fit.
-
-**Don't render these files in a browser or take screenshots unless the user asks you to.** Everything you need — dimensions, colors, layout rules — is spelled out in the source. Read the HTML and CSS directly; a screenshot won't tell you anything they don't.
+⚠️ The app runs on **Next.js 16**, which has breaking changes from earlier versions
+(`middleware` → `proxy`, and more). Read `bechde/node_modules/next/dist/docs/` before
+writing code — `bechde/CLAUDE.md` lists the traps already hit.
 
 ## Bundle contents
 
-- `README.md` — this file
-- `chats/` — conversation transcripts (read these!)
-- `project/` — the `Bech De resale platform design` project files (HTML prototypes, assets, components)
+- **`bechde/`** — the real application (Next.js 16, TypeScript, Supabase, Leaflet/OSM).
+  This is where the work happens.
+- **`chats/`** — conversation transcripts. `chat1.md` is the original design session, where
+  the user's intent lives; `chat2.md` logs the build from prototype to production,
+  including the decisions and the bugs worth remembering.
+- **`project/`** — the original HTML/CSS prototypes from the design tool. Still the
+  reference for visual detail, and the design language (Bricolage Grotesque + Karla, cream
+  `#FBF6ED`, pill buttons, dashed dividers) is fixed and should be respected. Note the
+  prototypes contain placeholder data and invented numbers — the app deliberately does not.
+
+## Status in one paragraph
+
+A hyperlocal second-hand marketplace for India, with a radar of nearby listings as its
+signature screen. Auth (email magic-link), listings with photo upload, real geographic
+distances, ranked and typo-tolerant search with saved searches, live chat with offers and
+accept/decline, reviews that drive derived seller reputation, reporting and blocking
+enforced in row-level security, and DPDP-shaped legal pages. Covered by 42 unit tests, a
+21-test RLS suite and 16 Playwright end-to-end tests with an accessibility pass, plus CI.
+**Not yet deployed** — that needs accounts only the owner can create (Supabase cloud,
+Vercel, SMTP, domain) and the operator details filled into `bechde/src/lib/legal.ts`. See
+[`bechde/DEPLOY.md`](./bechde/DEPLOY.md).

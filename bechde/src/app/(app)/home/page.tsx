@@ -4,17 +4,51 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { colors } from "@/lib/colors";
 import { useAppState } from "@/lib/store";
-import { homeBubbles, homeCategories, feedItems, USER_LOCATION } from "@/lib/data";
+import { homeCategories } from "@/lib/data";
+import { useNearbyItems, useUserLocation } from "@/lib/queries";
+import { radarPlacement } from "@/lib/geo";
+import { DEFAULT_FILTERS, searchHref } from "@/lib/search";
 import Chip from "@/components/Chip";
+import { SearchBar } from "@/components/Header";
 import RadarBubble from "@/components/RadarBubble";
 import ListingCard from "@/components/ListingCard";
 import OsmMap from "@/components/OsmMap";
+import LocationChip from "@/components/LocationChip";
+
+const RADAR_BOX = { w: 560, h: 520 };
 
 export default function HomePage() {
   const router = useRouter();
   const { radiusKm, setRadiusKm } = useAppState();
+  const origin = useUserLocation();
+  const nearbyAll = useNearbyItems().data ?? [];
   const ringPx = 130 + radiusKm * 35;
-  const nearbyCount = 120 + radiusKm * 31;
+
+  // Everything on this screen is driven by real distances from `origin`.
+  const nearby = nearbyAll.filter((i) => i.km <= radiusKm);
+  const nearbyCount = nearby.length;
+  // The radar shows the closest few, positioned by their actual coordinates.
+  const homeBubbles = nearby.slice(0, 7).map((item, i) => {
+    const size = Math.max(54, 78 - i * 3);
+    return {
+      item,
+      size,
+      dur: `${3 + (i % 5) * 0.2}s`,
+      delay: `${(i % 4) * 0.25}s`,
+      ...radarPlacement({
+        origin,
+        point: { lat: item.lat, lng: item.lng },
+        radiusKm,
+        ringPx,
+        box: RADAR_BOX,
+        size,
+        seed: item.id,
+      }),
+    };
+  });
+  const feedItems = [...nearby]
+    .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""))
+    .slice(0, 8);
 
   return (
     <div>
@@ -43,8 +77,9 @@ export default function HomePage() {
               whiteSpace: "nowrap",
             }}
           >
-            ✦ {nearbyCount} things for sale near you right now
+            ✦ {nearbyCount} {nearbyCount === 1 ? "thing" : "things"} for sale within {radiusKm} km
           </div>
+          <LocationChip />
           <h1 className="bd-hero-h1" style={{ margin: 0, fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 54, lineHeight: 1.05, letterSpacing: "-1.5px" }}>
             Good stuff,
             <br />
@@ -53,9 +88,19 @@ export default function HomePage() {
           <p style={{ margin: 0, maxWidth: 400, fontSize: 16.5, lineHeight: 1.6, color: colors.textBody }}>
             Buy and sell with people in your own neighbourhood. No shipping, no strangers from far away — just meet, check, and take it home.
           </p>
+          {/* mobile-only: the header search is hidden under the breakpoint */}
+          <div className="bd-mobile-search" style={{ display: "none" }}>
+            <SearchBar />
+          </div>
+
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
             {homeCategories.map((c) => (
-              <Chip key={c.name} icon={c.icon} name={c.name} onClick={() => router.push("/map")} />
+              <Chip
+                key={c.name}
+                icon={c.icon}
+                name={c.name}
+                onClick={() => router.push(searchHref({ ...DEFAULT_FILTERS, category: c.name, radiusKm }))}
+              />
             ))}
           </div>
         </div>
@@ -75,7 +120,7 @@ export default function HomePage() {
             }}
           >
             <OsmMap
-              center={{ lat: USER_LOCATION.lat, lng: USER_LOCATION.lng }}
+              center={{ lat: origin.lat, lng: origin.lng }}
               zoom={14}
               interactive={false}
               height="100%"
@@ -142,16 +187,17 @@ export default function HomePage() {
 
           {homeBubbles.map((b) => (
             <RadarBubble
-              key={b.id}
-              left={b.home!.x}
-              top={b.home!.y}
-              size={b.home!.size}
-              angle={b.angle}
-              label={b.label}
-              price={b.price}
-              dur={b.home!.dur}
-              delay={b.home!.delay}
-              onClick={() => router.push(`/product/${b.id}`)}
+              key={b.item.id}
+              left={b.left}
+              top={b.top}
+              size={b.size}
+              angle={b.item.angle}
+              label={b.item.label}
+              src={b.item.cover}
+              price={b.item.price}
+              dur={b.dur}
+              delay={b.delay}
+              onClick={() => router.push(`/product/${b.item.id}`)}
             />
           ))}
 
@@ -174,6 +220,7 @@ export default function HomePage() {
             <span style={{ fontSize: 12.5, fontWeight: 700, color: colors.textBody, whiteSpace: "nowrap" }}>Radius</span>
             <input
               type="range"
+              aria-label="Search radius in kilometres"
               min={1}
               max={10}
               value={radiusKm}
@@ -190,10 +237,10 @@ export default function HomePage() {
         <div className="bd-hero-mobilemap" style={{ flexDirection: "column", gap: 14 }}>
           <div className="bd-map-fade" style={{ position: "relative", width: "100%", aspectRatio: "1 / 1", borderRadius: 26, overflow: "hidden" }}>
             <OsmMap
-              center={{ lat: USER_LOCATION.lat, lng: USER_LOCATION.lng }}
+              center={{ lat: origin.lat, lng: origin.lng }}
               zoom={14}
               interactive={false}
-              user={USER_LOCATION}
+              user={origin}
               radiusKm={radiusKm}
               height="100%"
             />
@@ -210,7 +257,7 @@ export default function HomePage() {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", border: `1.5px solid ${colors.sand}`, borderRadius: 999, padding: "10px 18px" }}>
             <span style={{ fontSize: 12.5, fontWeight: 700, color: colors.textBody, whiteSpace: "nowrap" }}>Radius</span>
-            <input type="range" min={1} max={10} value={radiusKm} onChange={(e) => setRadiusKm(Number(e.target.value))} style={{ flex: 1, cursor: "pointer" }} />
+            <input type="range" aria-label="Search radius in kilometres" min={1} max={10} value={radiusKm} onChange={(e) => setRadiusKm(Number(e.target.value))} style={{ flex: 1, cursor: "pointer" }} />
             <span style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 15, color: colors.clay, whiteSpace: "nowrap", minWidth: 44 }}>{radiusKm} km</span>
           </div>
         </div>

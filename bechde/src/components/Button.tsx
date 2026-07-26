@@ -52,9 +52,16 @@ export default function Button({ children, onClick, href, variant = "primary", r
       </Link>
     );
   }
+  // A real <button>: keyboard-operable and announced as a button, without changing
+  // how it looks (the browser's own button styling is reset inline).
   return (
-    <div onClick={onClick} style={styleFinal} {...handlers}>
+    <button
+      type="button"
+      onClick={onClick}
+      style={{ ...styleFinal, font: "inherit", fontWeight: styleFinal.fontWeight, appearance: "none" }}
+      {...handlers}
+    >
       {children}
-    </div>
+    </button>
   );
 }

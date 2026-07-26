@@ -1,107 +1,143 @@
-# Bech De — Roadmap to a Real Marketplace
+# Bech De — Roadmap
 
-Current state: a **hi-fi clickable prototype** built in Next.js (App Router).
-Every screen works, but all data is mock and in-memory — it resets on refresh.
-There is no backend, no real auth, and product photos are striped placeholders.
+**Current state: phases 0–9 are done.** The prototype is a real marketplace on Supabase —
+auth, listings with photo upload, real geographic distances, ranked search, live chat with
+offers, derived seller reputation, reporting and blocking enforced in RLS, legal pages, and
+a test suite with CI. Nothing a user sees is mocked.
 
-This document tracks the work to turn the prototype into a real, launchable
-marketplace using **Supabase** (database, auth, storage) and
-**OpenStreetMap / MapLibre** (maps + geocoding).
-
----
-
-## Chosen stack
-
-| Concern | Choice |
-|---|---|
-| Framework | Next.js 16 (App Router, TypeScript) — already built |
-| Database | Supabase Postgres |
-| Auth | Supabase Auth (phone OTP, or email magic-link for MVP — TBD) |
-| Image storage | Supabase Storage |
-| Maps / tiles | MapLibre GL + MapTiler (or Stadia) tiles |
-| Geocoding | MapTiler geocoding (same key as tiles) |
-| Realtime chat | Supabase Realtime |
-| Hosting | Vercel (natural fit for Next.js) |
+**What's left is not code.** Deploying needs accounts only the owner can create. See
+[DEPLOY.md](./DEPLOY.md) for the runbook and [CLAUDE.md](./CLAUDE.md) for the prioritized
+list of post-launch work.
 
 ---
 
-## What I need from you (blockers)
+## Shipped stack
 
-- [ ] **Supabase project** (region: Mumbai / ap-south-1)
-  - [ ] Project URL — `https://xxxx.supabase.co`
-  - [ ] Anon public key (browser-safe)
-  - [ ] Service role key (server-only, secret — do not commit)
-- [ ] **MapTiler API key** (tiles + geocoding under one key)
-- [ ] **OTP decision:**
-  - [ ] **A** — Real phone OTP now (also needs a Twilio/MessageBird account + India DLT registration + per-SMS cost)
-  - [ ] **B** — Email magic-link for MVP (free, ships this week; keep phone field as "verify later") — *recommended*
-- [ ] **GitHub Personal Access Token** (scope: `repo`) so the code can be pushed to a new repo
+| Concern | Choice | Note |
+|---|---|---|
+| Framework | Next.js 16 (App Router, TypeScript) | `middleware` is `proxy` here |
+| Database | Supabase Postgres 17 | 13 tables, RLS on every one |
+| Auth | Supabase Auth — **email magic-link** | phone OTP would need Twilio + India DLT |
+| Image storage | Supabase Storage | bucket `listing-images` |
+| Maps / tiles | **Leaflet + raw OpenStreetMap** | MapTiler dropped — no key needed |
+| Geocoding | **OSM Nominatim**, server-proxied | `/api/geocode` |
+| Search | Postgres full-text + `pg_trgm` fuzzy | `search_listings()` |
+| Realtime chat | Supabase Realtime | `messages` + `offers` publication |
+| Tests | Vitest + Playwright + axe | 42 unit, 21 RLS, 16 E2E |
+| Hosting | Vercel (planned) | root directory must be `bechde` |
+
+---
+
+## Still needed from you (launch blockers)
+
+- [ ] **Supabase cloud project** (region: Mumbai / `ap-south-1`) → then
+      `npx supabase link --project-ref <ref>` and `npx supabase db push`
+- [ ] **Operator details** in `src/lib/legal.ts` — entity, address, grievance officer +
+      email, support email. The legal pages show a draft banner until these are filled
+      (DPDP Act requires a named human and a reachable address).
+- [ ] **Real SMTP provider** (Resend / SES / Postmark) — Supabase's shared sender is
+      rate-limited and not for production. Sign-in is the front door.
+- [ ] **Vercel project** + env vars, then a **domain**
+- [x] ~~MapTiler API key~~ — not needed; Leaflet + raw OSM tiles + Nominatim are free and keyless
+- [x] **OTP decision: B** — email magic-link (shipped)
+- [x] ~~GitHub Personal Access Token~~ — the `origin` remote is already set
 
 Secrets go into `.env.local` (gitignored) locally and into Vercel's env settings for deploy.
-Never paste the service-role key or Twilio token into a committed file.
+Never commit the service-role key.
 
 ---
 
 ## Build plan
 
-### Phase 0 — Scaffolding (no keys required; can start immediately)
-- [ ] Install `@supabase/supabase-js` and `maplibre-gl`
-- [ ] Add typed Supabase client wrappers (browser + server) reading from env
-- [ ] Write DB schema + SQL migrations
-- [ ] Row-Level Security (RLS) policies on every table
-- [ ] Build a real MapLibre map component (keyed off an env var, graceful fallback)
+What each phase delivered:
 
-### Phase 1 — Data layer
-- [ ] Tables: `profiles`, `listings`, `listing_images`, `categories`,
-      `chats`, `messages`, `offers`, `saved_items`
-- [ ] Seed script porting the current mock `data.ts` items into the DB
-- [ ] Replace mock reads in `lib/data.ts` with Supabase queries behind the
-      same interfaces (screens stay untouched)
+### Phase 0 — Scaffolding ✅
+- [x] `@supabase/supabase-js` + `@supabase/ssr` (MapLibre dropped — Leaflet + raw OSM tiles, no key)
+- [x] Typed Supabase client wrappers (browser + server/admin) reading from env
+- [x] DB schema + SQL migrations, RLS on every table
 
-### Phase 2 — Auth
-- [ ] Wire signup/OTP screen to Supabase Auth (phone or email per decision)
-- [ ] Session handling + protected `(app)` routes
-- [ ] `profiles` row created on first sign-in
+### Phase 1 — Data layer ✅
+- [x] Tables: `profiles`, `listings`, `listing_images`, `categories`, `chats`, `messages`, `offers`, `saved_items`
+- [x] Seed script porting the mock `data.ts` items into the DB
+- [x] All screens read through hooks in `src/lib/queries.ts`
 
-### Phase 3 — Listings & images
-- [ ] Sell form writes a real listing to the DB
-- [ ] Real image upload to Supabase Storage (replace striped placeholders)
-- [ ] Listing detail page reads real data by id
+### Phase 2 — Auth ✅
+- [x] Email magic-link via `signInWithOtp` → `/auth/confirm` (stateless `verifyOtp`)
+- [x] Session refresh + route gating in `src/proxy.ts` (Next 16 renamed middleware → proxy)
+- [x] `profiles` row created — or linked by email — on first sign-in
 
-### Phase 4 — Location & the radar
-- [ ] Browser geolocation permission flow
-- [ ] Geocode the user's neighbourhood → lat/lng
-- [ ] Store listing coordinates; compute real distances (PostGIS or haversine)
-- [ ] Radar / map radius filter driven by real distance data
+### Phase 3 — Listings & images ✅
+- [x] Sell form writes a real listing
+- [x] Photo upload to the `listing-images` Storage bucket; striped placeholder is now the fallback
+- [x] Listing detail reads the real row by id
 
-### Phase 5 — Chat & offers
-- [ ] Persistent messages per chat thread
-- [ ] Supabase Realtime for live message delivery
-- [ ] Offer → accept/decline flow writing shared state both parties see
+### Phase 4 — Location & the radar ✅
+- [x] Browser geolocation → stored on `profiles`, reverse-geocoded to a neighbourhood
+- [x] Nominatim geocoding for the sell form, proxied through `/api/geocode`
+- [x] Real haversine distances computed at read time from the viewer's position
+- [x] Radar bubbles positioned from actual coordinates; radius filters driven by real km
 
-### Phase 6 — Search & discovery
-- [ ] Wire the (currently decorative) search bar to DB text search
-- [ ] Category + radius + price filters against real data
+### Phase 5 — Chat & offers ✅
+- [x] Persistent messages per thread, live over Supabase Realtime
+- [x] Offer → accept/decline as shared state both parties see
+- [x] Likes backed by `saved_items`
 
-### Phase 7 — Trust, safety & legal (pre-launch)
-- [ ] Report / block on listings and users
-- [ ] Remove / mark-sold a listing
-- [ ] Prohibited-items rules
-- [ ] Privacy policy + terms (India DPDP Act applies — collecting phone/email)
-- [ ] Grievance contact
+### Phase 6 — Search & discovery ✅
+- [x] Ranked full-text search (`search_listings`) with trigram typo tolerance
+- [x] Category + radius + price filters against real data, shared by `/search` and the map
+- [x] Saved searches with a count of new matches since saving
 
-### Phase 8 — Ship
-- [ ] Push to GitHub, connect Vercel
-- [ ] Set env vars in Vercel
-- [ ] Error tracking (Sentry) + basic analytics
-- [ ] Favicon + OG image for shareable WhatsApp links
-- [ ] Custom domain (e.g. bechde.in)
+### Phase 7 — Trust, safety & legal ✅
+- [x] Report a listing; block a user — both enforced in RLS, not just the UI
+- [x] Mark sold / withdraw / relist (status change, so chat history survives)
+- [x] Prohibited-items list, linked from the sell form and the report dialog
+- [x] Privacy policy + terms shaped for the DPDP Act, grievance contact
+- [ ] **Operator details in `src/lib/legal.ts` are placeholders — fill in before launch**
+- [ ] Moderation view for `reports` (they're recorded; nothing surfaces them yet)
+
+### Phase 8 — Ship ✅ (code) / ⬜ (accounts)
+- [x] Generated OG image + favicon, full metadata for WhatsApp link previews
+- [x] Error boundaries (`error.tsx`, `global-error.tsx`)
+- [x] [DEPLOY.md](./DEPLOY.md) runbook: Supabase project → `db push` → Vercel env vars → domain
+- [ ] **Create the cloud Supabase project (ap-south-1) — only you can do this**
+- [ ] Connect Vercel (root directory `bechde`), set env vars, attach the domain
+- [ ] Sentry (needs your account; boundaries are in place, one `captureException` away)
+- [ ] Real SMTP provider for magic-links — Supabase's shared sender is rate-limited
+
+### Phase 9 — Reputation & hardening ✅
+- [x] Reviews after an accepted deal (RLS-gated: participants only, once per side)
+- [x] Profile rating / sold count / reply time **derived by trigger**, never written
+- [x] Real gallery photos, unread chat badge, honest sell-page copy (price guide from
+      real comparables, saved-search match counts)
+- [x] Unit tests (Vitest), RLS regression suite, Playwright end-to-end + axe
+- [x] GitHub Actions CI
+- [x] Accessibility: real buttons, focus ring, skip link, dialog focus trap, WCAG AA
+      contrast (the prototype's muted greys were failing at 2.8:1)
 
 ---
 
-## Known limitations of the current prototype (to be removed)
-- State is in-memory — likes/chats reset on refresh
-- OTP is faked (any code works)
-- Product photos are `repeating-linear-gradient` placeholders
-- Distances and "N people nearby" counts are computed from static numbers
-- Search bar does nothing
+## Known limitations — all removed
+- ~~State is in-memory — likes/chats reset on refresh~~ → Postgres, RLS-scoped
+- ~~OTP is faked (any code works)~~ → real email magic-link
+- ~~Product photos are `repeating-linear-gradient` placeholders~~ → Storage uploads (stripes remain the fallback)
+- ~~Distances and "N people nearby" counts are computed from static numbers~~ → haversine from your real position
+- ~~Search bar does nothing~~ → ranked full-text search with saved searches
+
+- ~~Profile stats, badges and reviews are invented~~ → derived from `reviews`, sold
+  listings and message timings by trigger; only derivable badges survived
+- ~~The chat badge is hardcoded to `2`~~ → real unread count from `chat_reads`
+- ~~"~40 people nearby" / "sold for ₹2,800–3,500"~~ → real saved-search match counts and
+  real price percentiles, each hidden when there isn't enough data to say anything
+
+---
+
+## Next up
+
+Not limitations of the prototype any more — genuine product work, ordered by priority with
+acceptance criteria, in **[CLAUDE.md §8](./CLAUDE.md)**:
+
+- **P0** — moderation surface for `reports`; bound photo uploads; pagination
+- **P1** — live-updating chat list; saved-search emails; finish the keyboard-accessibility
+  sweep; abuse/rate limits
+- **P2** — radar crowding, dropping legacy columns, offer semantics, `next/image`, SEO
+  metadata per listing, Hindi copy, test gaps

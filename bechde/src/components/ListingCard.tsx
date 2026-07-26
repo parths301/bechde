@@ -24,7 +24,7 @@ export default function ListingCard({ item }: { item: Item }) {
         ...(hover ? { transform: "translateY(-4px)", boxShadow: "0 10px 24px rgba(60,45,20,.1)" } : null),
       }}
     >
-      <Stripe angle={item.angle} label="product photo" style={{ height: 150 }}>
+      <Stripe angle={item.angle} src={item.cover} label="product photo" style={{ height: 150 }}>
         <div
           style={{
             position: "absolute",

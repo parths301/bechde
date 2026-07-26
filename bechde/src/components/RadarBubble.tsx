@@ -16,9 +16,11 @@ interface RadarBubbleProps {
   onClick: () => void;
   hoverZ?: number;
   hidden?: boolean;
+  /** real cover photo — falls back to the striped placeholder when absent */
+  src?: string;
 }
 
-export default function RadarBubble({ left, top, size, angle, label, price, dur, delay, onClick, hoverZ = 5, hidden }: RadarBubbleProps) {
+export default function RadarBubble({ left, top, size, angle, label, price, dur, delay, onClick, hoverZ = 5, hidden, src }: RadarBubbleProps) {
   if (hidden) return null;
   return (
     <Hoverable
@@ -40,6 +42,7 @@ export default function RadarBubble({ left, top, size, angle, label, price, dur,
     >
       <Stripe
         angle={angle}
+        src={src}
         label={label}
         style={{
           width: size,

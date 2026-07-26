@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useMemo, useState, ReactNode } from "react";
+import { useSavedItems } from "@/lib/queries";
 
 export type ProfileTab = "listings" | "sold" | "saved" | "reviews";
 
@@ -18,12 +19,8 @@ interface AppState {
   likedIds: string[];
   toggleLike: (id: string) => void;
   isLiked: (id: string) => boolean;
-  offerAccepted: boolean;
-  acceptOffer: () => void;
   draft: string;
   setDraft: (v: string) => void;
-  sentMsgs: string[];
-  sendMsg: (text: string) => void;
   profTab: ProfileTab;
   setProfTab: (v: ProfileTab) => void;
   sellTitle: string;
@@ -44,10 +41,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [radiusKm, setRadiusKm] = useState(3);
   const [mapRadius, setMapRadius] = useState(3);
   const [activeCat, setActiveCat] = useState("All");
-  const [likedIds, setLikedIds] = useState<string[]>([]);
-  const [offerAccepted, setOfferAccepted] = useState(false);
+  // Likes live in the `saved_items` table now — this is just the mirror of it.
+  const { ids: savedIds, toggle: toggleSaved } = useSavedItems();
   const [draft, setDraft] = useState("");
-  const [sentMsgs, setSentMsgs] = useState<string[]>([]);
   const [profTab, setProfTab] = useState<ProfileTab>("listings");
   const [sellTitle, setSellTitle] = useState("Yamaha F310 acoustic guitar");
   const [sellPrice, setSellPrice] = useState("3,200");
@@ -68,16 +64,11 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       setMapRadius,
       activeCat,
       setActiveCat,
-      likedIds,
-      toggleLike: (id: string) =>
-        setLikedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : prev.concat(id))),
-      isLiked: (id: string) => likedIds.includes(id),
-      offerAccepted,
-      acceptOffer: () => setOfferAccepted(true),
+      likedIds: [...savedIds],
+      toggleLike: toggleSaved,
+      isLiked: (id: string) => savedIds.has(id),
       draft,
       setDraft,
-      sentMsgs,
-      sendMsg: (text: string) => setSentMsgs((prev) => prev.concat(text)),
       profTab,
       setProfTab,
       sellTitle,
@@ -89,7 +80,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       sellNote,
       setSellNote,
     }),
-    [name, phone, radiusKm, mapRadius, activeCat, likedIds, offerAccepted, draft, sentMsgs, profTab, sellTitle, sellPrice, sellCat, sellNote]
+    [name, phone, radiusKm, mapRadius, activeCat, savedIds, toggleSaved, draft, profTab, sellTitle, sellPrice, sellCat, sellNote]
   );
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

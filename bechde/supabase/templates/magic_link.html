@@ -1,0 +1,12 @@
+<h2>Sign in to Bech De</h2>
+<p>Tap the button to sign in. This link works once and expires in an hour.</p>
+<p>
+  {{/* ConfirmationURL, not a hand-built token_hash link: the browser client uses
+       PKCE, so GoTrue verifies the token itself and redirects to /auth/confirm with
+       ?code=… for the route to exchange. See src/app/auth/confirm/route.ts. */}}
+  <a href="{{ .ConfirmationURL }}"
+     style="display:inline-block;background:#E86A4F;color:#fff;font-weight:700;padding:12px 22px;border-radius:999px;text-decoration:none">
+    Log in to Bech De
+  </a>
+</p>
+<p style="color:#8a7a5c;font-size:13px">If you didn't request this, you can ignore this email.</p>

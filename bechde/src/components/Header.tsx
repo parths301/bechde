@@ -2,14 +2,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { colors } from "@/lib/colors";
 import { useAppState } from "@/lib/store";
+import { useProfile, useUserLocation, useUnreadCount } from "@/lib/queries";
+import { DEFAULT_FILTERS, searchHref } from "@/lib/search";
 
 export default function Header() {
   const pathname = usePathname();
   const { name } = useAppState();
-  const avatarInitial = (name || "A").trim().charAt(0).toUpperCase() || "A";
+  const profileName = useProfile().data?.name;
+  const unread = useUnreadCount();
+  const avatarInitial = ((profileName || name || "A").trim().charAt(0).toUpperCase()) || "A";
 
   return (
     <header
@@ -61,21 +65,23 @@ export default function Header() {
           <NavLink href="/chat" active={pathname === "/chat"}>
             <span style={{ position: "relative" }}>
               Chats
-              <span
-                style={{
-                  position: "absolute",
-                  top: -6,
-                  right: -13,
-                  background: colors.terracotta,
-                  color: "#fff",
-                  fontSize: 9.5,
-                  fontWeight: 800,
-                  borderRadius: 999,
-                  padding: "1px 6px",
-                }}
-              >
-                2
-              </span>
+              {unread > 0 && (
+                <span
+                  style={{
+                    position: "absolute",
+                    top: -6,
+                    right: -13,
+                    background: colors.terracotta,
+                    color: "#fff",
+                    fontSize: 9.5,
+                    fontWeight: 800,
+                    borderRadius: 999,
+                    padding: "1px 6px",
+                  }}
+                >
+                  {unread}
+                </span>
+              )}
             </span>
           </NavLink>
           <SellButton />
@@ -88,8 +94,17 @@ export default function Header() {
   );
 }
 
-function SearchBar() {
+export function SearchBar({ autoFocus }: { autoFocus?: boolean } = {}) {
+  const router = useRouter();
+  const origin = useUserLocation();
+  const profile = useProfile().data;
   const [hover, setHover] = useState(false);
+  const [q, setQ] = useState("");
+
+  const submit = () => router.push(searchHref({ ...DEFAULT_FILTERS, q }));
+  // "📍 Koramangala" was hardcoded; show where the person actually is.
+  const place = (profile?.neighbourhood ?? origin.label.replace(/^you · /, "")).split(",")[0];
+
   return (
     <div
       onMouseEnter={() => setHover(true)}
@@ -105,13 +120,33 @@ function SearchBar() {
         padding: "10px 20px",
         color: colors.textFaint,
         fontSize: 14.5,
-        cursor: "text",
       }}
     >
-      ⌕ Search &quot;study table&quot;, &quot;iPhone 12&quot;, &quot;kurta&quot;…
-      <span
+      <span onClick={submit} style={{ cursor: "pointer" }}>
+        ⌕
+      </span>
+      <input
+        value={q}
+        autoFocus={autoFocus}
+        onChange={(e) => setQ(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") submit();
+        }}
+        placeholder='Search "study table", "iPhone 12", "kurta"…'
         style={{
-          marginLeft: "auto",
+          flex: 1,
+          minWidth: 0,
+          border: "none",
+          outline: "none",
+          background: "transparent",
+          fontSize: 14.5,
+          fontFamily: "inherit",
+          color: colors.ink,
+        }}
+      />
+      <Link
+        href="/profile"
+        style={{
           display: "flex",
           alignItems: "center",
           gap: 6,
@@ -122,10 +157,11 @@ function SearchBar() {
           color: colors.textBody,
           fontWeight: 600,
           whiteSpace: "nowrap",
+          flex: "none",
         }}
       >
-        📍 Koramangala ▾
-      </span>
+        📍 {place || "set location"} ▾
+      </Link>
     </div>
   );
 }

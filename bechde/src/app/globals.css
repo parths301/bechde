@@ -19,8 +19,34 @@ a {
 }
 
 input,
-textarea {
+textarea,
+button {
   font-family: var(--font-karla), Karla, sans-serif;
+}
+
+/* The design is built from inline styles, which suppress the default focus ring.
+   Put a visible one back for keyboard users (mouse clicks don't trigger this). */
+:focus-visible {
+  outline: 3px solid #e86a4f;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Skip link — first tab stop on every page, hidden until focused. */
+.bd-skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 8px;
+  z-index: 100;
+}
+.bd-skip-link:focus {
+  left: 8px;
+  background: #2e2a24;
+  color: #fbf6ed;
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 14px;
 }
 
 input[type="range"] {
@@ -165,6 +191,10 @@ input[type="range"] {
     display: none !important;
   }
   .bd-hero-mobilemap {
+    display: flex !important;
+  }
+  /* the header search is hidden on mobile — this is the entry point instead */
+  .bd-mobile-search {
     display: flex !important;
   }
   .bd-feed-sec {

@@ -67,8 +67,13 @@ export default function OsmMap({
   const elRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const groupRef = useRef<LayerGroup | null>(null);
+  // Held in a ref so the marker-sync effect can call the latest handler without
+  // re-subscribing every render. Assigned in an effect — writing a ref during render
+  // is not safe under concurrent rendering.
   const clickRef = useRef(onMarkerClick);
-  clickRef.current = onMarkerClick;
+  useEffect(() => {
+    clickRef.current = onMarkerClick;
+  }, [onMarkerClick]);
   const [ready, setReady] = useState(false);
 
   // Create the map once, on mount (client-only via dynamic import).

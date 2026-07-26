@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { colors } from "@/lib/colors";
+import { useUnreadCount } from "@/lib/queries";
 
 interface Tab {
   href: string;
@@ -16,12 +17,13 @@ const tabs: Tab[] = [
   { href: "/home", icon: "🏠", label: "Home" },
   { href: "/map", icon: "🗺️", label: "Map" },
   { href: "/sell", icon: "＋", label: "Sell", center: true },
-  { href: "/chat", icon: "💬", label: "Chats", badge: 2 },
+  { href: "/chat", icon: "💬", label: "Chats" },
   { href: "/profile", icon: "👤", label: "You" },
 ];
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const unread = useUnreadCount();
 
   return (
     <nav
@@ -43,6 +45,7 @@ export default function BottomNav() {
     >
       {tabs.map((t) => {
         const active = pathname === t.href;
+        const badge = t.href === "/chat" ? unread : t.badge;
 
         if (t.center) {
           return (
@@ -93,7 +96,7 @@ export default function BottomNav() {
           >
             <span style={{ position: "relative", fontSize: 20, lineHeight: 1, filter: active ? "none" : "grayscale(35%)" }}>
               {t.icon}
-              {t.badge ? (
+              {badge ? (
                 <span
                   style={{
                     position: "absolute",
@@ -107,7 +110,7 @@ export default function BottomNav() {
                     padding: "1px 5px",
                   }}
                 >
-                  {t.badge}
+                  {badge}
                 </span>
               ) : null}
             </span>

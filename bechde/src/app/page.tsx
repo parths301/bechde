@@ -1,14 +1,34 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { colors } from "@/lib/colors";
 import { useAppState } from "@/lib/store";
+import { getSupabaseBrowser } from "@/lib/supabase/client";
 
 export default function SignupPage() {
-  const router = useRouter();
-  const { name, setName, phone, setPhone, radiusKm, setRadiusKm } = useAppState();
-  const [otpStage, setOtpStage] = useState(false);
+  const { name, setName, radiusKm, setRadiusKm } = useAppState();
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const sendLink = async () => {
+    const addr = email.trim();
+    if (!addr || sending) return;
+    setSending(true);
+    setError(null);
+    const { error } = await getSupabaseBrowser().auth.signInWithOtp({
+      email: addr,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/confirm`,
+        data: name.trim() ? { name: name.trim() } : undefined,
+      },
+    });
+    setSending(false);
+    if (error) setError(error.message);
+    else setSent(true);
+  };
 
   return (
     <div
@@ -87,7 +107,7 @@ export default function SignupPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 14, fontSize: 14.5, lineHeight: 1.5, color: "rgba(251,246,237,.85)" }}>
             <div style={{ display: "flex", gap: 12 }}>🏠 Buy &amp; sell within your own neighbourhood</div>
             <div style={{ display: "flex", gap: 12 }}>💬 Chat, haggle, meet — no shipping drama</div>
-            <div style={{ display: "flex", gap: 12 }}>✓ Phone-verified people only</div>
+            <div style={{ display: "flex", gap: 12 }}>✓ Verified neighbours only</div>
           </div>
           <div style={{ position: "absolute", right: -90, bottom: -90, width: 260, height: 260, borderRadius: "50%", border: "2px dashed rgba(242,169,59,.4)" }} />
           <div style={{ position: "absolute", right: -30, bottom: -30, width: 140, height: 140, borderRadius: "50%", border: "2px dashed rgba(242,169,59,.5)" }} />
@@ -95,53 +115,34 @@ export default function SignupPage() {
 
         {/* Right panel */}
         <div style={{ padding: "44px 42px", display: "flex", flexDirection: "column", gap: 18, justifyContent: "center" }}>
-          {otpStage ? (
+          {sent ? (
             <div style={{ animation: "bd-pop .25s ease-out" }}>
               <h2 style={{ margin: "0 0 4px", fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 26, letterSpacing: "-.6px" }}>
-                Check your phone 📲
+                Check your email 📬
               </h2>
               <div style={{ fontSize: 13.5, color: colors.textMuted, fontWeight: 600, marginBottom: 22 }}>
-                We sent a code to +91 {phone || "98765 43210"}
+                We sent a sign-in link to <b style={{ color: colors.ink }}>{email}</b>. Open it on this device to finish signing in.
               </div>
-              <div style={{ display: "flex", gap: 10, marginBottom: 22 }}>
-                {["4", "2", "1"].map((d) => (
-                  <div
-                    key={d}
-                    style={{
-                      width: 56,
-                      height: 62,
-                      background: "#fff",
-                      border: `2px solid ${colors.marigold}`,
-                      borderRadius: 14,
-                      display: "grid",
-                      placeItems: "center",
-                      fontFamily: "var(--font-bricolage)",
-                      fontWeight: 800,
-                      fontSize: 24,
-                    }}
-                  >
-                    {d}
-                  </div>
-                ))}
-                <div
-                  style={{
-                    width: 56,
-                    height: 62,
-                    background: "#fff",
-                    border: `1.5px solid ${colors.sand}`,
-                    borderRadius: 14,
-                    display: "grid",
-                    placeItems: "center",
-                    fontFamily: "var(--font-bricolage)",
-                    fontWeight: 800,
-                    fontSize: 24,
-                    color: "#D8C9AE",
-                  }}
-                >
-                  <span style={{ borderLeft: `2px solid ${colors.terracotta}`, height: 26 }} />
-                </div>
+              <div
+                style={{
+                  background: colors.sage,
+                  border: `1.5px solid ${colors.sageBorder}`,
+                  borderRadius: 14,
+                  padding: "14px 18px",
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  color: colors.pine,
+                  lineHeight: 1.5,
+                }}
+              >
+                ✨ The link signs you in automatically — no code to type.
               </div>
-              <PillButton label="Verify & start browsing →" onClick={() => router.push("/home")} />
+              <div
+                onClick={() => setSent(false)}
+                style={{ marginTop: 18, textAlign: "center", fontSize: 13, fontWeight: 700, color: colors.clay, cursor: "pointer" }}
+              >
+                ← use a different email
+              </div>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -149,41 +150,31 @@ export default function SignupPage() {
                 <h2 style={{ margin: "0 0 4px", fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 26, letterSpacing: "-.6px" }}>
                   Join in 30 seconds
                 </h2>
-                <div style={{ fontSize: 13.5, color: colors.textMuted, fontWeight: 600 }}>Just your phone. No passwords to forget.</div>
+                <div style={{ fontSize: 13.5, color: colors.textMuted, fontWeight: 600 }}>Just your email. No passwords to forget.</div>
               </div>
               <div>
-                <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 7 }}>Phone number</div>
-                <div style={{ display: "flex", gap: 10 }}>
-                  <div
-                    style={{
-                      background: "#fff",
-                      border: `1.5px solid ${colors.sand}`,
-                      borderRadius: 12,
-                      padding: "13px 14px",
-                      fontWeight: 700,
-                      fontSize: 14.5,
-                      color: colors.textBody,
-                    }}
-                  >
-                    🇮🇳 +91
-                  </div>
-                  <input
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="98765 43210"
-                    style={{
-                      flex: 1,
-                      background: "#fff",
-                      border: `1.5px solid ${colors.sand}`,
-                      borderRadius: 12,
-                      padding: "13px 16px",
-                      fontSize: 14.5,
-                      fontWeight: 600,
-                      color: colors.ink,
-                      outline: "none",
-                    }}
-                  />
-                </div>
+                <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 7 }}>Email</div>
+                <input
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") sendLink();
+                  }}
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  style={{
+                    width: "100%",
+                    background: "#fff",
+                    border: `1.5px solid ${colors.sand}`,
+                    borderRadius: 12,
+                    padding: "13px 16px",
+                    fontSize: 14.5,
+                    fontWeight: 600,
+                    color: colors.ink,
+                    outline: "none",
+                  }}
+                />
               </div>
               <div>
                 <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 7 }}>What should we call you?</div>
@@ -228,15 +219,28 @@ export default function SignupPage() {
                   <span style={{ fontWeight: 800, fontSize: 13 }}>How far will you go for a deal?</span>
                   <span style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 15, color: colors.clay }}>{radiusKm} km</span>
                 </div>
-                <input type="range" min={1} max={10} value={radiusKm} onChange={(e) => setRadiusKm(Number(e.target.value))} style={{ width: "100%", cursor: "pointer" }} />
+                <input type="range" aria-label="How far you'll go for a deal, in kilometres" min={1} max={10} value={radiusKm} onChange={(e) => setRadiusKm(Number(e.target.value))} style={{ width: "100%", cursor: "pointer" }} />
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 700, color: colors.textFaint }}>
                   <span>my street</span>
                   <span>my whole city</span>
                 </div>
               </div>
-              <PillButton label="Send OTP →" onClick={() => setOtpStage(true)} />
-              <div style={{ textAlign: "center", fontSize: 12, color: colors.textFaint, fontWeight: 600 }}>
+              {error && (
+                <div style={{ fontSize: 13, fontWeight: 700, color: colors.terracotta }}>{error}</div>
+              )}
+              <PillButton label={sending ? "Sending…" : "Email me a link →"} onClick={sendLink} disabled={sending} />
+              <div style={{ textAlign: "center", fontSize: 12, color: colors.textFaint, fontWeight: 600, lineHeight: 1.6 }}>
                 By joining you agree to be a decent neighbour ✌️
+                <br />
+                and to our{" "}
+                <Link href="/legal/terms" style={{ color: colors.clay, fontWeight: 700 }}>
+                  Terms
+                </Link>{" "}
+                and{" "}
+                <Link href="/legal/privacy" style={{ color: colors.clay, fontWeight: 700 }}>
+                  Privacy Policy
+                </Link>
+                .
               </div>
             </div>
           )}
@@ -246,23 +250,24 @@ export default function SignupPage() {
   );
 }
 
-function PillButton({ label, onClick }: { label: string; onClick: () => void }) {
+function PillButton({ label, onClick, disabled }: { label: string; onClick: () => void; disabled?: boolean }) {
   const [hover, setHover] = useState(false);
   return (
     <div
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
         display: "block",
         textAlign: "center",
-        background: hover ? colors.terracotta : colors.ink,
+        background: hover && !disabled ? colors.terracotta : colors.ink,
         color: colors.bg,
         borderRadius: 999,
         padding: "15px 0",
         fontWeight: 800,
         fontSize: 15.5,
-        cursor: "pointer",
+        cursor: disabled ? "default" : "pointer",
+        opacity: disabled ? 0.7 : 1,
       }}
     >
       {label}

@@ -1,6 +1,6 @@
 "use client";
 
-import { CSSProperties, ElementType, ReactNode, useState } from "react";
+import { CSSProperties, ElementType, KeyboardEvent, ReactNode, useState } from "react";
 
 interface HoverableProps {
   as?: ElementType;
@@ -24,6 +24,19 @@ export default function Hoverable({
   ...rest
 }: HoverableProps) {
   const [hover, setHover] = useState(false);
+  // When it's clickable it must also be reachable and operable from a keyboard.
+  const interactive = onClick
+    ? {
+        role: "button" as const,
+        tabIndex: 0,
+        onKeyDown: (e: KeyboardEvent<HTMLElement>) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onClick();
+          }
+        },
+      }
+    : {};
   return (
     <Tag
       className={className}
@@ -31,6 +44,7 @@ export default function Hoverable({
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onClick={onClick}
+      {...interactive}
       {...rest}
     >
       {children}
