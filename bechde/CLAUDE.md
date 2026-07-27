@@ -267,64 +267,15 @@ Full runbook in **`DEPLOY.md`**. Summary:
 ## 8. What to do next — prioritized work list
 
 Each item: why it matters, what to change, and how you'll know it's done.
-Work top-down. **P0 blocks a real launch; P1 is needed soon after; P2 is polish.**
+Work top-down. **P0 (Admin, Photo Size Limits, Pagination) are done!**
+**P1 (Live Chat Updates, Saved-search notifications, Accessibility pass, Spam and abuse limits) are done!**
+**P2 is polish.**
 
 ---
 
-### P0-1 · Moderation surface for `reports`
-**Why:** reports are recorded but nothing displays them. An unread report queue is the
-same as no reporting at all, and "we review reports" is claimed in `/legal/prohibited`.
 
-**Do:**
-- Add `profiles.is_admin boolean not null default false` in a new migration.
-- RLS: admins may `select` all `reports` and `update` their `status`
-  (`open`→`reviewed`/`actioned`) — via a `SECURITY DEFINER` `public.is_admin()` helper,
-  per §5.
-- New route `/admin/reports` (add to `PROTECTED` in `src/proxy.ts`; redirect
-  non-admins). List reports with reporter, listing, reason, details, age; actions:
-  *withdraw listing* (`setListingStatus(id,'removed')`), *dismiss*, *open listing*.
-- Follow the existing design language; reuse `Chip`/`Button`.
 
-**Done when:** an admin sees a filed report and can take a listing down from the UI; a
-non-admin gets redirected; `supabase/tests/rls.test.ts` proves a non-admin can't read
-others' reports.
-
----
-
-### P0-2 · Photo upload is unbounded
-**Why:** `src/app/(app)/sell/page.tsx` uploads the raw `File`. A modern phone photo is
-3–8 MB; six of them is ~50 MB per listing, paid for in storage and in every buyer's
-data plan. No dimension cap, no type allowlist beyond `accept`, no size check.
-
-**Do:**
-- Client-side downscale before upload (canvas or `createImageBitmap`): longest edge
-  ~1600px, JPEG/WebP at ~0.8, reject > 10 MB originals with a friendly message.
-- Enforce a bucket file-size limit in the storage policy too — client checks are advice.
-- Show per-file progress; the current `⏳ Uploading…` hides how long it'll take.
-
-**Done when:** a 12 MP photo lands as a few hundred KB, an oversized file is refused with
-a readable error, and the listing still renders identically.
-
----
-
-### P0-3 · No pagination anywhere
-**Why:** `search_listings` returns every match, `useItems()` fetches **all** listings
-(used by `/chat` and `/profile`), and `useNearbyItems()` fetches all active ones. Fine
-at 21 rows, a wall at 10,000.
-
-**Do:**
-- Add `.range()`-based paging to `useSearchResults` with an infinite-scroll or
-  "load more" affordance on `/search`.
-- Replace `useItems()` on `/chat` and `/profile` with targeted queries — chat needs
-  only the listings in its threads; profile's saved tab needs only the saved ids.
-- Cap `useNearbyItems()` (e.g. nearest 200 within the radius) — the radar shows 7 and
-  the map can't render thousands of pins usefully.
-
-**Done when:** `/search` loads in pages, and no screen fetches the whole `listings` table.
-
----
-
-### P1-1 · The chat list doesn't live-update
+### [DONE] P1-1 · The chat list doesn't live-update
 **Why:** `useConversation` subscribes to Realtime for the **open** thread only. A message
 arriving in another thread doesn't move it up the list or bump the unread badge until a
 refetch. The badge is real but stale.
@@ -338,7 +289,7 @@ badge while thread A is open.
 
 ---
 
-### P1-2 · Saved-search notifications
+### [DONE] P1-2 · Saved-search notifications
 **Why:** saved searches count new matches in-app only. The copy is honest ("no emails
 yet"), but the feature is half a loop — this is the retention mechanic.
 
@@ -352,7 +303,7 @@ nothing new.
 
 ---
 
-### P1-3 · Finish the accessibility pass
+### [DONE] P1-3 · Finish the accessibility pass
 **Why:** axe is clean at serious/critical on all 7 routes, but axe cannot see that a
 `<div onClick>` is unreachable by keyboard. `Button`, `Chip`, `Hoverable` and
 `ReportDialog` are converted; **many one-off clickable divs are not** — chat list rows,
@@ -369,7 +320,7 @@ test tabs through `/chat` and sends a message without a mouse.
 
 ---
 
-### P1-4 · Spam and abuse limits
+### [DONE] P1-4 · Spam and abuse limits
 **Why:** an authenticated account can insert unlimited listings, messages and reports.
 There is no rate limiting beyond Supabase Auth's sign-in throttle.
 

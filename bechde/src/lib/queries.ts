@@ -34,8 +34,6 @@ interface ListingRow {
   label: string | null;
   name: string;
   price: string;
-  km: number | null;
-  dist: string | null;
   category: Item["category"];
   angle: string | null;
   note: string | null;
@@ -47,8 +45,6 @@ interface ListingRow {
   lng: number | null;
   story: Item["story"];
   facts: Item["facts"];
-  home: Item["home"] | null;
-  map: Item["map"] | null;
   seller: ProfileRow | null;
   listing_images: { url: string; sort: number }[] | null;
 }
@@ -56,7 +52,7 @@ interface ListingRow {
 const LISTING_SELECT =
   "*, seller:profiles!listings_seller_id_fkey(*), listing_images(url,sort)";
 
-function rowToItem(r: ListingRow): Item {
+export function rowToItem(r: ListingRow): Item {
   const s = r.seller;
   const images = (r.listing_images ?? [])
     .slice()
@@ -71,8 +67,8 @@ function rowToItem(r: ListingRow): Item {
     label: r.label ?? "",
     name: r.name,
     price: r.price,
-    km: r.km ?? 0,
-    dist: r.dist ?? "",
+    km: 0,
+    dist: "",
     category: r.category,
     angle: r.angle ?? "0deg",
     note: r.note ?? "",
@@ -96,8 +92,6 @@ function rowToItem(r: ListingRow): Item {
     pickup: r.pickup ?? "",
     lat: r.lat ?? 0,
     lng: r.lng ?? 0,
-    home: r.home ?? undefined,
-    map: r.map ?? undefined,
   };
 }
 
@@ -147,8 +141,9 @@ function useAsync<T>(run: () => Promise<T>, deps: unknown[]): AsyncState<T> {
 // Distance — computed from the viewer's location at read time (Phase 4), so the
 // stored listings.km / listings.dist are only a fallback for coordinate-less rows.
 // ---------------------------------------------------------------------------
-function withDistance(item: Item, origin: LatLng): Item {
-  if (!item.lat || !item.lng) return item;
+export function withDistance(item: Item, origin?: LatLng): Item {
+  if (!origin) return item;
+  if (typeof item.lat !== "number" || typeof item.lng !== "number") return item;
   const km = haversineKm(origin, { lat: item.lat, lng: item.lng });
   return { ...item, km, dist: formatKm(km) };
 }
@@ -238,12 +233,15 @@ export function useMyListings() {
 export function useNearbyItems() {
   const state = useDistances(
     useAsync<Item[]>(async () => {
+      // Cap at 200: distance is computed at read time from the viewer's position,
+      // so we can't sort by it in the DB — just limit to prevent runaway queries.
       const { data, error } = await getSupabaseBrowser()
         .from("listings")
         .select(LISTING_SELECT)
         .eq("status", "active")
         .not("lat", "is", null)
-        .not("lng", "is", null);
+        .not("lng", "is", null)
+        .limit(200);
       if (error) throw error;
       return (data as ListingRow[]).map(rowToItem);
     }, [])
@@ -271,26 +269,82 @@ function applyFilters<T extends { eq: (c: string, v: string) => T; gte: (c: stri
   return q;
 }
 
+/** How many rows to fetch from the DB per page. We over-fetch because radius
+ *  filtering happens client-side and may discard some — fetching 60 to show up
+ *  to ~20 visible results avoids a page that looks short. */
+const SEARCH_DB_PAGE = 60;
+/** How many visible results to show per page after radius filtering. */
+const SEARCH_PAGE = 20;
+
 export function useSearchResults(filters: Filters) {
   const { q, category, minPrice, maxPrice } = filters;
-  const state = useDistances(
+  const [pages, setPages] = useState<Item[][]>([]);
+  const [dbOffset, setDbOffset] = useState(0);
+  const [dbDone, setDbDone] = useState(false);
+
+  // Reset pagination when the filter deps change.
+  const filterKey = JSON.stringify([q, category, minPrice, maxPrice]);
+  const prevKey = useRef(filterKey);
+  if (filterKey !== prevKey.current) {
+    prevKey.current = filterKey;
+    setPages([]);
+    setDbOffset(0);
+    setDbDone(false);
+  }
+
+  const firstPage = useDistances(
     useAsync<Item[]>(async () => {
       // Text ranking + category/price happen in Postgres; radius needs the viewer's
       // location, so it's applied below once distances are annotated.
-      const query = getSupabaseBrowser().rpc("search_listings", { q }).select(LISTING_SELECT);
+      const query = getSupabaseBrowser()
+        .rpc("search_listings", { q })
+        .select(LISTING_SELECT)
+        .range(0, SEARCH_DB_PAGE - 1);
       const { data, error } = await applyFilters(query, filters);
       if (error) throw error;
-      return (data as unknown as ListingRow[]).map(rowToItem);
+      const rows = (data as unknown as ListingRow[]).map(rowToItem);
+      if (rows.length < SEARCH_DB_PAGE) setDbDone(true);
+      setDbOffset(SEARCH_DB_PAGE);
+      return rows;
     }, [q, category, minPrice, maxPrice])
   );
+
   const { radiusKm } = filters;
-  return useMemo(() => {
-    // matchesFilters re-checks category/price too — cheap, and keeps the client and
-    // SQL definitions of "matching" from drifting. Rebuilt from primitives so this
-    // memo isn't invalidated by a new `filters` object on every render.
+
+  // Apply radius + filter on the first page and any appended pages.
+  const allFiltered = useMemo(() => {
     const f: Filters = { q, category, radiusKm, minPrice, maxPrice };
-    return { ...state, data: state.data ? state.data.filter((i) => matchesFilters(i, f)) : null };
-  }, [state, q, category, radiusKm, minPrice, maxPrice]);
+    const base = firstPage.data ? firstPage.data.filter((i) => matchesFilters(i, f)) : [];
+    const extra = pages.flat().filter((i) => matchesFilters(i, f));
+    return [...base, ...extra];
+  }, [firstPage.data, pages, q, category, radiusKm, minPrice, maxPrice]);
+
+  const hasMore = !dbDone;
+
+  const loadMore = useCallback(async () => {
+    if (dbDone) return;
+    const query = getSupabaseBrowser()
+      .rpc("search_listings", { q })
+      .select(LISTING_SELECT)
+      .range(dbOffset, dbOffset + SEARCH_DB_PAGE - 1);
+    const { data, error } = await applyFilters(query, { q, category, radiusKm, minPrice, maxPrice });
+    if (error) return;
+    const rows = (data as unknown as ListingRow[]).map(rowToItem);
+    if (rows.length < SEARCH_DB_PAGE) setDbDone(true);
+    setDbOffset((o) => o + SEARCH_DB_PAGE);
+    setPages((p) => [...p, rows]);
+  }, [dbOffset, dbDone, q, category, radiusKm, minPrice, maxPrice]);
+
+  return {
+    data: allFiltered,
+    loading: firstPage.loading,
+    error: firstPage.error,
+    hasMore,
+    loadMore,
+    /** How many visible results are shown so far. */
+    total: allFiltered.length,
+    pageSize: SEARCH_PAGE,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -513,7 +567,7 @@ interface ChatRow {
   created_at: string;
   buyer_id: string;
   seller_id: string;
-  listing: { name: string; id: string; price: string } | null;
+  listing: { name: string; id: string; price: string; listing_images: { url: string; sort: number }[] } | null;
   buyer: PartyRow | null;
   seller: PartyRow | null;
   messages: { body: string; created_at: string }[];
@@ -528,8 +582,10 @@ export interface Thread extends ChatThread {
   otherName: string;
 }
 
+// listing_images joined here so the chat page gets cover photos without needing
+// the catch-all useItems() that fetches every listing in the database.
 const CHAT_SELECT =
-  "id, created_at, buyer_id, seller_id, listing:listings(id,name,price)," +
+  "id, created_at, buyer_id, seller_id, listing:listings(id,name,price,listing_images(url,sort))," +
   " buyer:profiles!chats_buyer_id_fkey(id,name,initial,color)," +
   " seller:profiles!chats_seller_id_fkey(id,name,initial,color)," +
   " messages(body,created_at), offers(amount,status,created_at,from_id)";
@@ -546,6 +602,16 @@ const shortTime = (iso: string) => {
 export function useChatThreads() {
   const me = useProfile().data;
   const myId = me?.id ?? null;
+  const [, bump] = useState(0);
+
+  useEffect(() => {
+    const l = () => bump((v) => v + 1);
+    unreadListeners.add(l);
+    return () => {
+      unreadListeners.delete(l);
+    };
+  }, []);
+
   return useAsync<Thread[]>(async () => {
     if (!myId) return [];
     const { data, error } = await getSupabaseBrowser()
@@ -571,6 +637,8 @@ export function useChatThreads() {
               ? `Offer declined: ${lastOffer!.amount}`
               : `Offer made: ${lastOffer!.amount}`;
       }
+      // Pick the first image (by sort order) as the cover, if we have any.
+      const imgs = (c.listing?.listing_images ?? []).slice().sort((a, b) => a.sort - b.sort);
       return {
         id: c.id,
         item: c.listing?.name ?? "Listing",
@@ -584,10 +652,11 @@ export function useChatThreads() {
         initial: other?.initial ?? "?",
         avatar: other?.color ?? "#3E9B8F",
         angle: angles[i % angles.length],
-        active: i === 0,
+        active: false,
+        cover: imgs.length > 0 ? imgs[0].url : undefined,
       };
     });
-  }, [myId]);
+  }, [myId, unreadVersion]);
 }
 
 // ---------------------------------------------------------------------------
@@ -879,6 +948,51 @@ export function useReviews(profileId: string | null | undefined) {
   }, [profileId ?? null]);
 }
 
+export interface WrittenReview {
+  id: string;
+  rating: number;
+  body: string | null;
+  createdAt: string;
+  listingName: string;
+  subject: { name: string; initial: string | null; color: string | null };
+}
+
+const WRITTEN_REVIEW_SELECT =
+  "id,rating,body,created_at,listing:listings(name),subject:profiles!reviews_subject_id_fkey(name,initial,color)";
+
+export function useWrittenReviews(profileId: string | null | undefined) {
+  return useAsync<WrittenReview[]>(async () => {
+    if (!profileId) return [];
+    const { data, error } = await getSupabaseBrowser()
+      .from("reviews")
+      .select(WRITTEN_REVIEW_SELECT)
+      .eq("reviewer_id", profileId)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return (data as any[]).map((r) => ({
+      id: r.id,
+      rating: r.rating,
+      body: r.body,
+      createdAt: r.created_at,
+      listingName: r.listing?.name ?? "a listing",
+      subject: {
+        name: r.subject?.name ?? "Someone",
+        initial: r.subject?.initial ?? "?",
+        color: r.subject?.color ?? "#3E9B8F",
+      },
+    }));
+  }, [profileId ?? null]);
+}
+
+export async function updateReview(reviewId: string, rating: number, body: string) {
+  const sb = getSupabaseBrowser();
+  const { error } = await sb
+    .from("reviews")
+    .update({ rating, body: body.trim() || null })
+    .eq("id", reviewId);
+  if (error) throw error;
+  triggerRefresh();
+}
 /** My own review of one deal, if I've left it — drives the chat prompt. */
 export function useMyReviewFor(offerId: string | null) {
   const me = useProfile().data;
@@ -958,12 +1072,23 @@ export function useUnreadCount(): number {
   const myProfileId = me?.id ?? null;
   const [, bump] = useState(0);
   useEffect(() => {
+    if (!myProfileId) return;
     const l = () => bump((v) => v + 1);
     unreadListeners.add(l);
+
+    const sb = getSupabaseBrowser();
+    const channel = sb
+      .channel('global-messages')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
+        bumpUnread();
+      })
+      .subscribe();
+
     return () => {
       unreadListeners.delete(l);
+      sb.removeChannel(channel);
     };
-  }, []);
+  }, [myProfileId]);
 
   const { data } = useAsync<number>(async () => {
     if (!myProfileId) return 0;
@@ -1066,6 +1191,17 @@ export async function reportListing(listingId: string, sellerId: string | undefi
   if (error) throw error;
 }
 
+export async function reportReview(reviewId: string, reason: ReportReason, details: string) {
+  const me = myId();
+  const { error } = await getSupabaseBrowser().from("reports").insert({
+    reporter_id: me,
+    review_id: reviewId,
+    reason,
+    details: details.trim() || null,
+  });
+  if (error) throw error;
+}
+
 /**
  * Hide someone. Enforced by RLS, not just the UI: their listings drop out of every
  * read, your shared chats disappear, and they can no longer message you.
@@ -1155,4 +1291,137 @@ export function useSavedItems() {
   );
 
   return { ids, toggle };
+}
+
+// ---------------------------------------------------------------------------
+// Saved listings — fetches the actual Item objects the user has liked.
+// Replaces the profile page's use of the catch-all useItems() which fetched
+// every listing in the database just to look up a handful by id.
+// ---------------------------------------------------------------------------
+export function useSavedListings() {
+  const me = useProfile().data;
+  const myId = me?.id ?? null;
+  return useDistances(
+    useAsync<Item[]>(async () => {
+      if (!myId) return [];
+      // Two-step: saved_items gives us the IDs; then a single listing query for
+      // just those IDs. RLS-safe because saved_items is scoped to the owner and
+      // listings are world-readable (minus blocked sellers, which is correct).
+      const { data: saved, error: savedErr } = await getSupabaseBrowser()
+        .from("saved_items")
+        .select("listing_id")
+        .eq("user_id", myId);
+      if (savedErr) throw savedErr;
+      const ids = (saved ?? []).map((r) => r.listing_id as string);
+      if (!ids.length) return [];
+      const { data, error } = await getSupabaseBrowser()
+        .from("listings")
+        .select(LISTING_SELECT)
+        .in("id", ids);
+      if (error) throw error;
+      return (data as ListingRow[]).map(rowToItem);
+    }, [myId])
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Profile names by ID — for the blocked-people list on /profile. Blocked
+// sellers' listings are RLS-hidden, so useItems() couldn't resolve their names
+// anyway (it silently returned "Someone you blocked" for every entry).
+// Profiles are world-readable, so this always works.
+// ---------------------------------------------------------------------------
+export function useProfileNames(ids: string[]) {
+  const key = [...ids].sort().join(",");
+  return useAsync<Record<string, string>>(async () => {
+    if (!ids.length) return {};
+    const { data, error } = await getSupabaseBrowser()
+      .from("profiles")
+      .select("id,name")
+      .in("id", ids);
+    if (error) throw error;
+    const map: Record<string, string> = {};
+    for (const r of data ?? []) map[r.id as string] = r.name as string;
+    return map;
+  }, [key]);
+}
+
+// ---------------------------------------------------------------------------
+// Admin — moderation surface for reports (P0-1)
+// ---------------------------------------------------------------------------
+
+/** Whether the signed-in user has the admin flag. Checked via an RPC to the
+ *  is_admin() SECURITY DEFINER function so it's invisible outside the DB. */
+export function useIsAdmin(): boolean {
+  const me = useProfile().data;
+  const myId = me?.id ?? null;
+  const state = useAsync<boolean>(async () => {
+    if (!myId) return false;
+    const { data, error } = await getSupabaseBrowser().rpc("is_admin");
+    if (error) return false;
+    return !!data;
+  }, [myId]);
+  return state.data ?? false;
+}
+
+export interface Report {
+  id: string;
+  reason: string;
+  details: string | null;
+  status: string;
+  createdAt: string;
+  listingId: string | null;
+  listingName: string | null;
+  listingStatus: string | null;
+  reporterName: string | null;
+  reportedName: string | null;
+}
+
+const REPORT_SELECT =
+  "id,reason,details,status,created_at," +
+  "listing:listings(id,name,status)," +
+  "reporter:profiles!reports_reporter_id_fkey(name)," +
+  "reported_user:profiles!reports_profile_id_fkey(name)";
+
+interface ReportRow {
+  id: string;
+  reason: string;
+  details: string | null;
+  status: string;
+  created_at: string;
+  listing: { id: string; name: string; status: string } | null;
+  reporter: { name: string } | null;
+  reported_user: { name: string } | null;
+}
+
+/** All reports, newest first. Only returns rows if the caller is_admin(). */
+export function useReports() {
+  const isAdmin = useIsAdmin();
+  const [version, setVersion] = useState(0);
+  const state = useAsync<Report[]>(async () => {
+    if (!isAdmin) return [];
+    const { data, error } = await getSupabaseBrowser()
+      .from("reports")
+      .select(REPORT_SELECT)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return (data as unknown as ReportRow[]).map((r) => ({
+      id: r.id,
+      reason: r.reason,
+      details: r.details,
+      status: r.status,
+      createdAt: r.created_at,
+      listingId: r.listing?.id ?? null,
+      listingName: r.listing?.name ?? null,
+      listingStatus: r.listing?.status ?? null,
+      reporterName: r.reporter?.name ?? null,
+      reportedName: r.reported_user?.name ?? null,
+    }));
+  }, [isAdmin, version]);
+  return { ...state, reload: useCallback(() => setVersion((v) => v + 1), []) };
+}
+
+/** Admin action: set a report's status. RLS enforces the admin check. */
+export async function updateReportStatus(reportId: string, status: "reviewed" | "actioned") {
+  const { error } = await getSupabaseBrowser().from("reports").update({ status }).eq("id", reportId);
+  if (error) throw error;
 }

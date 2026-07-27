@@ -68,20 +68,29 @@ export function radarPlacement(o: RadarPlacementOpts): { left: number; top: numb
   let x = east * pxPerKm;
   let y = -north * pxPerKm; // screen y grows downward
 
-  // Nudge co-located listings apart, deterministically.
-  const a = hash01(o.seed) * Math.PI * 2;
-  x += Math.cos(a) * 9;
-  y += Math.sin(a) * 9;
-
   // Keep bubbles inside the box and clear of the "you" pin at the centre.
   const maxR = Math.min(o.ringPx / 2, o.box.h / 2 - o.size / 2 - 26, o.box.w / 2 - o.size / 2 - 6);
   const minR = 40 + o.size / 2;
+  
   let r = Math.hypot(x, y);
-  const bearing = r < 0.001 ? a : Math.atan2(y, x);
+  const bearing = r < 0.001 ? hash01(o.seed) * Math.PI * 2 : Math.atan2(y, x);
+  
+  // Apply a non-linear scale to spread out clustered inner items
+  const rNorm = Math.min(r / maxR, 1);
+  r = Math.pow(rNorm, 0.6) * maxR;
+
+  // Nudge co-located listings apart, deterministically (increased to 25px to prevent overlap)
+  const a = hash01(o.seed) * Math.PI * 2;
+  x = Math.cos(bearing) * r + Math.cos(a) * 25;
+  y = Math.sin(bearing) * r + Math.sin(a) * 25;
+
+  r = Math.hypot(x, y);
+  const finalBearing = Math.atan2(y, x);
+  
   if (r > maxR) r = maxR;
   if (r < minR) r = minR;
-  x = Math.cos(bearing) * r;
-  y = Math.sin(bearing) * r;
+  x = Math.cos(finalBearing) * r;
+  y = Math.sin(finalBearing) * r;
 
   return { left: o.box.w / 2 + x - o.size / 2, top: o.box.h / 2 + y - o.size / 2 };
 }

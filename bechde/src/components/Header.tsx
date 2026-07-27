@@ -10,10 +10,9 @@ import { DEFAULT_FILTERS, searchHref } from "@/lib/search";
 
 export default function Header() {
   const pathname = usePathname();
-  const { name } = useAppState();
   const profileName = useProfile().data?.name;
   const unread = useUnreadCount();
-  const avatarInitial = ((profileName || name || "A").trim().charAt(0).toUpperCase()) || "A";
+  const avatarInitial = (profileName || "U").trim().charAt(0).toUpperCase() || "U";
 
   return (
     <header
@@ -122,9 +121,9 @@ export function SearchBar({ autoFocus }: { autoFocus?: boolean } = {}) {
         fontSize: 14.5,
       }}
     >
-      <span onClick={submit} style={{ cursor: "pointer" }}>
+      <button type="button" onClick={submit} style={{ background: "none", border: "none", padding: 0, font: "inherit", cursor: "pointer", color: "inherit" }}>
         ⌕
-      </span>
+      </button>
       <input
         value={q}
         autoFocus={autoFocus}

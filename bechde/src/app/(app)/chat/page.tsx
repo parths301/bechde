@@ -7,7 +7,7 @@ import { colors } from "@/lib/colors";
 import { useAppState } from "@/lib/store";
 import {
   useChatThreads,
-  useItems,
+  useItem,
   useProfile,
   useConversation,
   sendMessage,
@@ -46,8 +46,6 @@ function ChatScreen() {
   const { draft, setDraft } = useAppState();
   const me = useProfile().data;
   const chatThreads = useChatThreads().data ?? [];
-  const items = useItems().data ?? [];
-  const byId = new Map(items.map((i) => [i.id, i]));
   // On mobile this drives the master-detail view: null = show the list,
   // a thread id = show that conversation. Desktop shows both panes regardless.
   // Arriving from a listing's "Chat with …" button: /chat?c=<chatId>.
@@ -60,7 +58,7 @@ function ChatScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const activeThread = chatThreads.find((t) => t.id === openId) ?? chatThreads[0];
-  const activeItem = activeThread ? byId.get(activeThread.itemId) : undefined;
+  const activeItem = useItem(activeThread?.itemId ?? "").data;
   const convo = useConversation(activeThread?.id ?? null);
   const latestOffer = convo.offers.at(-1);
   const dealOffer = latestOffer?.status === "accepted" ? latestOffer : null;
@@ -130,21 +128,21 @@ function ChatScreen() {
       <div className="bd-chat-list" style={{ borderRight: `1.5px dashed ${colors.divider}`, padding: "22px 0", display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "0 22px 16px", fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 22, letterSpacing: "-.5px" }}>Chats</div>
         {chatThreads.map((cl) => (
-          <ChatListRow key={cl.id} thread={cl} cover={byId.get(cl.itemId)?.cover} active={activeThread.id === cl.id} onOpen={() => setOpenId(cl.id)} />
+          <ChatListRow key={cl.id} thread={cl} cover={cl.cover} active={activeThread.id === cl.id} onOpen={() => setOpenId(cl.id)} />
         ))}
       </div>
 
       <div className="bd-chat-convo" style={{ display: "flex", flexDirection: "column" }}>
         <div className="bd-chat-head" style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 26px", borderBottom: `1.5px dashed ${colors.divider}`, background: "#fff" }}>
-          <div
+          <button
+            type="button"
             className="bd-chat-back"
             onClick={() => setOpenId(null)}
-            role="button"
             aria-label="Back to chats"
-            style={{ flex: "none", width: 36, height: 36, borderRadius: "50%", placeItems: "center", background: colors.bg2, color: colors.ink, fontSize: 18, cursor: "pointer" }}
+            style={{ fontFamily: "inherit", border: "none", padding: 0, flex: "none", width: 36, height: 36, borderRadius: "50%", placeItems: "center", background: colors.bg2, color: colors.ink, fontSize: 18, cursor: "pointer" }}
           >
             ←
-          </div>
+          </button>
           <Link href={`/product/${activeThread.itemId}`} aria-label={`View listing: ${activeItem.name}`} style={{ display: "block", flex: "none" }}>
             <Stripe angle={activeThread.angle} src={activeItem.cover} band={6} style={{ width: 52, height: 52, borderRadius: 14, cursor: "pointer" }} />
           </Link>
@@ -332,17 +330,17 @@ function ReviewCard({ otherName, onSubmit }: { otherName: string; onSubmit: (rat
       </div>
       <div style={{ display: "flex", justifyContent: "center", gap: 4, marginBottom: 12 }}>
         {[1, 2, 3, 4, 5].map((n) => (
-          <span
+          <button
+            type="button"
             key={n}
-            role="button"
             aria-label={`${n} star${n > 1 ? "s" : ""}`}
             onClick={() => setRating(n)}
             onMouseEnter={() => setHover(n)}
             onMouseLeave={() => setHover(0)}
-            style={{ fontSize: 26, cursor: "pointer", lineHeight: 1, color: n <= (hover || rating) ? colors.marigold : colors.sand }}
+            style={{ fontFamily: "inherit", background: "none", border: "none", padding: 0, fontSize: 26, cursor: "pointer", lineHeight: 1, color: n <= (hover || rating) ? colors.marigold : colors.sand }}
           >
             ★
-          </span>
+          </button>
         ))}
       </div>
       <input
@@ -366,20 +364,24 @@ function ReviewCard({ otherName, onSubmit }: { otherName: string; onSubmit: (rat
         }}
       />
       {error && <div style={{ fontSize: 12, fontWeight: 700, color: colors.terracotta, marginBottom: 8 }}>{error}</div>}
-      <div
+      <button
+        type="button"
         onClick={send}
         style={{
+          fontFamily: "inherit",
+          border: "none",
+          width: "100%",
           background: rating ? colors.ink : colors.sand,
           color: rating ? colors.bg : colors.textFaint,
           borderRadius: 999,
           padding: "10px 0",
           fontWeight: 800,
           fontSize: 13.5,
-          cursor: rating ? "pointer" : "not-allowed",
+          cursor: rating ? "pointer" : "default",
         }}
       >
         {busy ? "Saving…" : "Leave rating"}
-      </div>
+      </button>
     </div>
   );
 }
@@ -504,11 +506,12 @@ function ChatListRow({
 }) {
   const [hover, setHover] = useState(false);
   return (
-    <div
+    <button
+      type="button"
       onClick={onOpen}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      style={{ display: "flex", gap: 12, padding: "13px 22px", cursor: "pointer", background: hover || active ? "#F6EEDD" : "transparent" }}
+      style={{ fontFamily: "inherit", border: "none", textAlign: "left", width: "100%", display: "flex", gap: 12, padding: "13px 22px", cursor: "pointer", background: hover || active ? "#F6EEDD" : "transparent" }}
     >
       <div style={{ position: "relative", flex: "none" }}>
         <Stripe angle={thread.angle} src={cover} band={6} style={{ width: 46, height: 46, borderRadius: 14 }} />
@@ -540,18 +543,20 @@ function ChatListRow({
         </div>
         <div style={{ fontSize: 12.5, color: colors.textMuted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{thread.last}</div>
       </div>
-    </div>
+    </button>
   );
 }
 
 function OfferButton({ label, primary, onClick }: { label: string; primary?: boolean; onClick: () => void }) {
   const [hover, setHover] = useState(false);
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
+        fontFamily: "inherit",
         background: primary ? (hover ? colors.teal : colors.pine) : "#fff",
         color: primary ? "#fff" : colors.textBody,
         border: primary ? "none" : `1.5px solid ${colors.sand}`,
@@ -564,15 +569,18 @@ function OfferButton({ label, primary, onClick }: { label: string; primary?: boo
       }}
     >
       {label}
-    </div>
+    </button>
   );
 }
 
 function MeetupChip({ label, primary, onClick }: { label: string; primary?: boolean; onClick: () => void }) {
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
       style={{
+        fontFamily: "inherit",
+        border: "none",
         background: primary ? colors.pine : "#fff",
         color: primary ? "#fff" : colors.pine,
         borderRadius: 999,
@@ -583,18 +591,20 @@ function MeetupChip({ label, primary, onClick }: { label: string; primary?: bool
       }}
     >
       {label}
-    </div>
+    </button>
   );
 }
 
 function QuickReplyChip({ text, onSend }: { text: string; onSend: () => void }) {
   const [hover, setHover] = useState(false);
   return (
-    <div
+    <button
+      type="button"
       onClick={onSend}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
+        fontFamily: "inherit",
         background: "#fff",
         border: `1.5px solid ${hover ? colors.marigold : colors.sand}`,
         borderRadius: 999,
@@ -608,18 +618,22 @@ function QuickReplyChip({ text, onSend }: { text: string; onSend: () => void }) 
       }}
     >
       {text}
-    </div>
+    </button>
   );
 }
 
 function SendButton({ onClick }: { onClick: () => void }) {
   const [hover, setHover] = useState(false);
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
+        fontFamily: "inherit",
+        border: "none",
+        padding: 0,
         width: 46,
         height: 46,
         borderRadius: "50%",
@@ -634,6 +648,6 @@ function SendButton({ onClick }: { onClick: () => void }) {
       }}
     >
       ➤
-    </div>
+    </button>
   );
 }

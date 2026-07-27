@@ -503,15 +503,6 @@ export const items: Item[] = rawItems.map((i) => ({
   lng: COORDS[i.id]?.lng ?? USER_LOCATION.lng,
 }));
 
-export function getItem(id: string): Item | undefined {
-  return items.find((i) => i.id === id);
-}
-
-export const homeBubbles = items.filter((i) => i.home);
-export const mapItemsAll = items.filter((i) => i.map);
-
-export const feedIds = ["study-table", "boat-rockerz-550", "single-mattress", "cricket-kit"];
-export const feedItems = feedIds.map((id) => getItem(id)!);
 
 export const sellCategories: { icon: string; name: string }[] = [
   { icon: "📱", name: "Gadgets" },
@@ -545,6 +536,7 @@ export interface ChatThread {
   avatar: string;
   angle: string;
   active: boolean;
+  cover?: string;
 }
 
 export const chatThreads: ChatThread[] = [

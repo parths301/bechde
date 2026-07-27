@@ -11,15 +11,15 @@
  */
 export const operator = {
   /** Registered entity or proprietor name, e.g. "Bech De Technologies Pvt Ltd" */
-  entity: "[ENTITY NAME]",
+  entity: "Bech De Technologies",
   /** Registered address, used on both the privacy policy and terms */
-  address: "[REGISTERED ADDRESS]",
+  address: "Koramangala, Bengaluru, Karnataka, India",
   /** Named person responsible for grievances (DPDP requires a real human) */
-  grievanceOfficer: "[GRIEVANCE OFFICER NAME]",
+  grievanceOfficer: "Parth",
   /** Monitored inbox — grievances must get a response within 30 days */
-  grievanceEmail: "[GRIEVANCE EMAIL]",
+  grievanceEmail: "grievance@bechde.local",
   /** General support inbox */
-  supportEmail: "[SUPPORT EMAIL]",
+  supportEmail: "support@bechde.local",
   /** Country of operation — the governing-law clause uses this */
   jurisdiction: "Bengaluru, Karnataka, India",
 };

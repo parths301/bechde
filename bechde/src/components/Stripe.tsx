@@ -1,4 +1,5 @@
 import { CSSProperties, ReactNode } from "react";
+import Image from "next/image";
 import { colors } from "@/lib/colors";
 
 interface StripeProps {
@@ -21,7 +22,7 @@ export default function Stripe({ angle = "45deg", band = 9, c1 = colors.stripe1,
     <div
       style={{
         background: src
-          ? `#EDE3D2 center/cover no-repeat url("${src}")`
+          ? "#EDE3D2"
           : `repeating-linear-gradient(${angle}, ${c1} 0 ${band}px, ${c2} ${band}px ${band * 2}px)`,
         display: "grid",
         placeItems: "center",
@@ -30,11 +31,23 @@ export default function Stripe({ angle = "45deg", band = 9, c1 = colors.stripe1,
         fontSize: 11,
         color: colors.textMuted,
         textAlign: "center",
+        overflow: "hidden", // necessary for next/image fill to respect border-radius
         ...style,
       }}
     >
-      {!src && label}
-      {children}
+      {src && (
+        <Image
+          src={src}
+          alt={label ?? "Cover photo"}
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          style={{ objectFit: "cover", zIndex: 0 }}
+        />
+      )}
+      <div style={{ position: "relative", zIndex: 1, display: "contents" }}>
+        {!src && label}
+        {children}
+      </div>
     </div>
   );
 }

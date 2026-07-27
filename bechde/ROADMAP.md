@@ -1,6 +1,6 @@
 # Bech De — Roadmap
 
-**Current state: phases 0–9 are done.** The prototype is a real marketplace on Supabase —
+**Current state: phases 0–10 are done.** The prototype is a real marketplace on Supabase —
 auth, listings with photo upload, real geographic distances, ranked search, live chat with
 offers, derived seller reputation, reporting and blocking enforced in RLS, legal pages, and
 a test suite with CI. Nothing a user sees is mocked.
@@ -136,8 +136,8 @@ What each phase delivered:
 Not limitations of the prototype any more — genuine product work, ordered by priority with
 acceptance criteria, in **[CLAUDE.md §8](./CLAUDE.md)**:
 
-- **P0** — moderation surface for `reports`; bound photo uploads; pagination
+- **P0** — moderation surface for `reports`; bound photo uploads; pagination (done)
 - **P1** — live-updating chat list; saved-search emails; finish the keyboard-accessibility
-  sweep; abuse/rate limits
+  sweep; abuse/rate limits (done)
 - **P2** — radar crowding, dropping legacy columns, offer semantics, `next/image`, SEO
   metadata per listing, Hindi copy, test gaps

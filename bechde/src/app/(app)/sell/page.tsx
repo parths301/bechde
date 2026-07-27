@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { colors } from "@/lib/colors";
-import { useAppState } from "@/lib/store";
+import { useEffect } from "react";
 import { sellCategories } from "@/lib/data";
 import { useProfile, useUserLocation, useComparablePrices, useMatchingSavedSearchCount } from "@/lib/queries";
 import { geocode, formatKm, haversineKm, type LatLng } from "@/lib/geo";
@@ -13,6 +13,7 @@ import Stripe from "@/components/Stripe";
 import Chip from "@/components/Chip";
 import Button from "@/components/Button";
 import LocationChip from "@/components/LocationChip";
+import { validateImage, compressImage } from "@/lib/image";
 
 // sellCategories has "Everything else"; the DB category is "Everything".
 function normalizeCategory(cat: string): string {
@@ -21,7 +22,32 @@ function normalizeCategory(cat: string): string {
 
 export default function SellPage() {
   const router = useRouter();
-  const { sellTitle, setSellTitle, sellPrice, setSellPrice, sellCat, setSellCat, sellNote, setSellNote, name } = useAppState();
+  const [sellTitle, setSellTitle] = useState("Yamaha F310 acoustic guitar");
+  const [sellPrice, setSellPrice] = useState("3,200");
+  const [sellCat, setSellCat] = useState("Music");
+  const [sellNote, setSellNote] = useState("This guitar got me through 3 years of hostel life. Selling because I finally upgraded — it deserves someone who'll actually play it.");
+  
+  useEffect(() => {
+    const saved = sessionStorage.getItem("bechde_sell_draft");
+    if (saved) {
+      try {
+        const d = JSON.parse(saved);
+        if (d.sellTitle) setSellTitle(d.sellTitle);
+        if (d.sellPrice) setSellPrice(d.sellPrice);
+        if (d.sellCat) setSellCat(d.sellCat);
+        if (d.sellNote) setSellNote(d.sellNote);
+      } catch (e) {}
+    }
+  }, []);
+
+  const saveDraft = (key: string, val: string) => {
+    try {
+      const saved = sessionStorage.getItem("bechde_sell_draft");
+      const d = saved ? JSON.parse(saved) : {};
+      d[key] = val;
+      sessionStorage.setItem("bechde_sell_draft", JSON.stringify(d));
+    } catch (e) {}
+  };
   const profile = useProfile().data;
   const origin = useUserLocation();
 
@@ -30,7 +56,8 @@ export default function SellPage() {
   const [place, setPlace] = useState("");
   const placeValue = place || profile?.neighbourhood || "";
   const [photos, setPhotos] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);
+  const [uploadingState, setUploadingState] = useState<string | null>(null);
+  const uploading = uploadingState !== null;
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newId, setNewId] = useState<string | null>(null);
@@ -48,15 +75,28 @@ export default function SellPage() {
 
   const onFiles = async (files: FileList | null) => {
     if (!files || !files.length || !profile) return;
-    setUploading(true);
+    
+    const toUpload = Array.from(files).slice(0, 6 - photos.length);
+    for (const file of toUpload) {
+      const err = validateImage(file);
+      if (err) {
+        setError(err);
+        return;
+      }
+    }
+
+    setUploadingState(`Uploading 1 of ${toUpload.length}…`);
     setError(null);
     const sb = getSupabaseBrowser();
     const uploaded: string[] = [];
     try {
-      for (const file of Array.from(files).slice(0, 6 - photos.length)) {
-        const ext = file.name.split(".").pop() || "jpg";
+      for (let i = 0; i < toUpload.length; i++) {
+        const file = toUpload[i];
+        if (i > 0) setUploadingState(`Uploading ${i + 1} of ${toUpload.length}…`);
+        
+        const { blob, ext } = await compressImage(file);
         const path = `${profile.id}/${crypto.randomUUID()}.${ext}`;
-        const { error: upErr } = await sb.storage.from("listing-images").upload(path, file, { contentType: file.type });
+        const { error: upErr } = await sb.storage.from("listing-images").upload(path, blob, { contentType: blob.type });
         if (upErr) throw upErr;
         uploaded.push(sb.storage.from("listing-images").getPublicUrl(path).data.publicUrl);
       }
@@ -64,7 +104,7 @@ export default function SellPage() {
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Upload failed");
     } finally {
-      setUploading(false);
+      setUploadingState(null);
     }
   };
 
@@ -198,7 +238,7 @@ export default function SellPage() {
           <h1 className="bd-sell-h1" style={{ margin: 0, fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 36, letterSpacing: "-1px" }}>What are you letting go? 👋</h1>
 
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <PhotoDropzone onClick={() => fileRef.current?.click()} uploading={uploading} />
+            <PhotoDropzone onClick={() => fileRef.current?.click()} uploadingState={uploadingState} />
             {photos.map((url, i) => (
               <Stripe key={url} src={url} style={{ width: 120, height: 170, borderRadius: 16 }}>
                 {i === 0 && (
@@ -222,7 +262,7 @@ export default function SellPage() {
             <input
               aria-label="Listing name"
               value={sellTitle}
-              onChange={(e) => setSellTitle(e.target.value)}
+              onChange={(e) => { setSellTitle(e.target.value); saveDraft("sellTitle", e.target.value); }}
               style={{
                 width: "100%",
                 background: "#fff",
@@ -241,7 +281,7 @@ export default function SellPage() {
             <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 8 }}>Where does it belong?</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 9 }}>
               {sellCategories.map((c) => (
-                <Chip key={c.name} icon={c.icon} name={c.name} active={sellCat === c.name} onClick={() => setSellCat(c.name)} />
+                <Chip key={c.name} icon={c.icon} name={c.name} active={sellCat === c.name} onClick={() => { setSellCat(c.name); saveDraft("sellCat", c.name); }} />
               ))}
             </div>
           </div>
@@ -280,7 +320,7 @@ export default function SellPage() {
                 className="bd-sell-price-input"
                 aria-label="Price in rupees"
                 value={sellPrice}
-                onChange={(e) => setSellPrice(e.target.value)}
+                onChange={(e) => { setSellPrice(e.target.value); saveDraft("sellPrice", e.target.value); }}
                 style={{
                   background: "#fff",
                   border: `1.5px solid ${colors.sand}`,
@@ -313,7 +353,7 @@ export default function SellPage() {
             <textarea
               aria-label="Tell its story"
               value={sellNote}
-              onChange={(e) => setSellNote(e.target.value)}
+              onChange={(e) => { setSellNote(e.target.value); saveDraft("sellNote", e.target.value); }}
               rows={3}
               style={{
                 width: "100%",
@@ -390,7 +430,7 @@ export default function SellPage() {
               <div style={{ fontSize: 12.5, fontStyle: "italic", color: colors.textMuted, lineHeight: 1.5 }}>&ldquo;{noteTrim}&rdquo;</div>
               <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: colors.textBody, fontWeight: 600 }}>
                 <span style={{ width: 20, height: 20, borderRadius: "50%", background: colors.teal, flex: "none" }} />
-                {profile?.name ?? name} · new seller ✨
+                {profile?.name ?? "Someone"} · new seller ✨
               </div>
             </div>
           </div>
@@ -409,8 +449,9 @@ export default function SellPage() {
   );
 }
 
-function PhotoDropzone({ onClick, uploading }: { onClick: () => void; uploading: boolean }) {
+function PhotoDropzone({ onClick, uploadingState }: { onClick: () => void; uploadingState: string | null }) {
   const [hover, setHover] = useState(false);
+  const uploading = uploadingState !== null;
   return (
     <div
       onClick={onClick}
@@ -431,7 +472,7 @@ function PhotoDropzone({ onClick, uploading }: { onClick: () => void; uploading:
     >
       <div>
         <div style={{ fontSize: 26, marginBottom: 6 }}>{uploading ? "⏳" : "📸"}</div>
-        <div style={{ fontWeight: 800, fontSize: 15 }}>{uploading ? "Uploading…" : "Add photos"}</div>
+        <div style={{ fontWeight: 800, fontSize: 15 }}>{uploadingState ?? "Add photos"}</div>
         <div style={{ fontSize: 12.5, color: colors.textFaint, fontWeight: 600 }}>up to 6 · first one becomes the cover</div>
       </div>
     </div>

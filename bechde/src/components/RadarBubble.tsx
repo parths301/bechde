@@ -24,6 +24,8 @@ export default function RadarBubble({ left, top, size, angle, label, price, dur,
   if (hidden) return null;
   return (
     <Hoverable
+      as="button"
+      type="button"
       onClick={onClick}
       style={{
         position: "absolute",
@@ -37,6 +39,10 @@ export default function RadarBubble({ left, top, size, angle, label, price, dur,
         animation: `bd-bob ${dur} ease-in-out infinite`,
         animationDelay: delay,
         zIndex: 2,
+        background: "none",
+        border: "none",
+        padding: 0,
+        fontFamily: "inherit",
       }}
       hoverStyle={{ zIndex: hoverZ, transform: "scale(1.12)" }}
     >

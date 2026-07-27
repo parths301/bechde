@@ -252,3 +252,69 @@ describe("profiles", () => {
     expect(intact!.name).not.toBe("Hacked");
   });
 });
+describe("admin moderation", () => {
+  it("allows admins to update listings", async () => {
+    // Make outsider an admin
+    await admin.from("profiles").update({ is_admin: true }).eq("id", outsiderId);
+    
+    const { error } = await outsider.from("listings").update({ status: "removed" }).eq("id", "yamaha-f310");
+    expect(error).toBeNull();
+
+    // Revert it
+    await admin.from("listings").update({ status: "active" }).eq("id", "yamaha-f310");
+    await admin.from("profiles").update({ is_admin: false }).eq("id", outsiderId);
+  });
+
+  it("prevents non-admins from updating other people's listings", async () => {
+    const { error } = await outsider.from("listings").update({ status: "removed" }).eq("id", "yamaha-f310");
+    expect(error?.code).toBe("42501");
+  });
+
+  it("allows admins to update report status", async () => {
+    // Create a dummy report
+    const { data: rep } = await aisha.from("reports").insert({
+      reporter_id: aishaId, listing_id: "yamaha-f310", reason: "scam"
+    }).select("id").single();
+    
+    // Normal user can't update it
+    const { error: err1 } = await aisha.from("reports").update({ status: "reviewed" }).eq("id", rep!.id);
+    expect(err1?.code).toBe("42501");
+
+    // Admin can
+    await admin.from("profiles").update({ is_admin: true }).eq("id", outsiderId);
+    const { error: err2 } = await outsider.from("reports").update({ status: "reviewed" }).eq("id", rep!.id);
+    expect(err2).toBeNull();
+
+    // Clean up
+    await admin.from("reports").delete().eq("id", rep!.id);
+    await admin.from("profiles").update({ is_admin: false }).eq("id", outsiderId);
+  });
+});
+
+describe("rate limits", () => {
+  it("prevents more than 20 listings in a day", async () => {
+    // We already have a few listings from seed. Let's insert until we hit 20.
+    const promises = [];
+    for (let i = 0; i < 20; i++) {
+      promises.push(outsider.from("listings").insert({
+        name: `Spam ${i}`,
+        price: 10,
+        seller_id: outsiderId,
+        dist: "Near me",
+      }));
+    }
+    
+    // Most should succeed (up to the limit of 20)
+    await Promise.all(promises);
+
+    // The next one should fail
+    const { error } = await outsider.from("listings").insert({
+      name: `Spam 21`,
+      price: 10,
+      seller_id: outsiderId,
+      dist: "Near me",
+    });
+    
+    expect(error?.message).toMatch(/Rate limit exceeded for listings/);
+  });
+});

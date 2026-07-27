@@ -7,7 +7,8 @@ import { useAppState } from "@/lib/store";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 
 export default function SignupPage() {
-  const { name, setName, radiusKm, setRadiusKm } = useAppState();
+  const { radiusKm, setRadiusKm } = useAppState();
+  const [name, setName] = useState("Aisha");
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);

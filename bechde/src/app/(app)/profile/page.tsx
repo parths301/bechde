@@ -5,18 +5,22 @@ import Link from "next/link";
 import { colors } from "@/lib/colors";
 import { useAppState, ProfileTab } from "@/lib/store";
 import {
-  useItems,
+  useSavedListings,
+  useProfileNames,
   useMyListings,
   useProfile,
   signOut,
   useBlockedIds,
   unblockProfile,
   useReviews,
+  useWrittenReviews,
+  updateReview,
   updateMyProfile,
 } from "@/lib/queries";
 import type { Item } from "@/lib/data";
 import Stripe from "@/components/Stripe";
 import LocationChip from "@/components/LocationChip";
+import ReportDialog from "@/components/ReportDialog";
 
 interface GridCard {
   id?: string;
@@ -31,20 +35,23 @@ interface GridCard {
 }
 
 export default function ProfilePage() {
-  const { name: storeName, profTab, setProfTab, likedIds } = useAppState();
-  const items = useItems().data ?? [];
-  const byId = new Map(items.map((i) => [i.id, i]));
+  const { profTab, setProfTab } = useAppState();
+  const saved = useSavedListings().data ?? [];
   const mine = useMyListings().data ?? [];
   const myProfile = useProfile().data;
   const reviews = useReviews(myProfile?.id).data ?? [];
-  const name = myProfile?.name ?? storeName;
+  const writtenReviews = useWrittenReviews(myProfile?.id).data ?? [];
+  const [reviewSubtab, setReviewSubtab] = useState<"received" | "written">("received");
+  const [editingReview, setEditingReview] = useState<{ id: string; rating: number; body: string } | null>(null);
+  const [reportingReview, setReportingReview] = useState<{ id: string; reviewerName: string } | null>(null);
+  const [isUpdatingReview, setIsUpdatingReview] = useState(false);
+  const name = myProfile?.name ?? "Someone";
   const where = myProfile?.neighbourhood ?? "Koramangala, Bengaluru";
-  const avatarInitial = (name || "A").trim().charAt(0).toUpperCase() || "A";
+  const avatarInitial = (name || "U").trim().charAt(0).toUpperCase() || "U";
 
   // Real rows now: my own listings, split by status, plus whatever I've hearted.
   const active = mine.filter((i) => i.status !== "sold");
   const sold = mine.filter((i) => i.status === "sold");
-  const saved = likedIds.map((id) => byId.get(id)).filter((i): i is Item => !!i);
 
   const card = (i: Item, tag: string, tagBg: string, tagColor: string, meta: string): GridCard => ({
     id: i.id,
@@ -142,12 +149,13 @@ export default function ProfilePage() {
             <LocationChip />
             <EditProfile name={name} bio={myProfile?.bio ?? ""} disabled={!myProfile} />
           </div>
-          <div
+          <button
+            type="button"
             onClick={() => signOut()}
-            style={{ display: "inline-block", marginTop: 8, fontSize: 12.5, fontWeight: 700, color: colors.clay, cursor: "pointer" }}
+            style={{ fontFamily: "inherit", background: "none", border: "none", padding: 0, display: "inline-block", marginTop: 8, fontSize: 12.5, fontWeight: 700, color: colors.clay, cursor: "pointer" }}
           >
             Sign out →
-          </div>
+          </button>
         </div>
         <div className="bd-prof-stats" style={{ display: "flex", gap: 26, paddingBottom: 4 }}>
           {profStats.map((ps) => (
@@ -183,7 +191,7 @@ export default function ProfilePage() {
         ))}
       </div>
 
-      <div className="bd-prof-tabs" style={{ display: "flex", gap: 26, padding: "24px 36px 0", borderBottom: `1.5px dashed ${colors.divider}`, fontWeight: 800, fontSize: 14.5 }}>
+      <div role="tablist" className="bd-prof-tabs" style={{ display: "flex", gap: 26, padding: "24px 36px 0", borderBottom: `1.5px dashed ${colors.divider}`, fontWeight: 800, fontSize: 14.5 }}>
         {tabs.map((t) => (
           <ProfileTabButton key={t.key} label={t.label} active={profTab === t.key} onClick={() => setProfTab(t.key)} />
         ))}
@@ -191,41 +199,236 @@ export default function ProfilePage() {
 
       {profTab === "reviews" ? (
         <div style={{ padding: "24px 36px 40px", display: "flex", flexDirection: "column", gap: 12, maxWidth: 620 }}>
-          {reviews.length === 0 && (
-            <div style={{ fontSize: 13.5, color: colors.textFaint, fontWeight: 600, lineHeight: 1.6 }}>
-              No reviews yet. Once a deal is accepted in chat, both sides can leave one.
-            </div>
-          )}
-          {reviews.map((r) => (
-            <div key={r.id} style={{ background: "#fff", border: `1.5px solid ${colors.cardBorder}`, borderRadius: 16, padding: "14px 18px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span
-                  style={{
-                    width: 26,
-                    height: 26,
-                    borderRadius: "50%",
-                    background: r.reviewer.color ?? colors.teal,
-                    color: "#fff",
-                    display: "grid",
-                    placeItems: "center",
-                    fontFamily: "var(--font-bricolage)",
-                    fontWeight: 800,
-                    fontSize: 12,
-                    flex: "none",
-                  }}
-                >
-                  {r.reviewer.initial}
-                </span>
-                <div style={{ fontWeight: 800, fontSize: 13.5 }}>{r.reviewer.name}</div>
-                <div style={{ color: colors.marigold, fontSize: 13, letterSpacing: 1 }}>{"★".repeat(r.rating)}</div>
-                <div style={{ marginLeft: "auto", fontSize: 11.5, color: colors.textFaint, fontWeight: 600, whiteSpace: "nowrap" }}>
-                  {new Date(r.createdAt).toLocaleDateString([], { month: "short", year: "numeric" })}
+          <div style={{ display: "flex", gap: 12, marginBottom: 8 }}>
+            <button
+              onClick={() => setReviewSubtab("received")}
+              style={{
+                fontFamily: "inherit", background: reviewSubtab === "received" ? colors.clay : "transparent",
+                color: reviewSubtab === "received" ? "#fff" : colors.textFaint, border: "none",
+                padding: "6px 16px", borderRadius: 999, fontSize: 13, fontWeight: 800, cursor: "pointer",
+                border: reviewSubtab === "received" ? "1.5px solid transparent" : `1.5px solid ${colors.cardBorder}`
+              }}
+            >
+              Received
+            </button>
+            <button
+              onClick={() => setReviewSubtab("written")}
+              style={{
+                fontFamily: "inherit", background: reviewSubtab === "written" ? colors.clay : "transparent",
+                color: reviewSubtab === "written" ? "#fff" : colors.textFaint, border: "none",
+                padding: "6px 16px", borderRadius: 999, fontSize: 13, fontWeight: 800, cursor: "pointer",
+                border: reviewSubtab === "written" ? "1.5px solid transparent" : `1.5px solid ${colors.cardBorder}`
+              }}
+            >
+              Written
+            </button>
+          </div>
+
+          {reviewSubtab === "received" ? (
+            <>
+              {reviews.length === 0 && (
+                <div style={{ fontSize: 13.5, color: colors.textFaint, fontWeight: 600, lineHeight: 1.6 }}>
+                  No reviews received yet. Once a deal is accepted in chat, the buyer can leave one.
                 </div>
-              </div>
-              {r.body && <div style={{ fontSize: 13.5, color: colors.textBody, lineHeight: 1.6, marginTop: 8 }}>&ldquo;{r.body}&rdquo;</div>}
-              <div style={{ fontSize: 11.5, color: colors.textFaint, fontWeight: 600, marginTop: 6 }}>on {r.listingName}</div>
-            </div>
-          ))}
+              )}
+              {reviews.map((r) => (
+                <div key={r.id} style={{ background: "#fff", border: `1.5px solid ${colors.cardBorder}`, borderRadius: 16, padding: "14px 18px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span
+                      style={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: "50%",
+                        background: r.reviewer.color ?? colors.teal,
+                        color: "#fff",
+                        display: "grid",
+                        placeItems: "center",
+                        fontFamily: "var(--font-bricolage)",
+                        fontWeight: 800,
+                        fontSize: 12,
+                        flex: "none",
+                      }}
+                    >
+                      {r.reviewer.initial}
+                    </span>
+                    <div style={{ fontWeight: 800, fontSize: 13.5 }}>{r.reviewer.name}</div>
+                    <div style={{ color: colors.marigold, fontSize: 13, letterSpacing: 1 }}>{"★".repeat(r.rating)}</div>
+                    <div style={{ marginLeft: "auto", fontSize: 11.5, color: colors.textFaint, fontWeight: 600, whiteSpace: "nowrap" }}>
+                      {new Date(r.createdAt).toLocaleDateString([], { month: "short", year: "numeric" })}
+                    </div>
+                  </div>
+                  {r.body && <div style={{ fontSize: 13.5, color: colors.textBody, lineHeight: 1.6, marginTop: 8 }}>&ldquo;{r.body}&rdquo;</div>}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
+                    <div style={{ fontSize: 11.5, color: colors.textFaint, fontWeight: 600 }}>on {r.listingName}</div>
+                    <button
+                      type="button"
+                      onClick={() => setReportingReview({ id: r.id, reviewerName: r.reviewer.name })}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        padding: "4px 8px",
+                        color: colors.textFaint,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        textDecoration: "underline"
+                      }}
+                    >
+                      Report
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {reportingReview && (
+                <ReportDialog
+                  reviewId={reportingReview.id}
+                  targetName={`Review by ${reportingReview.reviewerName}`}
+                  onClose={() => setReportingReview(null)}
+                />
+              )}
+            </>
+          ) : (
+            <>
+              {writtenReviews.length === 0 && (
+                <div style={{ fontSize: 13.5, color: colors.textFaint, fontWeight: 600, lineHeight: 1.6 }}>
+                  You haven't written any reviews yet.
+                </div>
+              )}
+              {writtenReviews.map((r) => (
+                <div key={r.id} style={{ background: "#fff", border: `1.5px solid ${colors.cardBorder}`, borderRadius: 16, padding: "14px 18px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span
+                      style={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: "50%",
+                        background: r.subject.color ?? colors.teal,
+                        color: "#fff",
+                        display: "grid",
+                        placeItems: "center",
+                        fontFamily: "var(--font-bricolage)",
+                        fontWeight: 800,
+                        fontSize: 12,
+                        flex: "none",
+                      }}
+                    >
+                      {r.subject.initial}
+                    </span>
+                    <div style={{ fontWeight: 800, fontSize: 13.5 }}>for {r.subject.name}</div>
+                    <div style={{ color: colors.marigold, fontSize: 13, letterSpacing: 1 }}>{"★".repeat(r.rating)}</div>
+                    <div style={{ marginLeft: "auto", fontSize: 11.5, color: colors.textFaint, fontWeight: 600, whiteSpace: "nowrap" }}>
+                      {new Date(r.createdAt).toLocaleDateString([], { month: "short", year: "numeric" })}
+                    </div>
+                  </div>
+                  {editingReview?.id === r.id ? (
+                    <div style={{ marginTop: 12 }}>
+                      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setEditingReview({ ...editingReview, rating: star })}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              fontSize: 24,
+                              padding: 0,
+                              cursor: "pointer",
+                              color: star <= editingReview.rating ? colors.marigold : colors.cardBorder,
+                            }}
+                          >
+                            ★
+                          </button>
+                        ))}
+                      </div>
+                      <textarea
+                        value={editingReview.body}
+                        onChange={(e) => setEditingReview({ ...editingReview, body: e.target.value })}
+                        rows={3}
+                        style={{
+                          width: "100%",
+                          padding: "10px 14px",
+                          borderRadius: 12,
+                          border: `1.5px solid ${colors.cardBorder}`,
+                          fontFamily: "inherit",
+                          fontSize: 13.5,
+                          resize: "vertical",
+                        }}
+                      />
+                      <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+                        <button
+                          type="button"
+                          disabled={isUpdatingReview}
+                          onClick={async () => {
+                            setIsUpdatingReview(true);
+                            try {
+                              await updateReview(editingReview.id, editingReview.rating, editingReview.body);
+                              setEditingReview(null);
+                            } catch (err) {
+                              alert("Failed to update review.");
+                            } finally {
+                              setIsUpdatingReview(false);
+                            }
+                          }}
+                          style={{
+                            background: colors.clay,
+                            color: "#fff",
+                            border: "none",
+                            padding: "6px 16px",
+                            borderRadius: 999,
+                            fontSize: 13,
+                            fontWeight: 800,
+                            cursor: "pointer",
+                          }}
+                        >
+                          {isUpdatingReview ? "Saving..." : "Save"}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isUpdatingReview}
+                          onClick={() => setEditingReview(null)}
+                          style={{
+                            background: "transparent",
+                            color: colors.textFaint,
+                            border: "none",
+                            padding: "6px 16px",
+                            fontSize: 13,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {r.body && <div style={{ fontSize: 13.5, color: colors.textBody, lineHeight: 1.6, marginTop: 8 }}>&ldquo;{r.body}&rdquo;</div>}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
+                        <div style={{ fontSize: 11.5, color: colors.textFaint, fontWeight: 600 }}>on {r.listingName}</div>
+                        <button
+                          type="button"
+                          onClick={() => setEditingReview({ id: r.id, rating: r.rating, body: r.body ?? "" })}
+                          style={{
+                            background: "transparent",
+                            border: "none",
+                            padding: "4px 8px",
+                            color: colors.textFaint,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            textDecoration: "underline"
+                          }}
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
+            </>
+          )}
         </div>
       ) : (
         <div className="bd-prof-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 18, padding: "24px 36px 40px" }}>
@@ -286,7 +489,8 @@ function EditProfile({ name, bio, disabled }: { name: string; bio: string; disab
 
   if (!open) {
     return (
-      <div
+      <button
+        type="button"
         onClick={() => {
           if (disabled) return;
           setDraftName(name);
@@ -294,6 +498,7 @@ function EditProfile({ name, bio, disabled }: { name: string; bio: string; disab
           setOpen(true);
         }}
         style={{
+          fontFamily: "inherit",
           background: "#fff",
           border: `1.5px solid ${colors.sand}`,
           borderRadius: 999,
@@ -307,7 +512,7 @@ function EditProfile({ name, bio, disabled }: { name: string; bio: string; disab
         }}
       >
         ✎ Edit profile
-      </div>
+      </button>
     );
   }
 
@@ -334,12 +539,12 @@ function EditProfile({ name, bio, disabled }: { name: string; bio: string; disab
         placeholder="One line about you"
         style={{ ...field, width: 240 }}
       />
-      <div onClick={save} style={{ background: colors.ink, color: colors.bg, borderRadius: 999, padding: "8px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer" }}>
+      <button type="button" onClick={save} style={{ fontFamily: "inherit", border: "none", background: colors.ink, color: colors.bg, borderRadius: 999, padding: "8px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer" }}>
         {busy ? "Saving…" : "Save"}
-      </div>
-      <div onClick={() => setOpen(false)} style={{ fontSize: 12.5, fontWeight: 700, color: colors.textFaint, cursor: "pointer" }}>
+      </button>
+      <button type="button" onClick={() => setOpen(false)} style={{ fontFamily: "inherit", background: "none", border: "none", padding: 0, fontSize: 12.5, fontWeight: 700, color: colors.textFaint, cursor: "pointer" }}>
         Cancel
-      </div>
+      </button>
       {error && <div style={{ fontSize: 12, fontWeight: 700, color: colors.terracotta }}>{error}</div>}
     </div>
   );
@@ -348,15 +553,14 @@ function EditProfile({ name, bio, disabled }: { name: string; bio: string; disab
 /** People you've blocked, with a way back. Empty for almost everyone, so it hides itself. */
 function BlockedList() {
   const blocked = useBlockedIds();
-  const items = useItems().data ?? [];
   const [busy, setBusy] = useState<string | null>(null);
   const [gone, setGone] = useState<string[]>([]);
   const ids = (blocked.data ?? []).filter((id) => !gone.includes(id));
+  const names = useProfileNames(ids).data ?? {};
+  
   if (!ids.length) return null;
 
-  // Blocked sellers' listings are RLS-hidden, so look their names up from any
-  // listing we can still see; fall back to a neutral label.
-  const nameOf = (id: string) => items.find((i) => i.seller.id === id)?.seller.name ?? "Someone you blocked";
+  const nameOf = (id: string) => names[id] ?? "Someone you blocked";
 
   const undo = async (id: string) => {
     setBusy(id);
@@ -386,12 +590,13 @@ function BlockedList() {
             }}
           >
             <div style={{ flex: 1, fontSize: 13.5, fontWeight: 700, color: colors.ink }}>{nameOf(id)}</div>
-            <div
+            <button
+              type="button"
               onClick={() => undo(id)}
-              style={{ fontSize: 12.5, fontWeight: 800, color: colors.clay, cursor: "pointer", whiteSpace: "nowrap" }}
+              style={{ fontFamily: "inherit", background: "none", border: "none", padding: 0, fontSize: 12.5, fontWeight: 800, color: colors.clay, cursor: "pointer", whiteSpace: "nowrap" }}
             >
               {busy === id ? "…" : "Unblock"}
-            </div>
+            </button>
           </div>
         ))}
       </div>
@@ -405,21 +610,29 @@ function BlockedList() {
 function ProfileTabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   const [hover, setHover] = useState(false);
   return (
-    <div
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
       onClick={onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
+        fontFamily: "inherit",
+        background: "none",
         padding: "0 0 12px",
+        border: "none",
         borderBottom: `3px solid ${active ? colors.terracotta : "transparent"}`,
         color: active || hover ? colors.ink : colors.textFaint,
         cursor: "pointer",
         whiteSpace: "nowrap",
         flex: "none",
+        fontSize: "inherit",
+        fontWeight: "inherit",
       }}
     >
       {label}
-    </div>
+    </button>
   );
 }
 

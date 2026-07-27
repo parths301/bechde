@@ -41,7 +41,7 @@ function SearchScreen() {
   const params = useSearchParams();
   // The URL is the single source of truth, so results are shareable and Back works.
   const filters = filtersFromParams(new URLSearchParams(params.toString()));
-  const { data, loading } = useSearchResults(filters);
+  const { data, loading, hasMore, loadMore, total } = useSearchResults(filters);
   const saved = useSavedSearches();
   const results = data ?? [];
 
@@ -111,6 +111,32 @@ function SearchScreen() {
             <ListingCard key={item.id} item={item} />
           ))}
         </div>
+
+        {hasMore && (
+          <div style={{ marginTop: 24, textAlign: "center" }}>
+            <button
+              type="button"
+              onClick={loadMore}
+              style={{
+                fontFamily: "inherit",
+                display: "inline-block",
+                background: "#fff",
+                border: `1.5px solid ${colors.sand}`,
+                borderRadius: 999,
+                padding: "10px 24px",
+                fontSize: 14,
+                fontWeight: 800,
+                color: colors.ink,
+                cursor: "pointer",
+              }}
+            >
+              Load more
+            </button>
+            <div style={{ fontSize: 12.5, color: colors.textMuted, fontWeight: 600, marginTop: 8 }}>
+              Showing {total} results
+            </div>
+          </div>
+        )}
       </div>
 
       {/* filter rail — same shell as the map's, so it reuses the responsive rules */}
@@ -171,9 +197,11 @@ function SearchScreen() {
           </div>
         </div>
 
-        <div
+        <button
+          type="button"
           onClick={saveState === "saved" ? undefined : onSave}
           style={{
+            fontFamily: "inherit",
             textAlign: "center",
             background: saveState === "saved" ? colors.sage : "#fff",
             color: saveState === "saved" ? colors.pine : colors.ink,
@@ -186,7 +214,7 @@ function SearchScreen() {
           }}
         >
           {saveState === "saving" ? "Saving…" : saveState === "saved" ? "✓ Search saved" : "♡ Save this search"}
-        </div>
+        </button>
 
         {error && <div style={{ fontSize: 12, fontWeight: 700, color: colors.terracotta }}>{error}</div>}
 
@@ -236,7 +264,7 @@ function SavedRow({ search, onOpen, onForget }: { search: SavedSearch; onOpen: (
         padding: "9px 12px",
       }}
     >
-      <div onClick={onOpen} style={{ flex: 1, minWidth: 0, cursor: "pointer" }}>
+      <button type="button" onClick={onOpen} style={{ fontFamily: "inherit", background: "none", border: "none", padding: 0, textAlign: "left", flex: 1, minWidth: 0, cursor: "pointer" }}>
         <div style={{ fontSize: 12.5, fontWeight: 800, color: colors.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {bits.join(" · ")}
         </div>
@@ -245,15 +273,15 @@ function SavedRow({ search, onOpen, onForget }: { search: SavedSearch; onOpen: (
             {search.newCount} new since saved
           </div>
         )}
-      </div>
-      <div
+      </button>
+      <button
+        type="button"
         onClick={onForget}
-        role="button"
         aria-label="Remove saved search"
-        style={{ flex: "none", color: colors.textFaint, fontSize: 14, fontWeight: 800, cursor: "pointer", padding: "0 2px" }}
+        style={{ fontFamily: "inherit", background: "none", border: "none", flex: "none", color: colors.textFaint, fontSize: 14, fontWeight: 800, cursor: "pointer", padding: "0 2px" }}
       >
         ×
-      </div>
+      </button>
     </div>
   );
 }
@@ -261,11 +289,13 @@ function SavedRow({ search, onOpen, onForget }: { search: SavedSearch; onOpen: (
 function MiniButton({ label, onClick }: { label: string; onClick: () => void }) {
   const [hover, setHover] = useState(false);
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
+        fontFamily: "inherit",
         background: hover ? colors.marigold : "#fff",
         border: `1.5px solid ${hover ? colors.marigold : colors.sand}`,
         borderRadius: 999,
@@ -278,6 +308,6 @@ function MiniButton({ label, onClick }: { label: string; onClick: () => void }) 
       }}
     >
       {label}
-    </div>
+    </button>
   );
 }

@@ -10,6 +10,7 @@ interface HoverableProps {
   className?: string;
   children?: ReactNode;
   title?: string;
+  type?: "button" | "submit" | "reset";
 }
 
 // Direct port of the prototype's `style` + `style-hover` pattern: merges an

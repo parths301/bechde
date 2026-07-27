@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { colors } from "@/lib/colors";
-import { reportListing, reportReasons, type ReportReason } from "@/lib/queries";
+import { reportListing, reportReview, reportReasons, type ReportReason } from "@/lib/queries";
 
 /**
  * In-page report sheet. Deliberately not a browser confirm()/alert() — those block
@@ -12,12 +12,14 @@ import { reportListing, reportReasons, type ReportReason } from "@/lib/queries";
 export default function ReportDialog({
   listingId,
   sellerId,
-  listingName,
+  reviewId,
+  targetName,
   onClose,
 }: {
-  listingId: string;
+  listingId?: string;
   sellerId?: string;
-  listingName: string;
+  reviewId?: string;
+  targetName: string;
   onClose: () => void;
 }) {
   const [reason, setReason] = useState<ReportReason | null>(null);
@@ -58,7 +60,11 @@ export default function ReportDialog({
     setState("sending");
     setError(null);
     try {
-      await reportListing(listingId, sellerId, reason, details);
+      if (reviewId) {
+        await reportReview(reviewId, reason, details);
+      } else if (listingId) {
+        await reportListing(listingId, sellerId, reason, details);
+      }
       setState("sent");
     } catch (e: unknown) {
       setState("idle");
@@ -83,7 +89,7 @@ export default function ReportDialog({
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label={`Report ${listingName}`}
+        aria-label={`Report ${targetName}`}
         onClick={(e) => e.stopPropagation()}
         style={{
           background: colors.bg,
@@ -101,8 +107,7 @@ export default function ReportDialog({
             <div style={{ fontSize: 34 }}>🛡️</div>
             <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 21 }}>Thanks — report sent</div>
             <div style={{ fontSize: 13.5, color: colors.textBody, lineHeight: 1.6 }}>
-              We&apos;ve logged it against this listing. If it breaks the rules it comes down. You can also block this
-              seller so you stop seeing their listings.
+              We&apos;ve logged it. If it breaks the rules it comes down. You can also block this user so you stop seeing them.
             </div>
             <button
               type="button"
@@ -116,8 +121,10 @@ export default function ReportDialog({
           <>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 21, letterSpacing: "-.5px" }}>Report this listing</div>
-                <div style={{ fontSize: 13, color: colors.textFaint, fontWeight: 600, marginTop: 2 }}>{listingName}</div>
+                <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 21, letterSpacing: "-.5px" }}>
+                  {reviewId ? "Report this review" : "Report this listing"}
+                </div>
+                <div style={{ fontSize: 13, color: colors.textFaint, fontWeight: 600, marginTop: 2 }}>{targetName}</div>
               </div>
               <button
                 type="button"

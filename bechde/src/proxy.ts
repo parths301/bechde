@@ -3,7 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 
 // Next.js 16 renamed `middleware` → `proxy`. Runs before every matched request:
 // refreshes the Supabase session cookie and gates the app behind auth.
-const PROTECTED = ["/home", "/map", "/chat", "/profile", "/sell", "/product", "/search"];
+const PROTECTED = ["/home", "/map", "/chat", "/profile", "/sell", "/product", "/search", "/admin"];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
