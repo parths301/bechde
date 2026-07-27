@@ -55,6 +55,7 @@ export default function SellPage() {
   // geocoded through Nominatim on submit.
   const [place, setPlace] = useState("");
   const placeValue = place || profile?.neighbourhood || "";
+  const [isPublicSpot, setIsPublicSpot] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
   const [uploadingState, setUploadingState] = useState<string | null>(null);
   const uploading = uploadingState !== null;
@@ -158,6 +159,7 @@ export default function SellPage() {
         lng: point.lng,
         km,
         dist: formatKm(km),
+        public_spot: isPublicSpot,
         angle: "45deg",
         listed_ago: "listed just now",
         status: "active",
@@ -311,6 +313,11 @@ export default function SellPage() {
               />
               <LocationChip />
             </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 12 }}>
+                <input type="checkbox" id="public_spot" checked={isPublicSpot} onChange={e => setIsPublicSpot(e.target.checked)} style={{ width: 16, height: 16, accentColor: colors.terracotta }} />
+                <label htmlFor="public_spot" style={{ fontSize: 13, color: colors.textBody, fontWeight: 600 }}>Meeting at a public spot</label>
+            </div>
+            <div style={{ fontSize: 12, color: colors.textFaint, fontWeight: 600, marginTop: 4 }}>We recommend you to choose a nearby public spot for privacy.</div>
           </div>
 
           <div>

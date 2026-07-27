@@ -268,7 +268,7 @@ export default function ProductPage() {
               center={{ lat: item.lat, lng: item.lng }}
               zoom={14}
               interactive={false}
-              fuzzy
+              fuzzy={!item.publicSpot}
               markers={[{ id: item.id, lat: item.lat, lng: item.lng }]}
               height={150}
               radius={14}
@@ -277,7 +277,9 @@ export default function ProductPage() {
               <div style={{ fontSize: 22, flex: "none" }}>📍</div>
               <div>
                 <div style={{ fontWeight: 800, fontSize: 14.5, color: colors.pine }}>{item.pickup}</div>
-                <div style={{ fontSize: 13, color: colors.pineMuted, lineHeight: 1.5 }}>Exact spot shared after you chat. Public meetup points suggested.</div>
+                <div style={{ fontSize: 13, color: colors.pineMuted, lineHeight: 1.5 }}>
+                  {item.publicSpot ? "Exact public spot for meetup." : "Exact spot shared after you chat. Public meetup points suggested."}
+                </div>
               </div>
             </div>
           </div>

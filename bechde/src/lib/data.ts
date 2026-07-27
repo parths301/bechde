@@ -44,6 +44,7 @@ export interface Item {
   facts: Fact[];
   pickup: string;
   neighbourhood: string;
+  publicSpot?: boolean;
   // cover photo URL (Supabase Storage) — undefined falls back to striped placeholder
   cover?: string;
   // every uploaded photo, cover first — drives the product gallery

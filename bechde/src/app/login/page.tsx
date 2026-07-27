@@ -52,6 +52,7 @@ export default function SignupPage() {
           overflow: "hidden",
           boxShadow: "0 24px 60px rgba(60,45,20,.12)",
           display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))",
         }}
       >
         {/* Left panel */}

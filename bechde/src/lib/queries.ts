@@ -43,6 +43,7 @@ interface ListingRow {
   pickup: string | null;
   lat: number | null;
   lng: number | null;
+  public_spot: boolean | null;
   story: Item["story"];
   facts: Item["facts"];
   seller: ProfileRow | null;
@@ -92,6 +93,7 @@ export function rowToItem(r: ListingRow): Item {
     pickup: r.pickup ?? "",
     lat: r.lat ?? 0,
     lng: r.lng ?? 0,
+    publicSpot: r.public_spot ?? false,
   };
 }
 

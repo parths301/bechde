@@ -63,6 +63,7 @@ create table public.listings (
   lng           double precision,
   km            double precision,            -- recomputed from real distance in Phase 4
   dist          text,
+  public_spot   boolean default false,
   angle         text,
   listed_ago    text,
   status        text not null default 'active' check (status in ('active','sold')),
