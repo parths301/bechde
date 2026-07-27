@@ -3,7 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 
 // Next.js 16 renamed `middleware` → `proxy`. Runs before every matched request:
 // refreshes the Supabase session cookie and gates the app behind auth.
-const PROTECTED = ["/home", "/map", "/chat", "/profile", "/sell", "/product", "/search", "/admin"];
+const PROTECTED = ["/sell", "/chat", "/profile", "/admin"];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -25,7 +25,6 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  // IMPORTANT: getUser() revalidates the token and triggers cookie refresh.
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -33,10 +32,13 @@ export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isProtected = PROTECTED.some((p) => path === p || path.startsWith(p + "/"));
 
-  if (!user && isProtected) {
-    return NextResponse.redirect(new URL("/", request.url));
+  if (path === "/") {
+    return NextResponse.redirect(new URL("/home", request.url));
   }
-  if (user && path === "/") {
+  if (!user && isProtected) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+  if (user && path === "/login") {
     return NextResponse.redirect(new URL("/home", request.url));
   }
 

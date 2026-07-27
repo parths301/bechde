@@ -503,17 +503,44 @@ export async function signOut() {
   window.location.href = "/";
 }
 
-// ---------------------------------------------------------------------------
-// Where the user is — captured coords from `profiles`, else the demo default
-// ---------------------------------------------------------------------------
 export interface UserLocation extends LatLng {
   label: string;
   /** true once the person has actually shared their location */
   precise: boolean;
 }
 
+const LOCATION_STORAGE_KEY = "bechde_user_location";
+const LOCATION_EVENT = "bechde_location_changed";
+
 export function useUserLocation(): UserLocation {
   const profile = useProfile().data;
+  const [localLoc, setLocalLoc] = useState<UserLocation | null>(null);
+
+  useEffect(() => {
+    const updateFromStorage = () => {
+      try {
+        const raw = localStorage.getItem(LOCATION_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed.lat === "number" && typeof parsed.lng === "number") {
+            setLocalLoc({
+              lat: parsed.lat,
+              lng: parsed.lng,
+              label: parsed.label || "you",
+              precise: true,
+            });
+            return;
+          }
+        }
+      } catch {}
+      setLocalLoc(null);
+    };
+
+    updateFromStorage();
+    window.addEventListener(LOCATION_EVENT, updateFromStorage);
+    return () => window.removeEventListener(LOCATION_EVENT, updateFromStorage);
+  }, []);
+
   if (profile && profile.lat != null && profile.lng != null) {
     return {
       lat: profile.lat,
@@ -522,34 +549,57 @@ export function useUserLocation(): UserLocation {
       precise: true,
     };
   }
+
+  if (localLoc) {
+    return localLoc;
+  }
+
   return { ...USER_LOCATION, precise: false };
 }
 
-/**
- * Persist a captured position on the signed-in profile, reverse-geocoding it to a
- * neighbourhood label. Returns the label it stored.
- */
-export async function saveMyLocation(point: LatLng): Promise<string> {
-  const sb = getSupabaseBrowser();
-  const profile = profileState.data;
-  if (!profile) throw new Error("Sign in first to save your location.");
-  let label: string | null = null;
-  try {
-    label = (await reverseGeocode(point))?.label ?? null;
-  } catch {
-    // A missing label is cosmetic — the coordinates are what matter.
+/** Save location for guests and signed-in users alike */
+export async function saveUserLocation(point: LatLng & { label?: string }): Promise<string> {
+  let label = point.label;
+  if (!label) {
+    try {
+      label = (await reverseGeocode(point))?.label ?? "you";
+    } catch {
+      label = "you";
+    }
   }
-  const { error } = await sb
-    .from("profiles")
-    .update({ lat: point.lat, lng: point.lng, neighbourhood: label })
-    .eq("id", profile.id);
-  if (error) throw error;
-  setProfileState({
-    data: { ...profile, lat: point.lat, lng: point.lng, neighbourhood: label },
-    loading: false,
-    error: null,
-  });
-  return label ?? "";
+
+  const locObj: UserLocation = {
+    lat: point.lat,
+    lng: point.lng,
+    label: label.replace(/^you · /, ""),
+    precise: true,
+  };
+
+  try {
+    localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(locObj));
+    window.dispatchEvent(new Event(LOCATION_EVENT));
+  } catch {}
+
+  const profile = profileState.data;
+  if (profile) {
+    const sb = getSupabaseBrowser();
+    await sb
+      .from("profiles")
+      .update({ lat: point.lat, lng: point.lng, neighbourhood: locObj.label })
+      .eq("id", profile.id);
+
+    setProfileState({
+      data: { ...profile, lat: point.lat, lng: point.lng, neighbourhood: locObj.label },
+      loading: false,
+      error: null,
+    });
+  }
+
+  return locObj.label;
+}
+
+export async function saveMyLocation(point: LatLng): Promise<string> {
+  return saveUserLocation(point);
 }
 
 // ---------------------------------------------------------------------------

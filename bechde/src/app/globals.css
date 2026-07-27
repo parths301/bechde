@@ -326,6 +326,11 @@ input[type="range"] {
     gap: 12px !important;
     padding: 18px 16px 40px !important;
   }
+
+  /* ---- login ---- */
+  .bd-login-card {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 /* very small phones */

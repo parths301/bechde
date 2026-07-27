@@ -112,13 +112,32 @@ export default function Header() {
           <span style={{ opacity: lang === "hi" ? 1 : 0.4 }}>हिन्दी</span>
         </button>
 
-        <Link href="/profile" className="bd-header-avatar" style={{ display: "block" }}>
-          <Avatar initial={avatarInitial} />
-        </Link>
+        {profileName ? (
+          <Link href="/profile" className="bd-header-avatar" style={{ display: "block" }}>
+            <Avatar initial={avatarInitial} />
+          </Link>
+        ) : (
+          <Link
+            href="/login"
+            style={{
+              background: colors.marigold,
+              color: colors.marigoldInk,
+              borderRadius: 999,
+              padding: "6px 14px",
+              fontWeight: 800,
+              fontSize: 13,
+              textDecoration: "none",
+            }}
+          >
+            Sign in
+          </Link>
+        )}
       </nav>
     </header>
   );
 }
+
+import LocationModal from "./LocationModal";
 
 export function SearchBar({ autoFocus }: { autoFocus?: boolean } = {}) {
   const router = useRouter();
@@ -126,69 +145,78 @@ export function SearchBar({ autoFocus }: { autoFocus?: boolean } = {}) {
   const profile = useProfile().data;
   const [hover, setHover] = useState(false);
   const [q, setQ] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
 
   const submit = () => router.push(searchHref({ ...DEFAULT_FILTERS, q }));
-  // "📍 Koramangala" was hardcoded; show where the person actually is.
-  const place = (profile?.neighbourhood ?? origin.label.replace(/^you · /, "")).split(",")[0];
+  const place = origin.precise
+    ? (profile?.neighbourhood ?? origin.label.replace(/^you · /, "")).split(",")[0]
+    : "Select location";
 
   return (
-    <div
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        flex: 1,
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        background: "#fff",
-        border: `1.5px solid ${hover ? colors.marigold : colors.sand}`,
-        borderRadius: 999,
-        padding: "10px 20px",
-        color: colors.textFaint,
-        fontSize: 14.5,
-      }}
-    >
-      <button type="button" onClick={submit} style={{ background: "none", border: "none", padding: 0, font: "inherit", cursor: "pointer", color: "inherit" }}>
-        ⌕
-      </button>
-      <input
-        value={q}
-        autoFocus={autoFocus}
-        onChange={(e) => setQ(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") submit();
-        }}
-        placeholder='Search "study table", "iPhone 12", "kurta"…'
+    <>
+      <div
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
         style={{
           flex: 1,
-          minWidth: 0,
-          border: "none",
-          outline: "none",
-          background: "transparent",
-          fontSize: 14.5,
-          fontFamily: "inherit",
-          color: colors.ink,
-        }}
-      />
-      <Link
-        href="/profile"
-        style={{
           display: "flex",
           alignItems: "center",
-          gap: 6,
-          background: colors.bg2,
+          gap: 10,
+          background: "#fff",
+          border: `1.5px solid ${hover ? colors.marigold : colors.sand}`,
           borderRadius: 999,
-          padding: "4px 12px",
-          fontSize: 12.5,
-          color: colors.textBody,
-          fontWeight: 600,
-          whiteSpace: "nowrap",
-          flex: "none",
+          padding: "10px 20px",
+          color: colors.textFaint,
+          fontSize: 14.5,
         }}
       >
-        📍 {place || "set location"} ▾
-      </Link>
-    </div>
+        <button type="button" onClick={submit} style={{ background: "none", border: "none", padding: 0, font: "inherit", cursor: "pointer", color: "inherit" }}>
+          ⌕
+        </button>
+        <input
+          value={q}
+          autoFocus={autoFocus}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") submit();
+          }}
+          placeholder='Search "study table", "iPhone 12", "kurta"…'
+          style={{
+            flex: 1,
+            minWidth: 0,
+            border: "none",
+            outline: "none",
+            background: "transparent",
+            fontSize: 14.5,
+            fontFamily: "inherit",
+            color: colors.ink,
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => setModalOpen(true)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            background: colors.bg2,
+            border: `1px solid ${colors.sand}`,
+            borderRadius: 999,
+            padding: "4px 12px",
+            fontSize: 12.5,
+            color: colors.textBody,
+            fontWeight: 600,
+            whiteSpace: "nowrap",
+            flex: "none",
+            cursor: "pointer",
+          }}
+        >
+          📍 {place} ▾
+        </button>
+      </div>
+
+      <LocationModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
+    </>
   );
 }
 
