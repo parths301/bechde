@@ -991,7 +991,6 @@ export async function updateReview(reviewId: string, rating: number, body: strin
     .update({ rating, body: body.trim() || null })
     .eq("id", reviewId);
   if (error) throw error;
-  triggerRefresh();
 }
 /** My own review of one deal, if I've left it — drives the chat prompt. */
 export function useMyReviewFor(offerId: string | null) {

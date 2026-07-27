@@ -8,10 +8,13 @@ import { useAppState } from "@/lib/store";
 import { useProfile, useUserLocation, useUnreadCount } from "@/lib/queries";
 import { DEFAULT_FILTERS, searchHref } from "@/lib/search";
 
+import { useTranslation } from "@/lib/i18n/LanguageContext";
+
 export default function Header() {
   const pathname = usePathname();
   const profileName = useProfile().data?.name;
   const unread = useUnreadCount();
+  const { lang, setLang, t } = useTranslation();
   const avatarInitial = (profileName || "U").trim().charAt(0).toUpperCase() || "U";
 
   return (
@@ -59,11 +62,11 @@ export default function Header() {
       <nav style={{ display: "flex", alignItems: "center", gap: 16, fontWeight: 700, fontSize: 14.5 }}>
         <div className="bd-desktop-nav" style={{ display: "flex", alignItems: "center", gap: 18 }}>
           <NavLink href="/map" active={pathname === "/map"}>
-            🗺️ Map
+            🗺️ {t("nav_map")}
           </NavLink>
           <NavLink href="/chat" active={pathname === "/chat"}>
             <span style={{ position: "relative" }}>
-              Chats
+              {t("nav_chat")}
               {unread > 0 && (
                 <span
                   style={{
@@ -85,6 +88,30 @@ export default function Header() {
           </NavLink>
           <SellButton />
         </div>
+
+        {/* Language Toggle Button */}
+        <button
+          onClick={() => setLang(lang === "en" ? "hi" : "en")}
+          aria-label="Toggle language"
+          style={{
+            background: colors.bg2,
+            border: `1px solid ${colors.sand}`,
+            borderRadius: 999,
+            padding: "4px 10px",
+            fontSize: 12,
+            fontWeight: 700,
+            cursor: "pointer",
+            color: colors.ink,
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+          }}
+        >
+          <span style={{ opacity: lang === "en" ? 1 : 0.4 }}>EN</span>
+          <span>|</span>
+          <span style={{ opacity: lang === "hi" ? 1 : 0.4 }}>हिन्दी</span>
+        </button>
+
         <Link href="/profile" className="bd-header-avatar" style={{ display: "block" }}>
           <Avatar initial={avatarInitial} />
         </Link>

@@ -204,7 +204,7 @@ export default function ProfilePage() {
               onClick={() => setReviewSubtab("received")}
               style={{
                 fontFamily: "inherit", background: reviewSubtab === "received" ? colors.clay : "transparent",
-                color: reviewSubtab === "received" ? "#fff" : colors.textFaint, border: "none",
+                color: reviewSubtab === "received" ? "#fff" : colors.textFaint,
                 padding: "6px 16px", borderRadius: 999, fontSize: 13, fontWeight: 800, cursor: "pointer",
                 border: reviewSubtab === "received" ? "1.5px solid transparent" : `1.5px solid ${colors.cardBorder}`
               }}
@@ -215,7 +215,7 @@ export default function ProfilePage() {
               onClick={() => setReviewSubtab("written")}
               style={{
                 fontFamily: "inherit", background: reviewSubtab === "written" ? colors.clay : "transparent",
-                color: reviewSubtab === "written" ? "#fff" : colors.textFaint, border: "none",
+                color: reviewSubtab === "written" ? "#fff" : colors.textFaint,
                 padding: "6px 16px", borderRadius: 999, fontSize: 13, fontWeight: 800, cursor: "pointer",
                 border: reviewSubtab === "written" ? "1.5px solid transparent" : `1.5px solid ${colors.cardBorder}`
               }}

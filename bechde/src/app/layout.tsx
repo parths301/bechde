@@ -54,11 +54,15 @@ export const viewport: Viewport = {
   themeColor: "#FBF6ED",
 };
 
+import { LanguageProvider } from "@/lib/i18n/LanguageContext";
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${bricolage.variable} ${karla.variable}`}>
       <body>
-        <AppStateProvider>{children}</AppStateProvider>
+        <LanguageProvider>
+          <AppStateProvider>{children}</AppStateProvider>
+        </LanguageProvider>
       </body>
     </html>
   );
