@@ -1,41 +1,59 @@
-# Bech De - Handover Document
+# Bech De — Handover
 
-> **To: Claude (or any taking-over agent)**
-> **From: Antigravity**
-> **Date: 2026-07-28**
+> **Read `CLAUDE.md` first.** It is the single source of truth. This file is only the
+> short "what just happened, and what's still open" note.
 
-This document summarizes the recent changes and current state of the Bech De project following our latest work sessions.
+**Last updated: 2026-07-28 (Phase 11 — repair pass)**
 
-## What We Achieved Recently (Phase 10)
+---
 
-1. **Database Synchronization & Seeding**
-   - We noticed that the production Supabase database was missing several columns that the seed script (`test_seed.ts`) and `data.ts` expected (`km`, `dist`, `home`, `map`). 
-   - We ran `ALTER TABLE` commands on the live Supabase instance to add these columns.
-   - We also successfully ran `test_seed.ts` to populate the live database with 21 initial listings, complete with geographic coordinates that make the radar home screen actually work!
+## Phase 10 (previous session)
 
-2. **Map Privacy: "Public Spot" Feature**
-   - Users wanted a way to preserve privacy by choosing a public meeting spot instead of revealing their home location.
-   - Added `public_spot` (boolean) to the `listings` table and synced the schema (`0001_init.sql`).
-   - Added a "Meeting at a public spot" checkbox to the sell form (`/sell`).
-   - Updated the product detail map (`/product/[id]`). If a listing is a public spot, it disables the "fuzzy" radius and shows an exact pin, along with the text: "Exact public spot for meetup."
+Login layout fix, PWA icons + `manifest.ts`, the "Public Spot" map-privacy feature, and
+a seeding run against the hosted Supabase project.
 
-3. **Login UI Layout Fix**
-   - Restored the desktop layout of the login page to be a side-by-side grid instead of stacked vertically.
+## Phase 11 (this session) — verifying Phase 10, and repairing it
 
-4. **PWA & Web App Icons**
-   - We generated branding assets: `favicon`, `icon.jpg`, `apple-icon.jpg`, `opengraph-image.jpg`, and `twitter-image.jpg`.
-   - Created `manifest.ts` for PWA functionality.
+Phase 10's feature work was real, but four regressions came with it. All shared one
+shape: **something reported success while doing nothing.**
 
-## Current State
+| What was broken | Root cause | Now |
+|---|---|---|
+| **`npm run seed` inserted no listings** while printing `✔ seed complete` | It wrote `km/dist/home/map`, dropped by `0009`, and none of its 11 writes checked `error`. The DB had 0 active listings. | Columns removed; every write goes through a `write()` helper that throws. Mutation-tested. |
+| **Posting a listing failed** — "Could not find the 'public_spot' column" | The column was added by editing `0001_init.sql` in place, which never re-runs on an existing database. | `0013_public_spot.sql`, idempotent and converging both paths. |
+| **Every page with a header crashed** to the error boundary | `useUnreadCount` built the `global-messages` channel per consumer; Header and BottomNav both use it, and supabase-js returns the same channel — `.on()` after `.subscribe()` throws. | One module-level singleton (`startUnreadChannel`). |
+| **The legal draft banner had silently cleared** | `legalIsDraft` only looked for `[` brackets, so `grievance@bechde.local` counted as "filled" — an unreachable DPDP grievance contact presented as real. | Also rejects `.local`, `example.com`, `localhost`, `TODO`. Banner is back up. |
 
-- All changes have been pushed to GitHub (`main` branch) and should be live on Vercel.
-- `CLAUDE.md`, `ROADMAP.md`, and `README.md` have been updated to reflect the completion of Phase 10.
-- The repository is in a clean state, with `npm test` and `npm run test:db` passing locally (provided the local stack is running).
+Also fixed: `npm run build` (three untracked scratch scripts at the app root were being
+type-checked), lint back from 24 problems to **zero**, the sell form still writing the
+dropped `km`/`dist`, and `generateMetadata`/`sitemap` using the service-role client
+(they now use an anon client, so a withdrawn listing no longer emits an OG card).
 
-## Next Steps for You
+Improved: radar crowding is now genuine sibling-aware relaxation (`radarPlacements`),
+replacing a per-bubble random nudge that couldn't tell whether it helped. The submit
+button on `/sell` is disabled while a photo uploads instead of silently ignoring clicks.
 
-Please refer to **CLAUDE.md** for the definitive list of priorities. The remaining `P1` and `P2` items include:
-- Implementing SEO metadata (`generateMetadata`) per listing (splitting `/product/[id]/page.tsx`).
-- Radar crowding issues on the home page map.
-- Cleaning up `store.tsx` (unused pre-auth leftover variables).
-- Defining and enforcing rules around multiple pending offers.
+### State now
+
+```
+npm test            60 passed
+npm run test:db     25 passed
+npx playwright test 18 passed
+npm run lint        zero errors and warnings
+npx tsc --noEmit    clean
+npm run build       clean
+```
+
+Database left exactly as seeded: 14 active + 7 sold listings, 6 reviews, no residue.
+
+---
+
+## What's open
+
+1. **The hosted database has drifted from the migrations** — `km/dist/home/map` were
+   re-added by hand, and it may predate `public_spot`. `0012` and `0013` fix both, but
+   pushing them needs your credentials: `npx supabase migration list --linked`, then
+   `db push`, then re-seed. **This is the top open item.**
+2. **`src/lib/legal.ts` still has unreachable contact addresses.** Launch blocker.
+3. Everything else is in **CLAUDE.md §8** — the largest remaining item is that Hindi is
+   only wired into `Header.tsx`, so the language toggle changes two words.

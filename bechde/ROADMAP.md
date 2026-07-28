@@ -23,18 +23,21 @@ list of post-launch work.
 | Geocoding | **OSM Nominatim**, server-proxied | `/api/geocode` |
 | Search | Postgres full-text + `pg_trgm` fuzzy | `search_listings()` |
 | Realtime chat | Supabase Realtime | `messages` + `offers` publication |
-| Tests | Vitest + Playwright + axe | 42 unit, 21 RLS, 16 E2E |
+| Tests | Vitest + Playwright + axe | 60 unit, 25 RLS, 18 E2E |
 | Hosting | Vercel (planned) | root directory must be `bechde` |
 
 ---
 
 ## Still needed from you (launch blockers)
 
-- [ ] **Supabase cloud project** (region: Mumbai / `ap-south-1`) → then
-      `npx supabase link --project-ref <ref>` and `npx supabase db push`
+- [ ] **Reconcile the hosted Supabase project** (`iwhefgykblkwnuazfczv`, already linked).
+      It has drifted from the migrations — legacy columns re-added by hand, and possibly
+      no `public_spot`. Run `npx supabase migration list --linked`, then `db push` to
+      apply `0012`/`0013`, then re-seed.
 - [ ] **Operator details** in `src/lib/legal.ts` — entity, address, grievance officer +
-      email, support email. The legal pages show a draft banner until these are filled
-      (DPDP Act requires a named human and a reachable address).
+      email, support email. They are currently `.local` addresses that **cannot receive
+      mail**, so the draft banner is up: DPDP requires a named human at a contact that
+      actually works.
 - [ ] **Real SMTP provider** (Resend / SES / Postmark) — Supabase's shared sender is
       rate-limited and not for production. Sign-in is the front door.
 - [ ] **Vercel project** + env vars, then a **domain**
@@ -92,14 +95,15 @@ What each phase delivered:
 - [x] Mark sold / withdraw / relist (status change, so chat history survives)
 - [x] Prohibited-items list, linked from the sell form and the report dialog
 - [x] Privacy policy + terms shaped for the DPDP Act, grievance contact
-- [ ] **Operator details in `src/lib/legal.ts` are placeholders — fill in before launch**
-- [ ] Moderation view for `reports` (they're recorded; nothing surfaces them yet)
+- [x] Moderation view for `reports` at `/admin/reports`, gated by `profiles.is_admin`
+- [ ] **Operator details in `src/lib/legal.ts` still aren't reachable — fill in before launch**
 
 ### Phase 8 — Ship ✅ (code) / ⬜ (accounts)
 - [x] Generated OG image + favicon, full metadata for WhatsApp link previews
 - [x] Error boundaries (`error.tsx`, `global-error.tsx`)
 - [x] [DEPLOY.md](./DEPLOY.md) runbook: Supabase project → `db push` → Vercel env vars → domain
-- [ ] **Create the cloud Supabase project (ap-south-1) — only you can do this**
+- [x] Cloud Supabase project created and linked (`iwhefgykblkwnuazfczv`)
+- [ ] Push `0012`/`0013` to it — it drifted from the migrations (see the blockers above)
 - [ ] Connect Vercel (root directory `bechde`), set env vars, attach the domain
 - [ ] Sentry (needs your account; boundaries are in place, one `captureException` away)
 - [ ] Real SMTP provider for magic-links — Supabase's shared sender is rate-limited
@@ -139,11 +143,40 @@ acceptance criteria, in **[CLAUDE.md §8](./CLAUDE.md)**:
 - **P0** — moderation surface for `reports`; bound photo uploads; pagination (done)
 - **P1** — live-updating chat list; saved-search emails; finish the keyboard-accessibility
   sweep; abuse/rate limits (done)
-- **P2** — radar crowding, dropping legacy columns, offer semantics, `next/image`, SEO
-  metadata per listing, Hindi copy, test gaps
+- **P2** — Hindi copy (barely started), `next/image`, duplicate OG image routes, test gaps
 
-### Phase 10 — UI Polish & Missing Data Sync ✅
-- [x] Web App Manifest and standard Apple/Favicon generated for PWA support
-- [x] Login page layout responsiveness restored (side-by-side login form on desktop)
-- [x] "Public Spot" map privacy feature: checkbox on Sell form + explicit map copy + pinpoint map behavior.
-- [x] Database synchronized: Added missing `km`, `dist`, `home`, `map`, and `public_spot` to the production `listings` table and the 0001_init.sql migrations, allowing the seed script to run cleanly with real coordinates.
+### Phase 10 — UI polish & PWA ✅
+- [x] Web App Manifest and Apple/favicon assets for PWA support
+- [x] Login page layout responsiveness restored (side-by-side form on desktop)
+- [x] "Public Spot" map privacy: checkbox on the sell form, explicit copy, exact pin
+- [x] Hosted database seeded with real coordinates
+
+### Phase 11 — Verification & repair ✅
+
+Phase 10's features were real, but verifying them turned up four regressions that all
+shared one shape: **something reported success while doing nothing.** Details and the
+prevention notes are in [CLAUDE.md §5](./CLAUDE.md).
+
+- [x] **The seed silently inserted nothing** — it wrote the columns `0009` had dropped,
+      and checked `error` on none of its 11 writes. The local database had zero active
+      listings while the script printed `✔ seed complete`. Fixed at the source: a
+      checked `write()` helper, mutation-tested.
+- [x] **Reverted the wrong fix for it.** Phase 10 responded by re-adding the dead
+      columns to the *hosted* database by hand. `0012_drop_legacy_columns.sql` removes
+      them again, this time as a migration.
+- [x] **`public_spot` never reached existing databases** — it was added by editing the
+      already-applied `0001_init.sql`, so posting a listing failed outright.
+      `0013_public_spot.sql`.
+- [x] **Every page with a header crashed** — `useUnreadCount` rebuilt a shared realtime
+      channel per consumer. Now a module-level singleton.
+- [x] **The legal draft banner had silently cleared** — placeholders were replaced with
+      `.local` addresses that cannot receive mail. `legalIsDraft` now catches them.
+- [x] Build unbroken, lint back to zero, sell form no longer writes dropped columns
+- [x] OG metadata and sitemap moved off the service-role client onto anon, so withdrawn
+      listings stop emitting share cards
+- [x] Radar crowding: real sibling-aware relaxation (`radarPlacements`) replacing a
+      per-bubble random nudge
+- [x] Suite green and honest — 60 unit, 25 RLS, 18 E2E, and the database left as seeded
+
+**Open:** the hosted project still needs `0012`/`0013` pushed and re-seeding, and
+`src/lib/legal.ts` still needs contact details that work. See `HANDOVER.md`.

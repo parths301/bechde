@@ -147,6 +147,18 @@ Migrations, in order:
 | `0003_search.sql` | `pg_trgm`, generated `listings.price_num` + `listings.search` tsvector, GIN indexes, `search_listings(q)`, `saved_searches` |
 | `0004_safety.sql` | `reports`, `blocks`, `is_blocked_by()`, `'removed'` listing status, block enforcement folded into `listings_read`/`chats_read`/`messages_insert`/`offers_insert` |
 | `0005_reviews.sql` | `reviews`, `chat_reads`, `profiles.rating_avg/rating_count/bio`, trigger functions `refresh_rating`/`refresh_sold`/`refresh_reply_time`, `matching_saved_search_count()` |
+| `0006_admin.sql` | `profiles.is_admin`, `is_admin()`, admin read/update on `reports` and `listings` |
+| `0007_notifications.sql` | `saved_searches.last_notified_at` (+ commented pg_cron wiring for production) |
+| `0008_spam_limits.sql` | `profiles.abuse_count`, `enforce_rate_limits()` trigger — 20 listings/day, 200 messages/hour |
+| `0009_cleanup.sql` | drops the legacy `listings.km/dist/home/map` and `profiles.rating/phone` |
+| `0010_integrity.sql` | `ON DELETE SET NULL` for `chats`/`offers`/`reviews` → `listings`; one pending offer per chat |
+| `0011_reviews_report.sql` | `reports.review_id`, reviewers may edit their own review |
+| `0012_drop_legacy_columns.sql` | re-asserts the 0009 drops — they were re-added by hand on the hosted DB (see §5) |
+| `0013_public_spot.sql` | `listings.public_spot` — was added by editing `0001` in place, so existing databases never got it |
+
+**Never change an applied migration.** Editing `0001_init.sql` to add `public_spot` is
+why posting a listing failed with *"Could not find the 'public_spot' column"*: the file
+only runs on a database built from scratch. New column → new migration file.
 
 **RLS is the security model.** There is no server-side authorization layer — the browser
 holds an anon key and Postgres decides what it may see. Never "fix" a permissions problem
@@ -215,15 +227,44 @@ Read these. Each one was found the hard way.
 - `docker exec` needs **`-i`** to accept a heredoc, or your SQL silently does nothing.
 - Next 16 refuses a second `next dev` for the same directory. Background it with a plain
   file redirect (`npm run dev > dev.log 2>&1 &`) — piping through `tee` kills it.
+- A **wedged dev server still holds port 3000**, and Playwright's `reuseExistingServer`
+  will happily reuse it, so every spec fails at `page.goto`. If the suite dies on
+  navigation, `curl localhost:3000` first; if it hangs, kill the process and restart.
+
+### Silent failures — the ones that cost the most
+These all shared a shape: something reported success while doing nothing.
+
+- **`supabase/seed.ts` must check `error` on every write.** It once ignored all eleven,
+  so when `0009` dropped `km`/`dist`/`home`/`map` and the seed kept writing them,
+  PostgREST rejected the batch and the script still printed `✔ seed complete` with an
+  empty listings table. Six RLS tests then failed for reasons that looked unrelated.
+  The `write()` helper now throws; keep using it.
+- **Don't patch the database to match stale code.** The response to the above was an
+  `ALTER TABLE` re-adding the dead columns *on the hosted project* — schema drift no
+  migration described. Fix the writer, not the schema.
+- **`sb.channel(name)` returns the existing channel for a repeated topic**, and calling
+  `.on()` on one that's already `subscribe()`d **throws**. Header and BottomNav both use
+  `useUnreadCount()`, so the second one crashed every page with a header into the error
+  boundary. Shared channels belong in a module-level singleton (`startUnreadChannel`).
+- **`tsconfig.json` excludes `supabase/`**, so the seed and RLS tests are *not*
+  type-checked. Their bugs only show at runtime — which is why the checked `write()`
+  helper matters more here than elsewhere.
+- **An RLS-denied `UPDATE` returns no error.** The `USING` clause filters the row out, so
+  PostgREST reports success on zero rows. A test asserting `42501` passes vacuously when
+  the row simply doesn't exist. Assert the value is *unchanged* instead.
+- **`legalIsDraft` guards against exactly this.** It once checked only for `[` brackets,
+  so replacing the placeholders with `grievance@bechde.local` cleared the launch banner
+  while leaving an unreachable DPDP contact. It now rejects `.local`, `example.com` and
+  `localhost` too.
 
 ---
 
 ## 6. Tests
 
 ```bash
-npm test              # 42 unit tests (pure logic) — no DB needed
-npm run test:db       # 21 RLS tests — needs the local stack, seeded
-npx playwright test   # 16 E2E incl. an axe pass on 7 routes
+npm test              # 60 unit tests (pure logic) — no DB needed
+npm run test:db       # 25 RLS tests — needs the local stack, seeded
+npx playwright test   # 18 E2E incl. an axe pass on 7 routes; needs a dev server + seed
 npm run lint          # currently ZERO errors and warnings — keep it there
 npx tsc --noEmit
 npm run build
@@ -234,7 +275,11 @@ npm run build
   genuine security bugs.** It is mutation-tested: reintroducing the `is_blocked_by` bug
   makes it fail.
 - E2E: `e2e/` — one shared sign-in via `storageState` (signing in per test trips the
-  auth rate limit), screenshots to `e2e/screenshots/`.
+  auth rate limit), screenshots to `e2e/screenshots/`. Every spec cleans up after
+  itself; the suite must leave 14 active + 7 sold listings, exactly as seeded.
+- **When a spec fails, check whether the app changed before you change the spec.** The
+  `useUnreadCount` crash and the missing `public_spot` column both surfaced here first,
+  as nine specs "drifting" at once. Nine at once is an app bug; one is drift.
 - CI: `.github/workflows/ci.yml` — runs everything on push/PR. Untested until the repo
   is pushed; check the first run.
 
@@ -244,12 +289,18 @@ npm run build
 
 Full runbook in **`DEPLOY.md`**. Summary:
 
-1. **Fill `src/lib/legal.ts`** — entity, address, grievance officer + email, support
-   email. India's DPDP Act requires a named human and a reachable address. The legal
-   pages show a yellow **draft banner** until every placeholder is gone (it clears
-   itself). Have a lawyer read them.
-2. **Create the Supabase project** (region `ap-south-1` / Mumbai) →
-   `npx supabase link --project-ref <ref>` → `npx supabase db push`.
+1. **Fill `src/lib/legal.ts` with details that actually work.** Entity, address,
+   grievance officer + email, support email. India's DPDP Act requires a named human at
+   a reachable address. The fields currently hold `grievance@bechde.local` and
+   `support@bechde.local` — **mailboxes that cannot receive mail**, which is a
+   compliance failure rather than a placeholder. `legalIsDraft` rejects `.local`,
+   `example.com` and `localhost`, so the yellow draft banner is up and stays up until
+   the addresses are real. Have a lawyer read the pages.
+2. **The hosted Supabase project already exists** — ref `iwhefgykblkwnuazfczv`, linked in
+   `supabase/.temp/`. It has drifted from the migrations: `km/dist/home/map` were
+   re-added by hand (`0012` removes them again) and it may predate `public_spot`
+   (`0013`). Run `npx supabase migration list --linked` to see where it actually is,
+   then `npx supabase db push`, then re-seed. Region should be `ap-south-1` (Mumbai).
 3. **Auth config**: Site URL + `…/auth/confirm` redirect, and paste
    `supabase/templates/magic_link.html` into the Magic Link template (see §5 — this is
    the step most likely to silently break sign-in).
@@ -332,34 +383,31 @@ enough to start — e.g. ≤20 listings/day, ≤200 messages/hour), plus an abus
 
 ---
 
+### Done since this list was written
+Radar crowding (now sibling-aware relaxation in `radarPlacements`), `store.tsx` slimming,
+offer semantics and the `chats.listing_id` cascade (`0010`), reviews round two (`0011`,
+`useWrittenReviews`), SEO (`sitemap.ts`, `robots.ts`, `generateMetadata` on a server
+`/product/[id]/page.tsx` wrapping `ProductClient`), and the sell + mobile E2E specs.
+
 ### P2 · Smaller, well-scoped items
-- **Radar crowding.** When several listings sit within a kilometre the bubbles overlap
-  and a long price pill can clip the right edge. Improve `radarPlacement` in
-  `src/lib/geo.ts` (collision relaxation, or a log-ish distance scale) — it's pure and
-  unit-tested, so iterate freely.
-- **`store.tsx` slimming.** `phone`/`setPhone` has **no consumer at all** (pre-auth
-  leftover) and `name` is only a fallback before `useProfile()` resolves. The sell-form
-  draft would sit better in the form itself or `sessionStorage`.
-- **Offer semantics.** Multiple pending offers can coexist; there's no expiry and no
-  counter-offer. Decide the rules, then enforce them in `0004`-style policies.
-- **Reviews, round two.** No "reviews I've written" view, no way to report a review, no
-  edit window. Also nothing stops a review with an empty body from being useless.
+- **Hindi is barely started.** `src/lib/i18n/dictionary.ts` holds ~92 keys, but
+  `Header.tsx` is the **only** consumer — two nav labels actually translate. The toggle
+  therefore looks broken to a Hindi speaker. Either wire `t()` through the screens or
+  drop the toggle until it's real; a half-translated UI is worse than an English one.
 - **`next/image`.** Photos are CSS `background-image` in `Stripe.tsx`, so no
   optimization, lazy loading or AVIF. Converting means reworking `Stripe`'s striped
   fallback — worth it before launch traffic.
-- **SEO.** No `sitemap.ts` and no `robots.ts`. Worse, a shared product link gets the
-  generic OG card: `/product/[id]/page.tsx` is `"use client"`, and `generateMetadata` is
-  server-only — so per-listing previews mean splitting it into a server page that fetches
-  the listing (service-role or anon read), exports `generateMetadata`, and renders the
-  existing client component. Highest-value SEO item, since product links are what people
-  paste into WhatsApp.
-- **Hindi.** The brand is Hinglish but the UI is English-only. If localization matters,
-  do it before the copy sprawls further.
-- **Test gaps.** No coverage of the sell/upload flow, no mobile-viewport E2E (the radar
-  is hidden and a separate mobile map shows — untested), no tests for `queries.ts` hooks.
-- **`chats.listing_id` cascade.** Deleting a listing row still destroys its chats. Status
-  changes avoid it, but a `ON DELETE SET NULL` + "listing removed" placeholder would
-  make the data model honestly safe.
+- **Duplicate OG image routes.** The build emits both `/opengraph-image` (generated by
+  `src/app/opengraph-image.tsx`) and a static `/opengraph-image.jpg`. Pick one; two
+  sources of the same card will drift.
+- **`PROFILE_COLS` omits `is_admin`**, so `useProfile()` can't tell you whether the
+  viewer is an admin — `/admin/reports` relies on RLS refusing instead of hiding the
+  link. Harmless today, confusing later.
+- **Test gaps.** No tests for `queries.ts` hooks beyond `rowToItem`; nothing covers the
+  saved-search notification Edge Function; the RLS suite doesn't cover `0010`'s
+  one-pending-offer index.
+- **`e2e/sell.spec.ts` needs `.env.local`** for its service-role cleanup. Fine locally,
+  but CI has to provide it or the spec leaves rows behind.
 
 ---
 
@@ -369,7 +417,13 @@ enough to start — e.g. ≤20 listings/day, ≤200 messages/hour), plus an abus
 - Tokens from `colors.ts`; no new hex values without checking contrast (§5 note: the
   prototype's muted greys failed WCAG AA at 2.8:1 and were darkened).
 - New reads/writes go in `queries.ts`, not inline in a component.
-- New table or policy → migration file + a test in `supabase/tests/`.
-- Keep `npm run lint` at zero. Prefer fixing the cause over an eslint-disable.
+- New table or policy → **a new migration file** + a test in `supabase/tests/`. Never
+  edit a migration that has already been applied somewhere.
+- **Check `error` on every Supabase write in scripts.** `supabase/` isn't type-checked
+  and a rejected PostgREST batch is not an exception — an unchecked write is a write
+  that can quietly not happen.
+- Keep `npm run lint` at zero. Prefer fixing the cause over an eslint-disable; the two
+  that remain are `set-state-in-effect` for browser-storage hydration, each with a
+  comment saying why a lazy initialiser would break the first paint.
 - Don't reintroduce fake data to make a screen look fuller. Empty states are the honest
   answer and every screen already has one.
