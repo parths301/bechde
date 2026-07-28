@@ -12,7 +12,7 @@ import Chip from "@/components/Chip";
 import { SearchBar } from "@/components/Header";
 import RadarBubble from "@/components/RadarBubble";
 import ListingCard from "@/components/ListingCard";
-import OsmMap from "@/components/OsmMap";
+import OsmMap, { type MapMarker } from "@/components/OsmMap";
 import LocationChip from "@/components/LocationChip";
 
 const RADAR_BOX = { w: 560, h: 520 };
@@ -36,6 +36,14 @@ export default function HomePage() {
     shown.map((item, i) => ({ seed: item.id, point: { lat: item.lat, lng: item.lng }, size: sizes[i] })),
     { origin, radiusKm, ringPx, box: RADAR_BOX }
   );
+  // The mobile hero map replaces the radar, so it shows the same nearby listings.
+  const nearbyMarkers: MapMarker[] = nearby.map((m) => ({
+    id: m.id,
+    lat: m.lat,
+    lng: m.lng,
+    price: m.price,
+    label: m.name,
+  }));
   const homeBubbles = shown.map((item, i) => ({
     item,
     size: sizes[i],
@@ -233,12 +241,17 @@ export default function HomePage() {
         {/* mobile-only: full-width square map + radius */}
         <div className="bd-hero-mobilemap" style={{ flexDirection: "column", gap: 14 }}>
           <div className="bd-map-fade" style={{ position: "relative", width: "100%", aspectRatio: "1 / 1", borderRadius: 26, overflow: "hidden" }}>
+            {/* This map stands in for the radar on phones, so it has to carry the
+                same listings. Without markers it was just an empty street map with
+                a "you" pin, while the feed underneath listed items 0.1 km away. */}
             <OsmMap
               center={{ lat: origin.lat, lng: origin.lng }}
               zoom={14}
               interactive={false}
               user={origin}
               radiusKm={radiusKm}
+              markers={nearbyMarkers}
+              onMarkerClick={(id) => router.push(`/product/${id}`)}
               height="100%"
             />
             {/* feather the edges into the page background, like the desktop map */}

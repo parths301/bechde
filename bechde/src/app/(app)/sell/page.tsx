@@ -387,15 +387,16 @@ export default function SellPage() {
 
           {error && <div style={{ fontSize: 13.5, fontWeight: 700, color: colors.terracotta }}>{error}</div>}
 
-          {/* submit() already refuses while a photo is in flight — say so, rather than
-              letting the click land on nothing. */}
+          {/* submit() already refuses while a photo is in flight, and again until the
+              profile has loaded — say so, rather than letting the click land on
+              nothing and answering with "try again in a moment". */}
           <Button
             onClick={submit}
             rotate={-1.5}
-            disabled={submitting || uploading}
-            style={{ alignSelf: "flex-start", padding: "15px 34px", fontSize: 16, opacity: submitting || uploading ? 0.7 : 1 }}
+            disabled={submitting || uploading || !profile}
+            style={{ alignSelf: "flex-start", padding: "15px 34px", fontSize: 16, opacity: submitting || uploading || !profile ? 0.7 : 1 }}
           >
-            {submitting ? "Posting…" : uploading ? "Waiting for the photo…" : "Bech de! →"}
+            {submitting ? "Posting…" : uploading ? "Waiting for the photo…" : !profile ? "One moment…" : "Bech de! →"}
           </Button>
 
           <div style={{ fontSize: 12, color: colors.textFaint, fontWeight: 600, lineHeight: 1.6 }}>

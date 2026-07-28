@@ -113,6 +113,31 @@ Found while writing the test above: the `📍 Select location / city` chip was a
 dialog. Now a real `<button>` with `aria-haspopup="dialog"` and a label that includes the
 current location, and it truncates rather than overflowing — `src/components/LocationChip.tsx`.
 
+### 5c · The hero map on phones plotted no listings at all
+*Reported from the device after the fixes above*
+
+On phones the radar is hidden and a square map takes its place. It was rendering as an
+empty street map with a single "you" pin — directly above a feed announcing items
+**0.1 km away**.
+
+**Cause:** the `<OsmMap>` in `.bd-hero-mobilemap` was never passed a `markers` prop, so
+it defaulted to `[]`. Nothing errored; the content was simply absent. The desktop radar
+got its bubbles from `radarPlacements`, and the mobile substitute was never wired to the
+same data.
+
+**Fix:** it now plots every nearby listing, and a pin opens the listing the same way a
+radar bubble does on desktop — `src/app/(app)/home/page.tsx`.
+
+**Test:** `e2e/mobile.spec.ts` asserts the pin count **equals the number claimed in the
+hero pill**, so the map and the copy can't disagree again, and that tapping a pin
+navigates. Mutation-tested by removing the `markers` prop.
+
+### 5d · Sell button was clickable before the profile loaded
+Found when the sell E2E started racing: clicking "Bech de! →" before `useProfile()`
+resolved did nothing except print *"Still loading your profile — try again in a moment"*.
+The button is now disabled until the profile is ready, reading "One moment…" — matching
+how it already behaves during a photo upload.
+
 ### 6 · Landscape header — wordmark on two lines, "Sign in" off-screen
 *Screenshots: 01.14.48, 01.14.49*
 
@@ -174,7 +199,7 @@ On failure it names the offending elements, so the next person doesn't have to r
 npm run lint        zero errors and warnings
 npx tsc --noEmit    clean
 npm test            60 passed
-npx playwright test 26 passed  (18 existing + 8 new)
+npx playwright test 27 passed  (18 existing + 9 new)
 npm run build       clean
 ```
 
