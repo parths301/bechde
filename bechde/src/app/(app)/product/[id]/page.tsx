@@ -1,24 +1,27 @@
-import { Metadata, ResolvingMetadata } from "next";
+import { Metadata } from "next";
 import ProductClient from "./ProductClient";
-import { createAdminClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/server";
 
 interface Props {
   params: Promise<{ id: string }>;
 }
 
-export async function generateMetadata({ params }: Props, parent: ResolvingMetadata): Promise<Metadata> {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const sb = createAdminClient();
-  
-  // Fetch basic details for OG tags
+  // Anon, not service-role: the card a scraper gets should be the one a logged-out
+  // visitor would see. Withdrawn listings stay readable (chat history needs them), so
+  // status is filtered here rather than left to RLS.
+  const sb = createPublicClient();
+
   const { data: item } = await sb
     .from("listings")
     .select("name, note, listing_images(url, sort)")
     .eq("id", id)
-    .single();
+    .eq("status", "active")
+    .maybeSingle();
 
   if (!item) {
-    return { title: "Listing not found" };
+    return { title: "Listing not found — Bech De" };
   }
 
   const coverImg = (item.listing_images || []).sort((a, b) => a.sort - b.sort)[0]?.url;

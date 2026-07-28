@@ -6,7 +6,7 @@ import { colors } from "@/lib/colors";
 import { useAppState } from "@/lib/store";
 import { homeCategories } from "@/lib/data";
 import { useNearbyItems, useUserLocation } from "@/lib/queries";
-import { radarPlacement } from "@/lib/geo";
+import { radarPlacements } from "@/lib/geo";
 import { DEFAULT_FILTERS, searchHref } from "@/lib/search";
 import Chip from "@/components/Chip";
 import { SearchBar } from "@/components/Header";
@@ -28,24 +28,21 @@ export default function HomePage() {
   const nearby = nearbyAll.filter((i) => i.km <= radiusKm);
   const nearbyCount = nearby.length;
   // The radar shows the closest few, positioned by their actual coordinates.
-  const homeBubbles = nearby.slice(0, 7).map((item, i) => {
-    const size = Math.max(54, 78 - i * 3);
-    return {
-      item,
-      size,
-      dur: `${3 + (i % 5) * 0.2}s`,
-      delay: `${(i % 4) * 0.25}s`,
-      ...radarPlacement({
-        origin,
-        point: { lat: item.lat, lng: item.lng },
-        radiusKm,
-        ringPx,
-        box: RADAR_BOX,
-        size,
-        seed: item.id,
-      }),
-    };
-  });
+  const shown = nearby.slice(0, 7);
+  const sizes = shown.map((_, i) => Math.max(54, 78 - i * 3));
+  // Placed as a set, not one at a time — bubbles need to know about each other to
+  // avoid piling up when several listings sit within the same kilometre.
+  const placements = radarPlacements(
+    shown.map((item, i) => ({ seed: item.id, point: { lat: item.lat, lng: item.lng }, size: sizes[i] })),
+    { origin, radiusKm, ringPx, box: RADAR_BOX }
+  );
+  const homeBubbles = shown.map((item, i) => ({
+    item,
+    size: sizes[i],
+    dur: `${3 + (i % 5) * 0.2}s`,
+    delay: `${(i % 4) * 0.25}s`,
+    ...placements[i],
+  }));
   const feedItems = [...nearby]
     .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""))
     .slice(0, 8);

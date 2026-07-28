@@ -35,6 +35,20 @@ export async function createClient() {
 }
 
 /**
+ * Anonymous server client — anon key, no session attached, so it sees exactly what a
+ * logged-out visitor (or a link scraper) sees. Use for public server rendering like
+ * OG metadata and the sitemap: unlike createClient() it doesn't read cookies, so the
+ * response stays cacheable, and unlike createAdminClient() it doesn't bypass RLS.
+ */
+export function createPublicClient() {
+  return createSbClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+}
+
+/**
  * Admin client (service-role key) — bypasses RLS. Server-only, never expose.
  * Used by the seed script and privileged server routes.
  */

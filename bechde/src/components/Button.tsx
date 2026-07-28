@@ -13,6 +13,7 @@ interface ButtonProps {
   variant?: Variant;
   rotate?: number;
   flex?: boolean;
+  disabled?: boolean;
   style?: CSSProperties;
 }
 
@@ -28,7 +29,7 @@ const hoverStyles: Record<Variant, CSSProperties> = {
   accent: { background: colors.terracotta, color: "#fff" },
 };
 
-export default function Button({ children, onClick, href, variant = "primary", rotate, flex, style }: ButtonProps) {
+export default function Button({ children, onClick, href, variant = "primary", rotate, flex, disabled, style }: ButtonProps) {
   const [hover, setHover] = useState(false);
   const styleFinal: CSSProperties = {
     ...base[variant],
@@ -37,11 +38,11 @@ export default function Button({ children, onClick, href, variant = "primary", r
     padding: variant === "secondary" ? "13px 24px" : "15px 26px",
     fontWeight: 800,
     fontSize: 15.5,
-    cursor: "pointer",
+    cursor: disabled ? "not-allowed" : "pointer",
     display: "inline-block",
     flex: flex ? 1 : undefined,
     ...style,
-    ...(hover ? { ...hoverStyles[variant], ...(rotate ? { transform: `rotate(${rotate}deg)` } : null) } : null),
+    ...(hover && !disabled ? { ...hoverStyles[variant], ...(rotate ? { transform: `rotate(${rotate}deg)` } : null) } : null),
   };
   const handlers = { onMouseEnter: () => setHover(true), onMouseLeave: () => setHover(false) };
 
@@ -58,6 +59,7 @@ export default function Button({ children, onClick, href, variant = "primary", r
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       style={{ ...styleFinal, font: "inherit", fontWeight: styleFinal.fontWeight, appearance: "none" }}
       {...handlers}
     >

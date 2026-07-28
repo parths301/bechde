@@ -61,38 +61,97 @@ export interface RadarPlacementOpts {
   seed: string;
 }
 
-/** Top-left px offset for a radar bubble inside the radar box. */
-export function radarPlacement(o: RadarPlacementOpts): { left: number; top: number } {
+/** The band a bubble of this size may occupy: inside the box, clear of the "you" pin. */
+function radarBounds(o: { ringPx: number; box: { w: number; h: number }; size: number }) {
+  return {
+    maxR: Math.min(o.ringPx / 2, o.box.h / 2 - o.size / 2 - 26, o.box.w / 2 - o.size / 2 - 6),
+    minR: 40 + o.size / 2,
+  };
+}
+
+/** Centre of a bubble relative to the box centre, from geography alone. */
+function radarCentre(o: RadarPlacementOpts): { x: number; y: number } {
   const pxPerKm = o.ringPx / 2 / Math.max(o.radiusKm, 0.5);
   const { east, north } = offsetKm(o.origin, o.point);
-  let x = east * pxPerKm;
-  let y = -north * pxPerKm; // screen y grows downward
+  const { maxR, minR } = radarBounds(o);
 
-  // Keep bubbles inside the box and clear of the "you" pin at the centre.
-  const maxR = Math.min(o.ringPx / 2, o.box.h / 2 - o.size / 2 - 26, o.box.w / 2 - o.size / 2 - 6);
-  const minR = 40 + o.size / 2;
-  
-  let r = Math.hypot(x, y);
-  const bearing = r < 0.001 ? hash01(o.seed) * Math.PI * 2 : Math.atan2(y, x);
-  
-  // Apply a non-linear scale to spread out clustered inner items
-  const rNorm = Math.min(r / maxR, 1);
-  r = Math.pow(rNorm, 0.6) * maxR;
+  const rRaw = Math.hypot(east * pxPerKm, -north * pxPerKm);
+  // A listing at your exact coordinates has no bearing to use, so give it a stable one.
+  const bearing = rRaw < 0.001 ? hash01(o.seed) * Math.PI * 2 : Math.atan2(-north, east);
 
-  // Nudge co-located listings apart, deterministically (increased to 25px to prevent overlap)
-  const a = hash01(o.seed) * Math.PI * 2;
-  x = Math.cos(bearing) * r + Math.cos(a) * 25;
-  y = Math.sin(bearing) * r + Math.sin(a) * 25;
+  // Compress the radial scale: most listings sit in the inner cluster, and true
+  // distances would pack them all on top of the centre pin.
+  const r = Math.min(Math.max(Math.pow(Math.min(rRaw / maxR, 1), 0.6) * maxR, minR), maxR);
+  return { x: Math.cos(bearing) * r, y: Math.sin(bearing) * r };
+}
 
-  r = Math.hypot(x, y);
-  const finalBearing = Math.atan2(y, x);
-  
-  if (r > maxR) r = maxR;
-  if (r < minR) r = minR;
-  x = Math.cos(finalBearing) * r;
-  y = Math.sin(finalBearing) * r;
-
+/** Top-left px offset for a single radar bubble. Prefer radarPlacements() for a set —
+ *  placed alone, a bubble sits at its true bearing with no anti-overlap applied. */
+export function radarPlacement(o: RadarPlacementOpts): { left: number; top: number } {
+  const { x, y } = radarCentre(o);
   return { left: o.box.w / 2 + x - o.size / 2, top: o.box.h / 2 + y - o.size / 2 };
+}
+
+/** Gap to leave between two bubble edges. */
+const BUBBLE_PAD = 8;
+
+/**
+ * Place a whole set of bubbles at once, pushing overlapping pairs apart.
+ *
+ * Placement has to be sibling-aware to fix crowding: a per-bubble random nudge can't
+ * know whether it made things better or worse, and with several listings inside one
+ * kilometre it routinely made them worse. This runs a few rounds of pairwise
+ * relaxation instead, re-clamping into the legal band each round. Deterministic, and
+ * cheap at the handful of bubbles the radar shows.
+ */
+export function radarPlacements(
+  items: Array<{ seed: string; point: LatLng; size: number }>,
+  shared: { origin: LatLng; radiusKm: number; ringPx: number; box: { w: number; h: number } }
+): Array<{ left: number; top: number }> {
+  const pts = items.map((it) => ({ ...radarCentre({ ...shared, ...it }), ...radarBounds({ ...shared, size: it.size }) }));
+
+  const clamp = (p: (typeof pts)[number], seed: string) => {
+    let r = Math.hypot(p.x, p.y);
+    // Relaxation can push a bubble exactly onto the centre; give it a stable way out.
+    const a = r < 0.001 ? hash01(seed) * Math.PI * 2 : Math.atan2(p.y, p.x);
+    if (r < 0.001) r = p.minR;
+    r = Math.min(Math.max(r, p.minR), p.maxR);
+    p.x = Math.cos(a) * r;
+    p.y = Math.sin(a) * r;
+  };
+
+  for (let iter = 0; iter < 80; iter++) {
+    let moved = false;
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        const need = (items[i].size + items[j].size) / 2 + BUBBLE_PAD;
+        let dx = pts[j].x - pts[i].x;
+        let dy = pts[j].y - pts[i].y;
+        let d = Math.hypot(dx, dy);
+        if (d >= need) continue;
+        if (d < 0.001) {
+          // Perfectly coincident: separate along a stable per-pair direction.
+          const a = hash01(`${items[i].seed}|${items[j].seed}`) * Math.PI * 2;
+          dx = Math.cos(a);
+          dy = Math.sin(a);
+          d = 1;
+        }
+        const push = (need - d) / 2;
+        pts[i].x -= (dx / d) * push;
+        pts[i].y -= (dy / d) * push;
+        pts[j].x += (dx / d) * push;
+        pts[j].y += (dy / d) * push;
+        moved = true;
+      }
+    }
+    pts.forEach((p, i) => clamp(p, items[i].seed));
+    if (!moved) break;
+  }
+
+  return pts.map((p, i) => ({
+    left: shared.box.w / 2 + p.x - items[i].size / 2,
+    top: shared.box.h / 2 + p.y - items[i].size / 2,
+  }));
 }
 
 // ---------------------------------------------------------------------------

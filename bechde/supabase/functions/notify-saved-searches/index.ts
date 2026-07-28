@@ -5,7 +5,15 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-serve(async (req) => {
+/** The columns of search_listings() this function actually reads. */
+interface MatchRow {
+  name: string;
+  category: string | null;
+  price_num: number | null;
+  created_at: string;
+}
+
+serve(async () => {
   try {
     // 1. Fetch all saved searches that haven't been notified in the last 24h
     const { data: searches, error: searchesError } = await supabase
@@ -31,7 +39,7 @@ serve(async (req) => {
 
       const lastNotified = search.last_notified_at ? new Date(search.last_notified_at) : new Date(0);
       
-      const newMatches = (matches || []).filter((m: any) => {
+      const newMatches = (matches || []).filter((m: MatchRow) => {
         // Filter by category and price if needed
         if (search.category && search.category !== "All" && m.category !== search.category) return false;
         if (search.min_price && m.price_num < search.min_price) return false;
@@ -43,12 +51,12 @@ serve(async (req) => {
 
       if (newMatches.length > 0) {
         // 3. Find the user's email
-        const { data: userAuth, error: authError } = await supabase.auth.admin.getUserById(search.user_id);
+        const { data: userAuth } = await supabase.auth.admin.getUserById(search.user_id);
         const email = userAuth?.user?.email;
 
         if (email) {
           console.log(`[EMAIL] To: ${email} | Subject: ${newMatches.length} new matches for "${search.q}"`);
-          console.log(`Matches: ${newMatches.map((m: any) => m.name).join(", ")}`);
+          console.log(`Matches: ${newMatches.map((m: MatchRow) => m.name).join(", ")}`);
           
           emailsSent++;
           
@@ -64,8 +72,8 @@ serve(async (req) => {
     return new Response(JSON.stringify({ emailsSent }), {
       headers: { "Content-Type": "application/json" },
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error(err);
-    return new Response(String(err?.message ?? err), { status: 500 });
+    return new Response(err instanceof Error ? err.message : String(err), { status: 500 });
   }
 });

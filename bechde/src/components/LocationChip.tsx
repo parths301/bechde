@@ -12,18 +12,22 @@ export default function LocationChip({ style }: { style?: React.CSSProperties })
   const [busy, setBusy] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Ask for browser geolocation automatically on first mount if not yet shared
+  // Ask for browser geolocation automatically on first mount if not yet shared.
+  // The `busy` flag has to be raised here rather than in a lazy useState initialiser:
+  // whether we auto-locate depends on navigator.geolocation, which doesn't exist during
+  // the server render, so seeding it up front would change the first paint and trip
+  // hydration. Deliberate cascade, one render, on mount only.
   useEffect(() => {
-    if (!origin.precise && typeof window !== "undefined" && navigator.geolocation) {
-      setBusy(true);
-      currentPosition()
-        .then((point) => saveUserLocation(point))
-        .catch(() => {
-          // If permission is denied or ignored, stay un-precise so user can pick manually
-        })
-        .finally(() => setBusy(false));
-    }
-  }, []);
+    if (origin.precise || typeof window === "undefined" || !navigator.geolocation) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setBusy(true);
+    currentPosition()
+      .then((point) => saveUserLocation(point))
+      .catch(() => {
+        // If permission is denied or ignored, stay un-precise so user can pick manually
+      })
+      .finally(() => setBusy(false));
+  }, [origin.precise]);
 
   const placeLabel = origin.precise
     ? profile?.neighbourhood ?? origin.label.replace(/^you · /, "")

@@ -7,7 +7,7 @@ import { colors } from "@/lib/colors";
 import { useEffect } from "react";
 import { sellCategories } from "@/lib/data";
 import { useProfile, useUserLocation, useComparablePrices, useMatchingSavedSearchCount } from "@/lib/queries";
-import { geocode, formatKm, haversineKm, type LatLng } from "@/lib/geo";
+import { geocode, type LatLng } from "@/lib/geo";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import Stripe from "@/components/Stripe";
 import Chip from "@/components/Chip";
@@ -27,16 +27,22 @@ export default function SellPage() {
   const [sellCat, setSellCat] = useState("Music");
   const [sellNote, setSellNote] = useState("This guitar got me through 3 years of hostel life. Selling because I finally upgraded — it deserves someone who'll actually play it.");
   
+  // Restoring the draft has to happen after mount, not in a lazy useState initialiser:
+  // sessionStorage doesn't exist during the server render, so seeding the fields up
+  // front would make the first client paint differ from the server's and trip
+  // hydration. One deliberate cascade, on mount only.
   useEffect(() => {
     const saved = sessionStorage.getItem("bechde_sell_draft");
-    if (saved) {
-      try {
-        const d = JSON.parse(saved);
-        if (d.sellTitle) setSellTitle(d.sellTitle);
-        if (d.sellPrice) setSellPrice(d.sellPrice);
-        if (d.sellCat) setSellCat(d.sellCat);
-        if (d.sellNote) setSellNote(d.sellNote);
-      } catch (e) {}
+    if (!saved) return;
+    try {
+      const d = JSON.parse(saved);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (d.sellTitle) setSellTitle(d.sellTitle);
+      if (d.sellPrice) setSellPrice(d.sellPrice);
+      if (d.sellCat) setSellCat(d.sellCat);
+      if (d.sellNote) setSellNote(d.sellNote);
+    } catch {
+      // A corrupt draft just means we keep the defaults.
     }
   }, []);
 
@@ -46,7 +52,9 @@ export default function SellPage() {
       const d = saved ? JSON.parse(saved) : {};
       d[key] = val;
       sessionStorage.setItem("bechde_sell_draft", JSON.stringify(d));
-    } catch (e) {}
+    } catch {
+      // A full or unavailable sessionStorage just means the draft isn't kept.
+    }
   };
   const profile = useProfile().data;
   const origin = useUserLocation();
@@ -141,7 +149,6 @@ export default function SellPage() {
         // Geocoding is best-effort — keep the seller's own coordinates.
       }
     }
-    const km = haversineKm({ lat: origin.lat, lng: origin.lng }, point);
 
     const { data, error: insErr } = await sb
       .from("listings")
@@ -155,10 +162,10 @@ export default function SellPage() {
         negotiable: true,
         neighbourhood: placeLabel,
         pickup: placeLabel ? `Pickup near ${placeLabel}` : "Pickup nearby",
+        // No km/dist here: distance is derived at read time from the viewer's own
+        // position (rowToItem), so storing the seller's copy would be a lie for everyone else.
         lat: point.lat,
         lng: point.lng,
-        km,
-        dist: formatKm(km),
         public_spot: isPublicSpot,
         angle: "45deg",
         listed_ago: "listed just now",
@@ -380,8 +387,15 @@ export default function SellPage() {
 
           {error && <div style={{ fontSize: 13.5, fontWeight: 700, color: colors.terracotta }}>{error}</div>}
 
-          <Button onClick={submit} rotate={-1.5} style={{ alignSelf: "flex-start", padding: "15px 34px", fontSize: 16, opacity: submitting || uploading ? 0.7 : 1 }}>
-            {submitting ? "Posting…" : "Bech de! →"}
+          {/* submit() already refuses while a photo is in flight — say so, rather than
+              letting the click land on nothing. */}
+          <Button
+            onClick={submit}
+            rotate={-1.5}
+            disabled={submitting || uploading}
+            style={{ alignSelf: "flex-start", padding: "15px 34px", fontSize: 16, opacity: submitting || uploading ? 0.7 : 1 }}
+          >
+            {submitting ? "Posting…" : uploading ? "Waiting for the photo…" : "Bech de! →"}
           </Button>
 
           <div style={{ fontSize: 12, color: colors.textFaint, fontWeight: 600, lineHeight: 1.6 }}>

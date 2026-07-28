@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { colors } from "@/lib/colors";
-import { useAppState } from "@/lib/store";
 import { useProfile, useUserLocation, useUnreadCount } from "@/lib/queries";
 import { DEFAULT_FILTERS, searchHref } from "@/lib/search";
 

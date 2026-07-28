@@ -27,8 +27,23 @@ export const operator = {
 /** Last substantive review of the legal text. Bump when you edit the pages. */
 export const legalUpdated = "27 July 2026";
 
-/** True while any placeholder is still unfilled — drives the draft banner. */
-export const legalIsDraft = Object.values(operator).some((v) => v.includes("["));
+/**
+ * True while the operator details aren't yet real — drives the draft banner.
+ *
+ * Checks more than the original `[placeholder]` brackets: those were once replaced
+ * with `grievance@bechde.local` / `support@bechde.local`, which silently cleared the
+ * banner while leaving a grievance address that cannot receive mail. Under the DPDP
+ * Act an unreachable grievance contact is worse than an obvious placeholder, so the
+ * banner stays up until the addresses are ones a person could actually write to.
+ */
+const NOT_REAL = [/\[/, /\.local\b/i, /\bexample\.(com|org|net)\b/i, /\blocalhost\b/i, /\bTODO\b/i];
+
+/** Exported so the rule itself is testable, not just the current values. */
+export function isDraftOperator(fields: Record<string, string>): boolean {
+  return Object.values(fields).some((v) => NOT_REAL.some((re) => re.test(v)));
+}
+
+export const legalIsDraft = isDraftOperator(operator);
 
 export const prohibitedItems: { title: string; examples: string }[] = [
   { title: "Weapons and ammunition", examples: "firearms, air guns, knives sold as weapons, explosives, fireworks" },

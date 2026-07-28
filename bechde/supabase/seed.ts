@@ -43,10 +43,17 @@ function uuidFrom(seed: string): string {
 // The demo buyer ("you" / Aisha) — the current-user side of every seeded chat.
 const AISHA_ID = uuidFrom("profile:aisha");
 
+/* A seed that ignores `error` reports success while writing nothing — that is exactly
+   how the whole listings table went missing once. Every write goes through here. */
+async function write(label: string, op: PromiseLike<{ error: { message: string } | null }>) {
+  const { error } = await op;
+  if (error) throw new Error(`${label} failed — ${error.message}`);
+}
+
 async function main() {
   // 1. categories -----------------------------------------------------------
   const categories = homeCategories.map((c) => ({ name: c.name, icon: c.icon }));
-  await db.from("categories").upsert(categories, { onConflict: "name" });
+  await write("categories", db.from("categories").upsert(categories, { onConflict: "name" }));
   console.log(`categories: ${categories.length}`);
 
   // 2. profiles (unique sellers + the demo buyer) ---------------------------
@@ -75,7 +82,7 @@ async function main() {
       email: s.name === "Rohan T." ? "rohan@bechde.local" : null,
     })),
   ];
-  await db.from("profiles").upsert(profiles, { onConflict: "id" });
+  await write("profiles", db.from("profiles").upsert(profiles, { onConflict: "id" }));
   console.log(`profiles: ${profiles.length}`);
 
   // 3. listings -------------------------------------------------------------
@@ -105,19 +112,17 @@ async function main() {
     negotiable: it.negotiable,
     neighbourhood: it.neighbourhood,
     pickup: it.pickup,
+    // Distance and radar placement are derived at read time from the viewer's own
+    // position, so the legacy km/dist/home/map columns are gone (0009_cleanup.sql).
     lat: it.lat,
     lng: it.lng,
-    km: it.km,
-    dist: it.dist,
     angle: it.angle,
     listed_ago: it.listedAgo,
     status: it.listedAgo.startsWith("sold") ? "sold" : "active",
     story: it.story,
     facts: it.facts,
-    home: it.home ?? null,
-    map: it.map ?? null,
   }));
-  await db.from("listings").upsert(listings, { onConflict: "id" });
+  await write("listings", db.from("listings").upsert(listings, { onConflict: "id" }));
   console.log(`listings: ${listings.length}`);
 
   // 4. chats + a seeded message/offer per thread ----------------------------
@@ -155,9 +160,9 @@ async function main() {
       });
     }
   }
-  await db.from("chats").upsert(chats, { onConflict: "id" });
-  await db.from("messages").upsert(messages, { onConflict: "id" });
-  await db.from("offers").upsert(offers, { onConflict: "id" });
+  await write("chats", db.from("chats").upsert(chats, { onConflict: "id" }));
+  await write("messages", db.from("messages").upsert(messages, { onConflict: "id" }));
+  await write("offers", db.from("offers").upsert(offers, { onConflict: "id" }));
   console.log(`chats: ${chats.length}, messages: ${messages.length}, offers: ${offers.length}`);
 
   // 5. past deals -----------------------------------------------------------
@@ -248,11 +253,11 @@ async function main() {
     created_at: ago(d.daysAgo),
   }));
 
-  await db.from("listings").upsert(pastListings, { onConflict: "id" });
-  await db.from("chats").upsert(pastChats, { onConflict: "id" });
-  await db.from("messages").upsert(pastMessages, { onConflict: "id" });
-  await db.from("offers").upsert(pastOffers, { onConflict: "id" });
-  await db.from("reviews").upsert(pastReviews, { onConflict: "id" });
+  await write("past listings", db.from("listings").upsert(pastListings, { onConflict: "id" }));
+  await write("past chats", db.from("chats").upsert(pastChats, { onConflict: "id" }));
+  await write("past messages", db.from("messages").upsert(pastMessages, { onConflict: "id" }));
+  await write("past offers", db.from("offers").upsert(pastOffers, { onConflict: "id" }));
+  await write("past reviews", db.from("reviews").upsert(pastReviews, { onConflict: "id" }));
   console.log(`past deals: ${pastDeals.length} (sold listings + chats + accepted offers + reviews)`);
 
   console.log("✔ seed complete");

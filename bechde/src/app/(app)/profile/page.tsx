@@ -291,7 +291,7 @@ export default function ProfilePage() {
             <>
               {writtenReviews.length === 0 && (
                 <div style={{ fontSize: 13.5, color: colors.textFaint, fontWeight: 600, lineHeight: 1.6 }}>
-                  You haven't written any reviews yet.
+                  You haven&apos;t written any reviews yet.
                 </div>
               )}
               {writtenReviews.map((r) => (
@@ -364,7 +364,7 @@ export default function ProfilePage() {
                             try {
                               await updateReview(editingReview.id, editingReview.rating, editingReview.body);
                               setEditingReview(null);
-                            } catch (err) {
+                            } catch {
                               alert("Failed to update review.");
                             } finally {
                               setIsUpdatingReview(false);

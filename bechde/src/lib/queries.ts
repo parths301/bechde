@@ -280,19 +280,32 @@ const SEARCH_PAGE = 20;
 
 export function useSearchResults(filters: Filters) {
   const { q, category, minPrice, maxPrice } = filters;
-  const [pages, setPages] = useState<Item[][]>([]);
-  const [dbOffset, setDbOffset] = useState(0);
-  const [dbDone, setDbDone] = useState(false);
-
-  // Reset pagination when the filter deps change.
+  // Pagination is keyed by the filters it belongs to, the same trick useAsync uses:
+  // a page set carries the key it was fetched under, so a filter change makes the old
+  // pages simply not apply. Cheaper and safer than resetting state during render.
   const filterKey = JSON.stringify([q, category, minPrice, maxPrice]);
-  const prevKey = useRef(filterKey);
-  if (filterKey !== prevKey.current) {
-    prevKey.current = filterKey;
-    setPages([]);
-    setDbOffset(0);
-    setDbDone(false);
-  }
+  const [paged, setPaged] = useState<{ key: string; pages: Item[][]; offset: number; done: boolean }>(
+    { key: filterKey, pages: [], offset: 0, done: false }
+  );
+  const current = paged.key === filterKey ? paged : { key: filterKey, pages: [], offset: 0, done: false };
+  const pages = current.pages;
+  const dbOffset = current.offset;
+  const dbDone = current.done;
+
+  // Both writers stamp the current filterKey, so a result that arrives after the
+  // filters changed lands on its own key and is ignored rather than mixed in.
+  const markFirstPage = useCallback(
+    (done: boolean) => setPaged({ key: filterKey, pages: [], offset: SEARCH_DB_PAGE, done }),
+    [filterKey]
+  );
+  const appendPage = useCallback(
+    (rows: Item[], done: boolean) =>
+      setPaged((p) => {
+        const base = p.key === filterKey ? p : { key: filterKey, pages: [], offset: 0, done: false };
+        return { key: filterKey, pages: [...base.pages, rows], offset: base.offset + SEARCH_DB_PAGE, done };
+      }),
+    [filterKey]
+  );
 
   const firstPage = useDistances(
     useAsync<Item[]>(async () => {
@@ -305,8 +318,7 @@ export function useSearchResults(filters: Filters) {
       const { data, error } = await applyFilters(query, filters);
       if (error) throw error;
       const rows = (data as unknown as ListingRow[]).map(rowToItem);
-      if (rows.length < SEARCH_DB_PAGE) setDbDone(true);
-      setDbOffset(SEARCH_DB_PAGE);
+      markFirstPage(rows.length < SEARCH_DB_PAGE);
       return rows;
     }, [q, category, minPrice, maxPrice])
   );
@@ -332,10 +344,8 @@ export function useSearchResults(filters: Filters) {
     const { data, error } = await applyFilters(query, { q, category, radiusKm, minPrice, maxPrice });
     if (error) return;
     const rows = (data as unknown as ListingRow[]).map(rowToItem);
-    if (rows.length < SEARCH_DB_PAGE) setDbDone(true);
-    setDbOffset((o) => o + SEARCH_DB_PAGE);
-    setPages((p) => [...p, rows]);
-  }, [dbOffset, dbDone, q, category, radiusKm, minPrice, maxPrice]);
+    appendPage(rows, rows.length < SEARCH_DB_PAGE);
+  }, [dbOffset, dbDone, q, category, radiusKm, minPrice, maxPrice, appendPage]);
 
   return {
     data: allFiltered,
@@ -1012,6 +1022,10 @@ export interface WrittenReview {
 const WRITTEN_REVIEW_SELECT =
   "id,rating,body,created_at,listing:listings(name),subject:profiles!reviews_subject_id_fkey(name,initial,color)";
 
+interface WrittenReviewRow extends Omit<ReviewRow, "reviewer"> {
+  subject: { name: string; initial: string | null; color: string | null } | null;
+}
+
 export function useWrittenReviews(profileId: string | null | undefined) {
   return useAsync<WrittenReview[]>(async () => {
     if (!profileId) return [];
@@ -1021,7 +1035,7 @@ export function useWrittenReviews(profileId: string | null | undefined) {
       .eq("reviewer_id", profileId)
       .order("created_at", { ascending: false });
     if (error) throw error;
-    return (data as any[]).map((r) => ({
+    return (data as unknown as WrittenReviewRow[]).map((r) => ({
       id: r.id,
       rating: r.rating,
       body: r.body,
@@ -1112,6 +1126,26 @@ function bumpUnread() {
   unreadListeners.forEach((l) => l());
 }
 
+/**
+ * One shared realtime channel for the whole app.
+ *
+ * Header and BottomNav both call useUnreadCount(), and supabase-js hands back the
+ * *same* channel object for a repeated topic name — so the second caller was adding a
+ * postgres_changes callback to an already-subscribed channel, which throws and took
+ * every page with a header down to the error boundary. Created once, never torn down:
+ * tearing it down and rebuilding it under the same topic races the same way, and one
+ * open subscription for the app's lifetime costs nothing.
+ */
+let unreadChannelStarted = false;
+function startUnreadChannel() {
+  if (unreadChannelStarted) return;
+  unreadChannelStarted = true;
+  getSupabaseBrowser()
+    .channel("global-messages")
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => bumpUnread())
+    .subscribe();
+}
+
 interface UnreadChatRow {
   id: string;
   messages: { sender_id: string; created_at: string }[];
@@ -1126,18 +1160,9 @@ export function useUnreadCount(): number {
     if (!myProfileId) return;
     const l = () => bump((v) => v + 1);
     unreadListeners.add(l);
-
-    const sb = getSupabaseBrowser();
-    const channel = sb
-      .channel('global-messages')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
-        bumpUnread();
-      })
-      .subscribe();
-
+    startUnreadChannel();
     return () => {
       unreadListeners.delete(l);
-      sb.removeChannel(channel);
     };
   }, [myProfileId]);
 

@@ -1,5 +1,5 @@
 import { MetadataRoute } from "next";
-import { createAdminClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/server";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bechde.com";
@@ -11,7 +11,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   try {
-    const sb = createAdminClient();
+    // Anon: the sitemap should only ever list what a logged-out visitor can open.
+    const sb = createPublicClient();
     const { data: listings } = await sb
       .from("listings")
       .select("id, created_at")
