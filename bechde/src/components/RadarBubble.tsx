@@ -26,6 +26,7 @@ export default function RadarBubble({ left, top, size, angle, label, price, dur,
     <Hoverable
       as="button"
       type="button"
+      className="bd-radar-bubble"
       onClick={onClick}
       style={{
         position: "absolute",
@@ -36,8 +37,11 @@ export default function RadarBubble({ left, top, size, angle, label, price, dur,
         alignItems: "center",
         gap: 4,
         cursor: "pointer",
-        animation: `bd-bob ${dur} ease-in-out infinite`,
-        animationDelay: delay,
+        // Duration and delay are per-bubble, but whether it animates at all is a CSS
+        // decision (see prefers-reduced-motion in globals.css) — so they're passed as
+        // custom properties rather than an inline `animation`.
+        ["--bd-bob-dur" as string]: dur,
+        ["--bd-bob-delay" as string]: delay,
         zIndex: 2,
         background: "none",
         border: "none",

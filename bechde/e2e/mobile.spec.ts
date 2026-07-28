@@ -27,34 +27,41 @@ test.describe("Mobile viewport", () => {
   });
 
   /**
-   * The hero map is the radar's stand-in on phones, so it has to carry the same
-   * listings. It shipped with no `markers` prop at all: an empty street map with a
-   * lone "you" pin, directly above a feed announcing items 0.1 km away. Nothing
-   * errored and nothing looked broken — the content was just absent.
+   * Phones show the same radar as desktop, scaled down — not a plain map. It first
+   * shipped as an empty street map with a lone "you" pin, directly above a feed
+   * announcing items 0.1 km away; then as a map with true-coordinate bubbles, which
+   * crowded into an unreadable pile on a 343px-wide map. Scaling the real radar keeps
+   * the ring spacing and bubble relaxation that make it legible at any size.
    */
-  test("the hero map shows the nearby listings, not just an empty street map", async ({ page }) => {
+  test("the hero radar is shown, scaled to fit, with its listings", async ({ page }) => {
     await page.goto("/home");
     await expect(page.getByRole("heading", { name: /Good stuff/ })).toBeVisible();
 
-    const heroMap = page.locator(".bd-hero-mobilemap");
-    await expect(heroMap).toBeVisible();
+    const radar = page.locator(".bd-hero-radar");
+    await expect(radar).toBeVisible();
 
-    const pins = heroMap.locator(".bd-pin-icon");
-    await expect(pins.first()).toBeVisible({ timeout: 15_000 });
+    // Scaled down rather than clipped: the wrapper must be no wider than the screen.
+    const wrapper = page.locator(".bd-radar-scale");
+    const fit = await wrapper.evaluate((el) => {
+      const b = el.getBoundingClientRect();
+      const scale = Number(getComputedStyle(el).getPropertyValue("--bd-radar-scale"));
+      return { right: b.right, width: b.width, height: b.height, scale, vw: document.documentElement.clientWidth };
+    });
+    expect(fit.scale).toBeGreaterThan(0);
+    expect(fit.scale).toBeLessThan(1); // a phone can't fit the 560px radar unscaled
+    expect(fit.right).toBeLessThanOrEqual(fit.vw + 1);
+    expect(fit.height).toBeGreaterThan(100); // the wrapper reserves real space
 
-    // The count claimed in the hero pill is what the map should be plotting.
-    const claimed = Number(
-      (await page.getByText(/things for sale within/).first().innerText()).match(/(\d+)/)?.[1] ?? 0
-    );
-    expect(claimed).toBeGreaterThan(0);
-    expect(await pins.count()).toBe(claimed);
+    // The bubbles bob forever, so their box never settles and a click's stability
+    // check never passes. Playwright's `reducedMotion` emulation doesn't take effect
+    // in this setup (verified: matchMedia still reports false), so stop the motion
+    // directly. Real users with the OS setting get the same via prefers-reduced-motion.
+    await page.addStyleTag({ content: `*, *::before, *::after { animation: none !important; transition: none !important; }` });
 
-    // A bubble is a way into the listing, same as a radar bubble is on desktop.
-    // Click the last one: Leaflet stacks markers by latitude, so on a map this small
-    // the earlier ones are genuinely underneath their neighbours and only the topmost
-    // is hittable. That's inherent to plotting real coordinates — the feed below the
-    // map is how you reach the rest.
-    await pins.last().click();
+    // Bubbles are real listings, and each is a way into one.
+    const bubbles = radar.getByRole("button");
+    expect(await bubbles.count()).toBeGreaterThan(0);
+    await bubbles.first().click();
     await page.waitForURL(/\/product\//);
   });
 });

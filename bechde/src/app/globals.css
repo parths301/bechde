@@ -53,6 +53,23 @@ input[type="range"] {
   accent-color: #e86a4f;
 }
 
+/* Seven bubbles bobbing forever is the kind of motion that triggers vestibular
+   symptoms, and the pulse ring compounds it. Opt in to the movement rather than
+   overriding it away, so "no preference" is the only state that animates. */
+@media (prefers-reduced-motion: no-preference) {
+  .bd-radar-bubble {
+    animation: bd-bob var(--bd-bob-dur, 3.5s) ease-in-out infinite;
+    animation-delay: var(--bd-bob-delay, 0s);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bd-you-pulse,
+  .bd-map-fade {
+    animation: none !important;
+  }
+}
+
 @keyframes bd-bob {
   0%,
   100% {
@@ -140,6 +157,12 @@ input[type="range"] {
 .bd-hero-mobilemap {
   display: none;
 }
+
+/* Transparent on desktop, so the radar remains the hero grid's own child and
+   nothing about the existing layout changes. */
+.bd-radar-scale {
+  display: contents;
+}
 .bd-chat-back {
   display: none;
 }
@@ -206,7 +229,27 @@ input[type="range"] {
     font-size: 34px !important;
     letter-spacing: -1px !important;
   }
+  /* Phones show the real radar rather than a plain map: same rings, same bubble
+     relaxation, same centre pin, scaled as one piece. The wrapper's height is set
+     from JS to match, since a transform doesn't affect layout. */
+  .bd-radar-scale {
+    display: block !important;
+    width: 100%;
+    overflow: visible;
+    /* A close-enough scale straight from CSS so the radar is never painted at its
+       full 560px inside a 343px column, even for one frame. The ResizeObserver
+       refines it to the exact measured width right after mount. */
+    --bd-radar-scale: calc((100vw - 32px) / 560);
+    height: calc((100vw - 32px) * 520 / 560);
+  }
   .bd-hero-radar {
+    display: grid !important;
+    transform: scale(var(--bd-radar-scale, 1));
+    transform-origin: top left;
+  }
+  /* The radius pill lives inside the radar on desktop; scaled down it would be
+     unusable, so the full-width control below takes over. */
+  .bd-radar-radius {
     display: none !important;
   }
   .bd-hero-mobilemap {

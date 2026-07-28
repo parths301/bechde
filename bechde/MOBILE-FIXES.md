@@ -161,12 +161,45 @@ circle that isn't on a map has no projection. Bounds are computed arithmetically
 The "you" marker is also raised above the bubbles now; listings clustered around you
 buried the one fixed point of reference on the map.
 
-**Known trade-off, stated plainly:** bubbles are much larger than pins, and these sit at
-their **true coordinates** — no radar-style relaxation, because on a real map that would
-misreport where an item is. So listings a few hundred metres apart overlap, and on a
-343px-wide phone map only the topmost of a tight cluster is tappable. The feed beneath the
-map and the `/map` rail are how you reach the rest. Price pills already hide themselves
-when they collide, so the labels stay readable.
+**Trade-off on `/map`:** bubbles are much larger than pins and sit at their **true
+coordinates** — no radar-style relaxation, because on a real map that would misreport
+where an item is. Listings a few hundred metres apart therefore overlap. Price pills hide
+themselves when they collide, so the visible labels stay readable.
+
+### 5f · …and the phone hero now shows the real radar, not an approximation of it
+*Follow-up: "I want this map to look like this, the way it is shown on the bigger screens"*
+
+Putting bubble markers on the phone hero map wasn't enough. Measured on a 375px screen,
+four bubbles landed at x = 154, 162, 165, 170 — essentially stacked. The desktop radar
+looks spacious because **it isn't a map**: `radarPlacements` relaxes the bubbles apart in
+screen space. A map can't do that without lying about where things are.
+
+So phones now show **the actual radar**, not a lookalike: same rings, same relaxation,
+same centre pin, scaled down as one piece. The radar's layout is hard-coded to 560 × 520
+(ring radii, bubble sizes, the relaxation box), and rather than rebuild that maths for
+small screens, the whole thing is measured and scaled — so a phone renders the identical
+component.
+
+- CSS supplies an approximate scale immediately, so the radar is never painted at 560px
+  inside a 343px column even for one frame; a `ResizeObserver` then refines it to the
+  exact measured width. Written straight to the DOM — it's a measurement, not state.
+- On desktop the wrapper is `display: contents`, so the layout is untouched.
+- The radius pill that lives *inside* the radar is hidden on phones (scaled down it'd be
+  unusable); the existing full-width control takes over.
+
+### 5g · The radar ignored `prefers-reduced-motion`
+Found because the E2E click kept timing out: seven bubbles bob forever, so their boxes
+never settle. That's not just a test problem — continuous motion like that is a common
+vestibular trigger, and the app was overriding the OS setting.
+
+The bob is now declared in CSS under `@media (prefers-reduced-motion: no-preference)`
+with per-bubble duration and delay passed as custom properties, so **motion is opt-in**
+rather than something you have to override away. The `.bd-you-pulse` ring follows the
+same rule.
+
+Playwright's own `reducedMotion: "reduce"` emulation turned out not to apply in this
+setup — `matchMedia` still reported `false` — so the spec stops the animation directly
+and says why, rather than leaving a config line that looks like it works.
 
 ### 6 · Landscape header — wordmark on two lines, "Sign in" off-screen
 *Screenshots: 01.14.48, 01.14.49*

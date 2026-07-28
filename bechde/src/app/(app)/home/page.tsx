@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { colors } from "@/lib/colors";
@@ -12,7 +13,7 @@ import Chip from "@/components/Chip";
 import { SearchBar } from "@/components/Header";
 import RadarBubble from "@/components/RadarBubble";
 import ListingCard from "@/components/ListingCard";
-import OsmMap, { type MapMarker } from "@/components/OsmMap";
+import OsmMap from "@/components/OsmMap";
 import LocationChip from "@/components/LocationChip";
 
 const RADAR_BOX = { w: 560, h: 520 };
@@ -23,6 +24,30 @@ export default function HomePage() {
   const origin = useUserLocation();
   const nearbyAll = useNearbyItems().data ?? [];
   const ringPx = 130 + radiusKm * 35;
+
+  /* The radar is laid out at a fixed 560x520 — ring radii, bubble sizes and the
+     relaxation in radarPlacements all assume it. Rather than rebuild that maths for
+     small screens, measure the space available and scale the whole thing, so a phone
+     shows the identical radar. Written straight to the DOM: this is a measurement of
+     the layout, not state, and routing it through React would re-render on resize. */
+  const radarScaleRef = useRef<HTMLDivElement>(null);
+  const fitRadar = useCallback(() => {
+    const el = radarScaleRef.current;
+    if (!el || !el.offsetParent) return; // display:contents on desktop — nothing to fit
+    const scale = Math.min(1, el.clientWidth / RADAR_BOX.w);
+    el.style.setProperty("--bd-radar-scale", String(scale));
+    el.style.height = `${RADAR_BOX.h * scale}px`;
+  }, []);
+  useEffect(() => {
+    fitRadar();
+    const ro = new ResizeObserver(fitRadar);
+    if (radarScaleRef.current) ro.observe(radarScaleRef.current);
+    window.addEventListener("resize", fitRadar);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", fitRadar);
+    };
+  }, [fitRadar]);
 
   // Everything on this screen is driven by real distances from `origin`.
   const nearby = nearbyAll.filter((i) => i.km <= radiusKm);
@@ -36,15 +61,6 @@ export default function HomePage() {
     shown.map((item, i) => ({ seed: item.id, point: { lat: item.lat, lng: item.lng }, size: sizes[i] })),
     { origin, radiusKm, ringPx, box: RADAR_BOX }
   );
-  // The mobile hero map replaces the radar, so it shows the same nearby listings.
-  const nearbyMarkers: MapMarker[] = nearby.map((m) => ({
-    id: m.id,
-    lat: m.lat,
-    lng: m.lng,
-    price: m.price,
-    label: m.label,
-    image: m.cover,
-  }));
   const homeBubbles = shown.map((item, i) => ({
     item,
     size: sizes[i],
@@ -111,7 +127,11 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="bd-hero-radar" style={{ position: "relative", width: 560, height: 520, display: "grid", placeItems: "center" }}>
+        {/* Phones get the same radar, not an approximation of it — scaled down as a
+            whole so the ring spacing, bubble relaxation and centre pin stay exactly
+            as designed. `display: contents` on desktop keeps the original layout. */}
+        <div className="bd-radar-scale" ref={radarScaleRef}>
+        <div className="bd-hero-radar" style={{ position: "relative", width: RADAR_BOX.w, height: RADAR_BOX.h, display: "grid", placeItems: "center" }}>
           {/* faded square map backdrop */}
           <div
             className="bd-map-fade"
@@ -208,6 +228,7 @@ export default function HomePage() {
           ))}
 
           <div
+            className="bd-radar-radius"
             style={{
               position: "absolute",
               bottom: -6,
@@ -238,35 +259,10 @@ export default function HomePage() {
             </span>
           </div>
         </div>
+        </div>
 
-        {/* mobile-only: full-width square map + radius */}
+        {/* mobile-only: the radius control that sits inside the radar on desktop */}
         <div className="bd-hero-mobilemap" style={{ flexDirection: "column", gap: 14 }}>
-          <div className="bd-map-fade" style={{ position: "relative", width: "100%", aspectRatio: "1 / 1", borderRadius: 26, overflow: "hidden" }}>
-            {/* This map stands in for the radar on phones, so it has to carry the
-                same listings. Without markers it was just an empty street map with
-                a "you" pin, while the feed underneath listed items 0.1 km away. */}
-            <OsmMap
-              center={{ lat: origin.lat, lng: origin.lng }}
-              zoom={14}
-              interactive={false}
-              user={origin}
-              radiusKm={radiusKm}
-              markers={nearbyMarkers}
-              bubbleSize={52}
-              onMarkerClick={(id) => router.push(`/product/${id}`)}
-              height="100%"
-            />
-            {/* feather the edges into the page background, like the desktop map */}
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                borderRadius: 26,
-                pointerEvents: "none",
-                boxShadow: "inset 0 0 44px 24px #FBF6ED, inset 0 0 14px 3px rgba(251,246,237,.55)",
-              }}
-            />
-          </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", border: `1.5px solid ${colors.sand}`, borderRadius: 999, padding: "10px 18px" }}>
             <span style={{ fontSize: 12.5, fontWeight: 700, color: colors.textBody, whiteSpace: "nowrap" }}>Radius</span>
             <input type="range" aria-label="Search radius in kilometres" min={1} max={10} value={radiusKm} onChange={(e) => setRadiusKm(Number(e.target.value))} style={{ flex: 1, cursor: "pointer" }} />
