@@ -77,17 +77,41 @@ everything above it.
 `overflow: hidden`, `maxWidth: 45%`) and the bar itself got `minWidth: 0` —
 `src/components/Header.tsx`.
 
-### 5 · Location sheet — flush left, right half off-screen, unscrollable
-*Screenshots: 01.14.48(1) (landscape), 01.14.52(1) (portrait)*
+### 5 · Location sheet — 520px wide on a 390px phone
+*Screenshots: 01.14.48(1) (landscape), 01.14.52(1) (portrait), plus a follow-up report*
 
-The modal sat hard against the left edge with its right side cut off, and in landscape
+The sheet sat hard against the left edge with its right side cut off, and in landscape
 the `Popular Cities` list ran off the bottom with **no way to scroll to it**.
 
-**Cause:** two things. `maxWidth: 100%` couldn't win against the city chips' min-content
-width, and the sheet had no height cap.
-**Fix:** `minWidth: 0`, plus `maxHeight: calc(100dvh - 40px)` and `overflowY: auto` so
-the list scrolls inside the sheet on a 412px-tall landscape screen —
+This one took two passes, and the first pass was wrong in an instructive way.
+
+**First attempt:** added `minWidth: 0`, `maxHeight: calc(100dvh - 40px)` and
+`overflowY: auto`. That fixed the landscape height problem — and I verified it at
+915 × 412 only. It looked correct.
+
+**It wasn't.** The sheet was still **520px wide on a 390px viewport**, spanning 20–540.
+520px simply *fits* inside 915px, so the test I wrote couldn't see the bug.
+
+**Actual cause:** the overlay was `display: grid` with `place-items: center`. That makes
+an implicit auto-sized column, and an auto column takes its width **from its item** — so
+the column became 520px, and the sheet's `max-width: 100%` resolved against *its own*
+520px and constrained nothing. A percentage max-width is only a constraint if the thing
+it's a percentage *of* is independently sized.
+
+**Fix:** overlay switched to flex centring, whose content box is the real available
+width, and the sheet is now `width: 100%` / `maxWidth: 520` —
 `src/components/LocationModal.tsx`.
+
+**Test gap closed:** the sheet check now runs at 360px, 390px and 915px. Mutation-tested
+— restoring the grid overlay fails the two narrow viewports with
+`sheet spans 20–540 in a 390px viewport` while 915px still passes, which is exactly how
+it slipped through the first time.
+
+### 5b · The location chip wasn't a button
+Found while writing the test above: the `📍 Select location / city` chip was a
+`<div onClick>`, so it was unreachable by keyboard and announced as nothing. It opens a
+dialog. Now a real `<button>` with `aria-haspopup="dialog"` and a label that includes the
+current location, and it truncates rather than overflowing — `src/components/LocationChip.tsx`.
 
 ### 6 · Landscape header — wordmark on two lines, "Sign in" off-screen
 *Screenshots: 01.14.48, 01.14.49*
@@ -132,7 +156,8 @@ the older build.
 ## Verification
 
 `e2e/responsive.spec.ts` — 7 routes × 5 viewports, asserting `body.scrollWidth` never
-exceeds the viewport, plus a check that the location sheet fits and scrolls in landscape.
+exceeds the viewport, plus the location sheet measured on its own at three widths
+(it's `position: fixed`, so it escapes the page-level check entirely).
 
 | Viewport | Result |
 |---|---|
@@ -149,7 +174,7 @@ On failure it names the offending elements, so the next person doesn't have to r
 npm run lint        zero errors and warnings
 npx tsc --noEmit    clean
 npm test            60 passed
-npx playwright test 24 passed  (18 existing + 6 new)
+npx playwright test 26 passed  (18 existing + 8 new)
 npm run build       clean
 ```
 

@@ -58,24 +58,51 @@ for (const vp of VIEWPORTS) {
   });
 }
 
-test("the location sheet fits a landscape phone and scrolls", async ({ page }) => {
-  // 412px tall: the city list is taller than the screen, so the sheet itself has
-  // to scroll or "Popular Cities" is simply unreachable.
-  await page.setViewportSize({ width: 915, height: 412 });
-  await page.goto("/home");
-  await page.waitForTimeout(1500);
-  await page.getByRole("button", { name: /Select location|📍/ }).first().click();
+/**
+ * The location sheet is a separate trap: it's `position: fixed`, so it escapes the
+ * page-level overflow check above and needs measuring on its own.
+ *
+ * It was 520px wide on a 390px phone. `max-width: 100%` looked like it should have
+ * prevented that, but the overlay was an auto-sized grid whose column took its
+ * width *from* the sheet — so 100% resolved to the sheet's own 520px and
+ * constrained nothing. Testing it only at 915px hid this, because 520px fits there.
+ * Hence: narrow viewports first.
+ */
+const SHEET_VIEWPORTS = [
+  { name: "small phone", width: 360, height: 780 },
+  { name: "phone", width: 390, height: 844 },
+  { name: "landscape phone", width: 915, height: 412 },
+];
 
-  const sheet = page.getByText("Select Location & City").locator("xpath=ancestor::div[2]");
-  await expect(sheet).toBeVisible();
+for (const vp of SHEET_VIEWPORTS) {
+  test(`the location sheet fits and scrolls — ${vp.name}`, async ({ page }) => {
+    await page.setViewportSize({ width: vp.width, height: vp.height });
+    // Opened from /map, where the chip lives in the filter rail.
+    await page.goto("/map");
+    await page.waitForTimeout(1500);
+    await page.getByRole("button", { name: /Change location/ }).first().click();
 
-  const fits = await sheet.evaluate((el) => {
-    const b = el.getBoundingClientRect();
-    return {
-      insideViewport: b.left >= -1 && b.right <= document.documentElement.clientWidth + 1,
-      scrollable: el.scrollHeight > el.clientHeight ? getComputedStyle(el).overflowY === "auto" : true,
-    };
+    const heading = page.getByText("Select Location & City");
+    await expect(heading).toBeVisible();
+
+    const fits = await heading.evaluate((el) => {
+      const sheet = el.closest<HTMLElement>("[style*='border-radius: 20px']") ?? el.parentElement!.parentElement!;
+      const b = sheet.getBoundingClientRect();
+      const vw = document.documentElement.clientWidth;
+      const vh = document.documentElement.clientHeight;
+      return {
+        left: Math.round(b.left),
+        right: Math.round(b.right),
+        vw,
+        withinX: b.left >= -1 && b.right <= vw + 1,
+        withinY: b.height <= vh + 1,
+        // Taller than the screen is fine only if it can actually be scrolled.
+        reachable: sheet.scrollHeight <= sheet.clientHeight || getComputedStyle(sheet).overflowY === "auto",
+      };
+    });
+
+    expect(fits.withinX, `sheet spans ${fits.left}–${fits.right} in a ${fits.vw}px viewport`).toBe(true);
+    expect(fits.withinY).toBe(true);
+    expect(fits.reachable).toBe(true);
   });
-  expect(fits.insideViewport).toBe(true);
-  expect(fits.scrollable).toBe(true);
-});
+}

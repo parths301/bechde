@@ -85,16 +85,21 @@ export default function LocationModal({ isOpen, onClose }: LocationModalProps) {
         zIndex: 100,
         background: "rgba(0, 0, 0, 0.45)",
         backdropFilter: "blur(4px)",
-        display: "grid",
-        placeItems: "center",
+        // Flex, not grid. An auto-sized grid column takes its width *from* the
+        // sheet, so the sheet's `max-width: 100%` resolved against its own 520px
+        // and constrained nothing — it stayed 520px wide on a 390px phone and hung
+        // off the right edge. A flex container's content box is the real width.
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
         padding: 20,
       }}
       onClick={onClose}
     >
       <div
         style={{
-          width: 520,
-          maxWidth: "100%",
+          width: "100%",
+          maxWidth: 520,
           // The city chips don't wrap mid-name, so without min-width:0 the box
           // grew past the screen and sat flush-left with its right half cut off.
           minWidth: 0,

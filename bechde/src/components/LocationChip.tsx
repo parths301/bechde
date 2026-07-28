@@ -36,8 +36,13 @@ export default function LocationChip({ style }: { style?: React.CSSProperties })
   return (
     <>
       <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start", ...style }}>
-        <div
+        {/* A real button: this opens a dialog, and as a plain div it was
+            unreachable by keyboard and invisible to assistive tech. */}
+        <button
+          type="button"
           onClick={() => setModalOpen(true)}
+          aria-haspopup="dialog"
+          aria-label={`Change location — currently ${placeLabel}`}
           style={{
             display: "flex",
             alignItems: "center",
@@ -46,18 +51,21 @@ export default function LocationChip({ style }: { style?: React.CSSProperties })
             border: `1.5px solid ${origin.precise ? colors.sand : "#E0B45C"}`,
             borderRadius: 999,
             padding: "7px 14px",
+            font: "inherit",
             fontSize: 12.5,
             fontWeight: 700,
             color: colors.textBody,
             cursor: "pointer",
             whiteSpace: "nowrap",
+            maxWidth: "100%",
+            overflow: "hidden",
             opacity: busy ? 0.7 : 1,
           }}
         >
           <span>📍</span>
-          <span>{busy ? "Locating..." : placeLabel}</span>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{busy ? "Locating..." : placeLabel}</span>
           <span style={{ fontSize: 10, opacity: 0.6 }}>▾</span>
-        </div>
+        </button>
       </div>
 
       <LocationModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
