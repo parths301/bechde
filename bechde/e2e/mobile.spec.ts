@@ -49,8 +49,12 @@ test.describe("Mobile viewport", () => {
     expect(claimed).toBeGreaterThan(0);
     expect(await pins.count()).toBe(claimed);
 
-    // And a pin is a way into the listing, same as a radar bubble is on desktop.
-    await pins.first().click();
+    // A bubble is a way into the listing, same as a radar bubble is on desktop.
+    // Click the last one: Leaflet stacks markers by latitude, so on a map this small
+    // the earlier ones are genuinely underneath their neighbours and only the topmost
+    // is hittable. That's inherent to plotting real coordinates — the feed below the
+    // map is how you reach the rest.
+    await pins.last().click();
     await page.waitForURL(/\/product\//);
   });
 });

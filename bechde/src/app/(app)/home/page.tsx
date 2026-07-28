@@ -42,7 +42,8 @@ export default function HomePage() {
     lat: m.lat,
     lng: m.lng,
     price: m.price,
-    label: m.name,
+    label: m.label,
+    image: m.cover,
   }));
   const homeBubbles = shown.map((item, i) => ({
     item,
@@ -251,6 +252,7 @@ export default function HomePage() {
               user={origin}
               radiusKm={radiusKm}
               markers={nearbyMarkers}
+              bubbleSize={52}
               onMarkerClick={(id) => router.push(`/product/${id}`)}
               height="100%"
             />

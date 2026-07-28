@@ -138,6 +138,36 @@ resolved did nothing except print *"Still loading your profile — try again in 
 The button is now disabled until the profile is ready, reading "One moment…" — matching
 how it already behaves during a photo upload.
 
+### 5e · Every map now speaks the radar's language
+*Requested from the device: "this is how I want all map screens to look — not with a pin
+symbol dropped"*
+
+The home radar shows listings as round cover-photo bubbles with the item name and a price
+pill. Every other map used a generic teardrop pin, so the app had two visual languages for
+the same thing.
+
+**Change:** `OsmMap` markers are now radar bubbles — circular photo (striped placeholder
+with the short label when there's no photo), price on a pill underneath, anchored on the
+bubble's **centre** rather than a pin tip, because the circle marks the spot. Applied
+everywhere at once, so `/map` and the phone hero map match the radar on desktop and
+mobile alike — `src/components/OsmMap.tsx`.
+
+**A second bug this exposed:** `/map` opened at zoom 12 — the whole of Bengaluru — for a
+3 km radius, so every bubble collapsed into one unreadable pile in the middle. The map now
+frames the radius ring, refitting only when the radius actually changes so it doesn't
+fight your own panning. (First attempt used `L.circle().getBounds()`, which throws — a
+circle that isn't on a map has no projection. Bounds are computed arithmetically instead.)
+
+The "you" marker is also raised above the bubbles now; listings clustered around you
+buried the one fixed point of reference on the map.
+
+**Known trade-off, stated plainly:** bubbles are much larger than pins, and these sit at
+their **true coordinates** — no radar-style relaxation, because on a real map that would
+misreport where an item is. So listings a few hundred metres apart overlap, and on a
+343px-wide phone map only the topmost of a tight cluster is tappable. The feed beneath the
+map and the `/map` rail are how you reach the rest. Price pills already hide themselves
+when they collide, so the labels stay readable.
+
 ### 6 · Landscape header — wordmark on two lines, "Sign in" off-screen
 *Screenshots: 01.14.48, 01.14.49*
 

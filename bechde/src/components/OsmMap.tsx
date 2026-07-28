@@ -11,6 +11,8 @@ export interface MapMarker {
   lng: number;
   price?: string;
   label?: string;
+  /** cover photo — falls back to the striped placeholder, as elsewhere in the app */
+  image?: string;
   /** dot colour — defaults to terracotta */
   color?: string;
 }
@@ -26,22 +28,42 @@ interface OsmMapProps {
   /** hide exact position behind a soft blur circle (privacy) instead of a pin */
   fuzzy?: boolean;
   interactive?: boolean;
+  /** diameter of the bubble markers in px — smaller on cramped mobile maps */
+  bubbleSize?: number;
   onMarkerClick?: (id: string) => void;
   height?: number | string;
   radius?: number | string;
   style?: React.CSSProperties;
 }
 
-// Custom price-pill pin, brand styled, drawn as an HTML divIcon.
-function pinHtml(price: string | undefined, color: string) {
-  const pill = price
-    ? `<div class="bd-pin-pill" style="position:absolute;left:50%;bottom:26px;transform:translateX(-50%);background:${colors.ink};color:${colors.bg};font:800 11px/1 var(--font-bricolage,system-ui);padding:4px 8px;border-radius:999px;white-space:nowrap;box-shadow:0 3px 8px rgba(60,45,20,.28)">${price}</div>`
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+/** Height the price pill and its gap add below the bubble. */
+const PILL_BLOCK = 24;
+
+/**
+ * Markers are drawn as radar bubbles — a round cover photo with the item's name and
+ * its price on a pill underneath — rather than a dropped map pin. The radar on the
+ * home screen established that language and it's the thing people recognise, so every
+ * map in the app now speaks it. Unlike the radar, these sit at their true coordinates.
+ */
+function bubbleHtml(mk: MapMarker, size: number) {
+  const label = escapeHtml(mk.label ?? "");
+  const face = mk.image
+    ? `background:#EDE3D2 center/cover url("${encodeURI(mk.image)}")`
+    : `background:repeating-linear-gradient(45deg, ${colors.stripe1} 0 9px, ${colors.stripe2} 9px 18px)`;
+  // The name only goes inside the placeholder — over a photo it would be unreadable.
+  const caption = mk.image
+    ? ""
+    : `<span style="font:11px/1.15 ui-monospace,Menlo,monospace;color:${colors.textMuted};text-align:center;padding:0 6px;overflow:hidden">${label}</span>`;
+  const pill = mk.price
+    ? `<div class="bd-pin-pill" style="margin-top:4px;background:#fff;border:1.5px solid ${colors.sand};border-radius:999px;padding:2px 9px;font:700 11.5px/1.35 var(--font-karla,system-ui);color:${colors.ink};white-space:nowrap;box-shadow:0 2px 6px rgba(60,45,20,.1)">${escapeHtml(mk.price)}</div>`
     : "";
-  return `<div class="bd-pin">${pill}
-    <svg width="30" height="38" viewBox="0 0 30 38" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;filter:drop-shadow(0 4px 5px rgba(60,45,20,.35))">
-      <path d="M15 0C6.7 0 0 6.6 0 14.8 0 25.5 15 38 15 38s15-12.5 15-23.2C30 6.6 23.3 0 15 0z" fill="${color}"/>
-      <circle cx="15" cy="14.5" r="5.5" fill="#fff"/>
-    </svg></div>`;
+  return `<div class="bd-pin" style="display:flex;flex-direction:column;align-items:center">
+    <div style="width:${size}px;height:${size}px;border-radius:50%;border:3px solid #fff;box-shadow:0 4px 12px rgba(60,45,20,.18);display:grid;place-items:center;overflow:hidden;${face}">${caption}</div>
+    ${pill}
+  </div>`;
 }
 
 function youHtml() {
@@ -59,6 +81,7 @@ export default function OsmMap({
   radiusKm,
   fuzzy = false,
   interactive = true,
+  bubbleSize = 62,
   onMarkerClick,
   height = "100%",
   radius = 0,
@@ -88,13 +111,11 @@ export default function OsmMap({
   const relayoutPills = useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
-    type Box = { x1: number; y1: number; x2: number; y2: number; owner?: unknown };
+    type Box = { x1: number; y1: number; x2: number; y2: number };
     const hits = (a: Box, b: Box) => a.x1 < b.x2 && a.x2 > b.x1 && a.y1 < b.y2 && a.y2 > b.y1;
 
-    // Deliberately pill-vs-pill only. Reserving the pins as well was tried and
+    // Deliberately pill-vs-pill only. Reserving the bubbles as well was tried and
     // hides every price in a tight cluster — worse than the overlap it prevents.
-    // A pill resting on a neighbouring pin is still readable; a stack of pills
-    // is not.
     const taken: Box[] = [];
 
     // North-first, so the topmost pill in a cluster is the one that survives.
@@ -102,12 +123,19 @@ export default function OsmMap({
     for (const p of ordered) {
       const pill = (p.marker.getElement() as HTMLElement | null)?.querySelector<HTMLElement>(".bd-pin-pill");
       if (!pill) continue;
-      pill.style.display = "";
-      const { x, y } = map.latLngToContainerPoint([p.lat, p.lng]);
-      const halfW = pill.offsetWidth / 2 || 22;
-      const box: Box = { x1: x - halfW - 5, y1: y - 52, x2: x + halfW + 5, y2: y - 24 };
-      const clash = taken.some((t) => t.owner !== p.marker && hits(box, t));
-      if (clash) pill.style.display = "none";
+      pill.style.visibility = "";
+      // Measure the pill where it actually is rather than assuming an offset — the
+      // marker's shape has changed once already and hardcoded geometry didn't survive it.
+      const r = pill.getBoundingClientRect();
+      if (r.width === 0) continue;
+      const origin = map.getContainer().getBoundingClientRect();
+      const box: Box = {
+        x1: r.left - origin.left - 4,
+        y1: r.top - origin.top - 3,
+        x2: r.right - origin.left + 4,
+        y2: r.bottom - origin.top + 3,
+      };
+      if (taken.some((t) => hits(box, t))) pill.style.visibility = "hidden";
       else taken.push(box);
     }
   }, []);
@@ -180,7 +208,9 @@ export default function OsmMap({
 
       if (user) {
         const icon = L.divIcon({ html: youHtml(), className: "bd-you-icon", iconSize: [22, 22], iconAnchor: [11, 11] });
-        const m = L.marker([user.lat, user.lng], { icon, interactive: false });
+        // Above the bubbles: it's the one fixed point of reference on the map, and
+        // listings clustered around you would otherwise bury it.
+        const m = L.marker([user.lat, user.lng], { icon, interactive: false, zIndexOffset: 1000 });
         if (user.label) m.bindTooltip(user.label, { direction: "bottom", offset: [0, 10], className: "bd-tip" });
         m.addTo(group);
       }
@@ -200,10 +230,11 @@ export default function OsmMap({
         const placed: { marker: Marker; lat: number; lng: number }[] = [];
         for (const mk of markers) {
           const icon = L.divIcon({
-            html: pinHtml(mk.price, mk.color ?? colors.terracotta),
+            html: bubbleHtml(mk, bubbleSize),
             className: "bd-pin-icon",
-            iconSize: [30, 38],
-            iconAnchor: [15, 38],
+            iconSize: [bubbleSize, bubbleSize + PILL_BLOCK],
+            // Anchored on the bubble's centre, not a pin tip: the circle marks the spot.
+            iconAnchor: [bubbleSize / 2, bubbleSize / 2],
           });
           const marker = L.marker([mk.lat, mk.lng], { icon, title: mk.label });
           if (clickRef.current) marker.on("click", () => clickRef.current?.(mk.id));
@@ -219,7 +250,33 @@ export default function OsmMap({
     return () => {
       cancelled = true;
     };
-  }, [markers, user, radiusKm, fuzzy, ready, relayoutPills]);
+  }, [markers, user, radiusKm, fuzzy, ready, bubbleSize, relayoutPills]);
+
+  /**
+   * Frame the radius ring rather than sitting at a fixed zoom.
+   *
+   * /map opened at zoom 12 — the whole of Bengaluru — for a 3 km radius, so every
+   * bubble collapsed into one unreadable pile in the middle. Refitting only when the
+   * radius actually changes leaves the user's own panning and zooming alone.
+   */
+  const fittedRadius = useRef<number | null>(null);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map || !radiusKm || !user) return;
+    if (fittedRadius.current === radiusKm) return;
+    fittedRadius.current = radiusKm;
+    // Bounds computed arithmetically rather than from an L.circle: a circle that
+    // isn't on a map has no projection, and getBounds() throws inside Leaflet.
+    const latSpan = radiusKm / 111.32;
+    const lngSpan = radiusKm / (111.32 * Math.cos((user.lat * Math.PI) / 180) || 1);
+    map.fitBounds(
+      [
+        [user.lat - latSpan, user.lng - lngSpan],
+        [user.lat + latSpan, user.lng + lngSpan],
+      ],
+      { padding: [24, 24], maxZoom: 16, animate: false }
+    );
+  }, [radiusKm, user, ready]);
 
   // Keep the view centred when the centre prop changes.
   useEffect(() => {

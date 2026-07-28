@@ -43,7 +43,10 @@ export default function MapPage() {
     lat: m.lat,
     lng: m.lng,
     price: m.price,
-    label: m.name,
+    // The short label, same as the radar bubbles use — a full listing name won't
+    // fit inside a 62px circle.
+    label: m.label,
+    image: m.cover,
   }));
 
   return (
