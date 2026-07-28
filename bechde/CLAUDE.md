@@ -231,6 +231,16 @@ Read these. Each one was found the hard way.
   will happily reuse it, so every spec fails at `page.goto`. If the suite dies on
   navigation, `curl localhost:3000` first; if it hangs, kill the process and restart.
 
+### Mobile layout
+- **`min-width: auto` is the default on grid and flex items**, so a column will not
+  shrink below its widest un-wrappable child. One nowrap chip pushed whole pages to
+  472px on a 390px screen — and because `body` is `overflow-x: hidden`, the page cropped
+  its own right edge instead of scrolling, so buttons and values just went missing with
+  nothing looking broken. `e2e/responsive.spec.ts` guards this across 5 viewports; full
+  account in `MOBILE-FIXES.md`.
+- Landscape phones (~915px) land **between** the breakpoints: too wide for the mobile
+  layout, too narrow for desktop spacing. There's a dedicated `821–1080px` band.
+
 ### Silent failures — the ones that cost the most
 These all shared a shape: something reported success while doing nothing.
 

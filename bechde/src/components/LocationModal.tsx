@@ -95,6 +95,13 @@ export default function LocationModal({ isOpen, onClose }: LocationModalProps) {
         style={{
           width: 520,
           maxWidth: "100%",
+          // The city chips don't wrap mid-name, so without min-width:0 the box
+          // grew past the screen and sat flush-left with its right half cut off.
+          minWidth: 0,
+          // Landscape phones are ~430px tall: the list has to scroll inside the
+          // sheet, or "Popular Cities" is simply unreachable.
+          maxHeight: "calc(100dvh - 40px)",
+          overflowY: "auto",
           background: colors.bg,
           border: `1.5px solid ${colors.cardBorder}`,
           borderRadius: 20,

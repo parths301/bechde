@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import type { Map as LeafletMap, LayerGroup } from "leaflet";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { Map as LeafletMap, LayerGroup, Marker } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { colors } from "@/lib/colors";
 
@@ -35,7 +35,7 @@ interface OsmMapProps {
 // Custom price-pill pin, brand styled, drawn as an HTML divIcon.
 function pinHtml(price: string | undefined, color: string) {
   const pill = price
-    ? `<div style="position:absolute;left:50%;bottom:26px;transform:translateX(-50%);background:${colors.ink};color:${colors.bg};font:800 11px/1 var(--font-bricolage,system-ui);padding:4px 8px;border-radius:999px;white-space:nowrap;box-shadow:0 3px 8px rgba(60,45,20,.28)">${price}</div>`
+    ? `<div class="bd-pin-pill" style="position:absolute;left:50%;bottom:26px;transform:translateX(-50%);background:${colors.ink};color:${colors.bg};font:800 11px/1 var(--font-bricolage,system-ui);padding:4px 8px;border-radius:999px;white-space:nowrap;box-shadow:0 3px 8px rgba(60,45,20,.28)">${price}</div>`
     : "";
   return `<div class="bd-pin">${pill}
     <svg width="30" height="38" viewBox="0 0 30 38" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;filter:drop-shadow(0 4px 5px rgba(60,45,20,.35))">
@@ -76,6 +76,42 @@ export default function OsmMap({
   }, [onMarkerClick]);
   const [ready, setReady] = useState(false);
 
+  /**
+   * Price pills all sit at the same offset above their pin, so listings a few
+   * hundred metres apart drew their pills on top of one another — an unreadable
+   * stack of overlapping black capsules. Pins stay at their true coordinates
+   * (moving them would misreport where the item is); instead the pill is hidden
+   * on whichever markers collide with one already shown. The pin is still there
+   * and still tappable, and zooming in reveals the prices again.
+   */
+  const pillsRef = useRef<{ marker: Marker; lat: number; lng: number }[]>([]);
+  const relayoutPills = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    type Box = { x1: number; y1: number; x2: number; y2: number; owner?: unknown };
+    const hits = (a: Box, b: Box) => a.x1 < b.x2 && a.x2 > b.x1 && a.y1 < b.y2 && a.y2 > b.y1;
+
+    // Deliberately pill-vs-pill only. Reserving the pins as well was tried and
+    // hides every price in a tight cluster — worse than the overlap it prevents.
+    // A pill resting on a neighbouring pin is still readable; a stack of pills
+    // is not.
+    const taken: Box[] = [];
+
+    // North-first, so the topmost pill in a cluster is the one that survives.
+    const ordered = [...pillsRef.current].sort((a, b) => b.lat - a.lat);
+    for (const p of ordered) {
+      const pill = (p.marker.getElement() as HTMLElement | null)?.querySelector<HTMLElement>(".bd-pin-pill");
+      if (!pill) continue;
+      pill.style.display = "";
+      const { x, y } = map.latLngToContainerPoint([p.lat, p.lng]);
+      const halfW = pill.offsetWidth / 2 || 22;
+      const box: Box = { x1: x - halfW - 5, y1: y - 52, x2: x + halfW + 5, y2: y - 24 };
+      const clash = taken.some((t) => t.owner !== p.marker && hits(box, t));
+      if (clash) pill.style.display = "none";
+      else taken.push(box);
+    }
+  }, []);
+
   // Create the map once, on mount (client-only via dynamic import).
   useEffect(() => {
     let cancelled = false;
@@ -105,6 +141,9 @@ export default function OsmMap({
       }).addTo(map);
 
       groupRef.current = L.layerGroup().addTo(map);
+      // Which pills collide depends on zoom and pan, so redo it whenever either changes.
+      map.on("zoomend", relayoutPills);
+      map.on("moveend", relayoutPills);
       setReady(true); // let the marker-sync effect run now that the map exists
     })();
 
@@ -158,6 +197,7 @@ export default function OsmMap({
           fillOpacity: 0.14,
         }).addTo(group);
       } else {
+        const placed: { marker: Marker; lat: number; lng: number }[] = [];
         for (const mk of markers) {
           const icon = L.divIcon({
             html: pinHtml(mk.price, mk.color ?? colors.terracotta),
@@ -168,13 +208,18 @@ export default function OsmMap({
           const marker = L.marker([mk.lat, mk.lng], { icon, title: mk.label });
           if (clickRef.current) marker.on("click", () => clickRef.current?.(mk.id));
           marker.addTo(group);
+          placed.push({ marker, lat: mk.lat, lng: mk.lng });
         }
+        pillsRef.current = placed;
+        // Two frames out: Leaflet attaches the icon elements asynchronously, and
+        // offsetWidth reads 0 until they've been laid out.
+        requestAnimationFrame(() => requestAnimationFrame(relayoutPills));
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [markers, user, radiusKm, fuzzy, ready]);
+  }, [markers, user, radiusKm, fuzzy, ready, relayoutPills]);
 
   // Keep the view centred when the centre prop changes.
   useEffect(() => {

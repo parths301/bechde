@@ -158,6 +158,9 @@ export function SearchBar({ autoFocus }: { autoFocus?: boolean } = {}) {
         onMouseLeave={() => setHover(false)}
         style={{
           flex: 1,
+          // Flex items won't shrink past their content without this, and the bar
+          // holds a nowrap place name — that alone made /home wider than the phone.
+          minWidth: 0,
           display: "flex",
           alignItems: "center",
           gap: 10,
@@ -206,7 +209,14 @@ export function SearchBar({ autoFocus }: { autoFocus?: boolean } = {}) {
             color: colors.textBody,
             fontWeight: 600,
             whiteSpace: "nowrap",
-            flex: "none",
+            // Truncate rather than refuse to shrink. "Bengaluru (Koramangala)"
+            // with flex:none was pushing the whole home page 15px wider than the
+            // viewport, and the overflow was clipped, not scrollable.
+            flexShrink: 1,
+            minWidth: 0,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            maxWidth: "45%",
             cursor: "pointer",
           }}
         >

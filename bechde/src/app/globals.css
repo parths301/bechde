@@ -156,6 +156,25 @@ input[type="range"] {
     font-size: 16px !important;
   }
 
+  /* ---- the single biggest mobile bug ----
+     Grid and flex items default to `min-width: auto`, which means a column will
+     not shrink below the widest un-wrappable thing inside it. One nowrap chip
+     ("Delhi NCR (Connaught Place)", "Bengaluru (Koramangala)", the 1 km/10 km
+     scale) was therefore forcing whole pages to 472px on a 390px screen. The
+     page couldn't scroll sideways either — body has overflow-x: hidden — so the
+     right-hand edge of every screen was silently cut off and unreachable:
+     the radius value, "Make an offer", "Save this search", the max price field.
+     Letting the columns shrink is what makes the content fit. */
+  .bd-hero-grid > *,
+  .bd-map-grid > *,
+  .bd-product-grid > *,
+  .bd-sell-grid > *,
+  .bd-chat-grid > *,
+  .bd-feed-grid > *,
+  .bd-prof-grid > * {
+    min-width: 0 !important;
+  }
+
   /* ---- app shell + header ---- */
   .bd-app-shell {
     padding-bottom: 72px !important; /* clear the fixed bottom nav */
@@ -196,6 +215,10 @@ input[type="range"] {
   /* the header search is hidden on mobile — this is the entry point instead */
   .bd-mobile-search {
     display: flex !important;
+    min-width: 0 !important;
+  }
+  .bd-mobile-search > * {
+    min-width: 0 !important;
   }
   .bd-feed-sec {
     padding: 4px 16px 30px !important;
@@ -330,6 +353,31 @@ input[type="range"] {
   /* ---- login ---- */
   .bd-login-card {
     grid-template-columns: 1fr !important;
+  }
+}
+
+/* =========================================================
+   LANDSCAPE PHONE / SMALL TABLET (821–1080px)
+   Wide enough for the desktop layout, not wide enough for its
+   spacing. Without this the wordmark broke onto two lines, the
+   "Bech de!" pill onto three, and "Sign in" fell off the edge.
+   ========================================================= */
+@media (min-width: 821px) and (max-width: 1080px) {
+  .bd-header {
+    gap: 12px !important;
+    padding: 12px 16px !important;
+  }
+  .bd-desktop-nav {
+    gap: 12px !important;
+  }
+  /* None of these should ever wrap — they're labels, not prose. */
+  .bd-header a,
+  .bd-header nav,
+  .bd-desktop-nav {
+    white-space: nowrap;
+  }
+  .bd-search-wrap {
+    min-width: 0;
   }
 }
 

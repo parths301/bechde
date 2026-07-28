@@ -123,7 +123,10 @@ export default function ProductPage() {
           </Stripe>
           {/* Real uploads when there are any; the striped placeholders only fill the
               remaining slots so the row keeps its shape. */}
-          <div style={{ display: "flex", gap: 10 }}>
+          {/* Four fixed-width thumbs don't fit a 390px phone. Let them shrink
+              evenly rather than push the whole page 24px past the viewport —
+              which clipped "Make an offer" and the right-hand spec cards. */}
+          <div style={{ display: "flex", gap: 10, minWidth: 0 }}>
             {(item.images ?? []).slice(0, 4).map((url) => (
               <Thumb key={url} src={url} />
             ))}
@@ -328,9 +331,11 @@ function Thumb({ src, label, angle }: { src?: string; label?: string; angle?: st
     <div
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      style={{ cursor: "pointer", border: `2px solid ${hover ? colors.marigold : "transparent"}`, borderRadius: 12 }}
+      // Share the row instead of insisting on 88px each: four of those plus gaps
+      // and borders is 398px, wider than the phone they have to fit on.
+      style={{ cursor: "pointer", border: `2px solid ${hover ? colors.marigold : "transparent"}`, borderRadius: 12, flex: "1 1 0", minWidth: 0, maxWidth: 88 }}
     >
-      <Stripe angle={angle ?? "45deg"} src={src} band={7} label={label} style={{ width: 88, height: 70, borderRadius: 10, fontSize: 9.5 }} />
+      <Stripe angle={angle ?? "45deg"} src={src} band={7} label={label} style={{ width: "100%", height: 70, borderRadius: 10, fontSize: 9.5 }} />
     </div>
   );
 }
