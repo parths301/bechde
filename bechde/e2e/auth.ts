@@ -13,7 +13,8 @@ export async function signIn(page: Page, email: string) {
   // which surfaces as a baffling "Email link is invalid or has expired".
   await fetch(`${MAILPIT}/api/v1/messages`, { method: "DELETE" });
 
-  await page.goto("/");
+  // "/" now redirects to /home; the sign-in form lives on its own page.
+  await page.goto("/login");
   await page.getByPlaceholder("you@example.com").fill(email);
   await page.getByText("Email me a link →").click();
   await expect(page.getByText("Check your email")).toBeVisible();

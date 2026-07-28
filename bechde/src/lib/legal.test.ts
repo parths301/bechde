@@ -1,25 +1,41 @@
 import { describe, it, expect } from "vitest";
-import { operator, legalIsDraft, prohibitedItems } from "./legal";
+import { operator, legalIsDraft, isDraftOperator, prohibitedItems } from "./legal";
 
 /**
  * `legalIsDraft` gates a user-visible "these are placeholders" banner on the privacy
- * policy and terms. If it ever silently returns false while the placeholders are still
- * in place, the site would publish draft legal text as if it were final.
+ * policy and terms. If it ever silently returns false while the details are still
+ * fake, the site publishes draft legal text as if it were final — and under the DPDP
+ * Act, an unreachable grievance contact is a compliance failure, not a cosmetic one.
  */
-describe("legalIsDraft", () => {
-  it("is true while any operator field is still a placeholder", () => {
-    const hasPlaceholder = Object.values(operator).some((v) => v.includes("["));
-    expect(legalIsDraft).toBe(hasPlaceholder);
+describe("isDraftOperator", () => {
+  const real = {
+    entity: "Acme Pvt Ltd",
+    address: "12 MG Road, Bengaluru 560001",
+    officer: "R. Kumar",
+    email: "grievance@acme.in",
+  };
+
+  it("clears once every field is real", () => {
+    expect(isDraftOperator(real)).toBe(false);
   });
 
-  it("detects a placeholder in any single field", () => {
-    const filled = { entity: "Acme Pvt Ltd", email: "hi@acme.in", officer: "[NAME]" };
-    expect(Object.values(filled).some((v) => v.includes("["))).toBe(true);
+  it("catches a leftover bracket placeholder", () => {
+    expect(isDraftOperator({ ...real, officer: "[NAME]" })).toBe(true);
   });
 
-  it("clears once every field is filled", () => {
-    const filled = { entity: "Acme Pvt Ltd", email: "hi@acme.in", officer: "R. Kumar" };
-    expect(Object.values(filled).some((v) => v.includes("["))).toBe(false);
+  // The regression that prompted this: placeholders were swapped for .local addresses,
+  // which cleared the banner while leaving a mailbox nobody can write to.
+  it.each([
+    ["a .local address", "grievance@bechde.local"],
+    ["an example.com address", "hi@example.com"],
+    ["a localhost address", "ops@localhost"],
+    ["a TODO marker", "TODO add real address"],
+  ])("still counts %s as a draft", (_label, value) => {
+    expect(isDraftOperator({ ...real, email: value })).toBe(true);
+  });
+
+  it("matches the live operator values", () => {
+    expect(legalIsDraft).toBe(isDraftOperator(operator));
   });
 });
 

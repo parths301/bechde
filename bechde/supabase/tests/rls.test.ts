@@ -266,8 +266,11 @@ describe("admin moderation", () => {
   });
 
   it("prevents non-admins from updating other people's listings", async () => {
-    const { error } = await outsider.from("listings").update({ status: "removed" }).eq("id", "yamaha-f310");
-    expect(error?.code).toBe("42501");
+    // An UPDATE whose row is filtered out by the USING clause matches nothing and
+    // returns no error — so assert the row is untouched, not that it raised 42501.
+    await outsider.from("listings").update({ status: "removed" }).eq("id", "yamaha-f310");
+    const { data } = await admin.from("listings").select("status").eq("id", "yamaha-f310").single();
+    expect(data!.status).toBe("active");
   });
 
   it("allows admins to update report status", async () => {
@@ -276,9 +279,10 @@ describe("admin moderation", () => {
       reporter_id: aishaId, listing_id: "yamaha-f310", reason: "scam"
     }).select("id").single();
     
-    // Normal user can't update it
-    const { error: err1 } = await aisha.from("reports").update({ status: "reviewed" }).eq("id", rep!.id);
-    expect(err1?.code).toBe("42501");
+    // Normal user can't update it — again a filtered-out no-op, so check the value.
+    await aisha.from("reports").update({ status: "reviewed" }).eq("id", rep!.id);
+    const { data: untouched } = await admin.from("reports").select("status").eq("id", rep!.id).single();
+    expect(untouched!.status).not.toBe("reviewed");
 
     // Admin can
     await admin.from("profiles").update({ is_admin: true }).eq("id", outsiderId);
@@ -293,28 +297,22 @@ describe("admin moderation", () => {
 
 describe("rate limits", () => {
   it("prevents more than 20 listings in a day", async () => {
-    // We already have a few listings from seed. Let's insert until we hit 20.
-    const promises = [];
+    // Sequential, not parallel: the trigger counts rows already committed, so
+    // concurrent inserts would race and the cut-off wouldn't land on a fixed number.
     for (let i = 0; i < 20; i++) {
-      promises.push(outsider.from("listings").insert({
-        name: `Spam ${i}`,
-        price: 10,
-        seller_id: outsiderId,
-        dist: "Near me",
-      }));
+      const { error } = await outsider
+        .from("listings")
+        .insert({ name: `Spam ${i}`, price: 10, category: "Everything", seller_id: outsiderId });
+      expect(error).toBeNull();
     }
-    
-    // Most should succeed (up to the limit of 20)
-    await Promise.all(promises);
 
-    // The next one should fail
-    const { error } = await outsider.from("listings").insert({
-      name: `Spam 21`,
-      price: 10,
-      seller_id: outsiderId,
-      dist: "Near me",
-    });
-    
+    const { error } = await outsider
+      .from("listings")
+      .insert({ name: "Spam 21", price: 10, category: "Everything", seller_id: outsiderId });
+
     expect(error?.message).toMatch(/Rate limit exceeded for listings/);
+
+    // Leave the table as we found it, or the next run starts already rate-limited.
+    await admin.from("listings").delete().eq("seller_id", outsiderId);
   });
 });

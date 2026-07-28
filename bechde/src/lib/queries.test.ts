@@ -35,7 +35,7 @@ describe("queries.ts", () => {
         },
       };
 
-      const item = rowToItem(row as any);
+      const item = rowToItem(row as unknown as Parameters<typeof rowToItem>[0]);
       expect(item.id).toBe("test-id");
       expect(item.name).toBe("Test Item");
       expect(item.price).toBe("₹1,500");
@@ -61,7 +61,7 @@ describe("queries.ts", () => {
         },
       };
 
-      const item = rowToItem(row as any);
+      const item = rowToItem(row as unknown as Parameters<typeof rowToItem>[0]);
       expect(item.images).toEqual([]);
       expect(item.dist).toBe("");
       expect(item.lat).toBe(0);
@@ -73,9 +73,9 @@ describe("queries.ts", () => {
       const mockInsert = vi.fn().mockResolvedValue({ error: null });
       const mockFrom = vi.fn().mockReturnValue({ insert: mockInsert });
       
-      (clientModule.getSupabaseBrowser as any).mockReturnValue({
+      vi.mocked(clientModule.getSupabaseBrowser).mockReturnValue({
         from: mockFrom,
-      });
+      } as unknown as ReturnType<typeof clientModule.getSupabaseBrowser>);
 
       // We have to mock the store since it gets user profile
       vi.mock("./store", () => ({
@@ -97,7 +97,7 @@ describe("queries.ts", () => {
           reason: "scam",
           details: "Test details",
         });
-      } catch (e) {
+      } catch {
         // If myId() throws, we swallow it for this test structure
       }
     });

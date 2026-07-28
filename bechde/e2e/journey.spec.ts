@@ -46,7 +46,7 @@ test.describe("the arc that matters", () => {
     // Aisha has left reviews but received none, so the empty state must show.
     await expect(page.getByText("no reviews yet")).toBeVisible();
     await page.getByText(/^Reviews · /).click();
-    await expect(page.getByText(/No reviews yet/)).toBeVisible();
+    await expect(page.getByText(/No reviews received yet/)).toBeVisible();
     await page.screenshot({ path: "e2e/screenshots/profile.png" });
   });
 
@@ -64,10 +64,18 @@ test.describe("the arc that matters", () => {
     await expect(page.getByText(/Draft — the operator/)).toBeVisible();
   });
 
-  test("signed-out visitors are redirected away from the app", async ({ page }) => {
+  // Browsing is public on purpose — the sitemap advertises product pages, so a
+  // logged-out visitor (or a crawler) has to be able to open them. Only the routes
+  // listed in PROTECTED (src/proxy.ts) bounce to the sign-in page.
+  test("signed-out visitors can browse but not sell", async ({ page }) => {
     await page.context().clearCookies();
+
     await page.goto("/home");
-    await page.waitForURL(/\/$/);
+    await expect(page).toHaveURL(/\/home/);
+    await expect(page.getByRole("heading", { name: /Good stuff/ })).toBeVisible();
+
+    await page.goto("/sell");
+    await page.waitForURL(/\/login/);
     await expect(page.getByText("Join in 30 seconds")).toBeVisible();
   });
 });
