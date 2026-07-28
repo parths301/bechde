@@ -337,14 +337,6 @@ enough to start — e.g. ≤20 listings/day, ≤200 messages/hour), plus an abus
   and a long price pill can clip the right edge. Improve `radarPlacement` in
   `src/lib/geo.ts` (collision relaxation, or a log-ish distance scale) — it's pure and
   unit-tested, so iterate freely.
-- **Dead code and legacy columns.** Verified unused: DB columns `listings.km`,
-  `listings.dist` (superseded by read-time distance), `listings.home`, `listings.map`
-  jsonb (superseded by `radarPlacement`), `profiles.rating` text (superseded by
-  `rating_avg`), `profiles.phone`; and `data.ts` exports `homeBubbles`, `mapItemsAll`,
-  `feedIds`, `feedItems`, `getItem`. Note `rowToItem` still *reads* `km`/`dist` as a
-  fallback for coordinate-less rows, so remove that path first. `data.ts` must keep
-  `items`, `chatThreads`, `homeCategories`, `sellCategories`, `USER_LOCATION` and the
-  types — the seed and `search.ts` import them.
 - **`store.tsx` slimming.** `phone`/`setPhone` has **no consumer at all** (pre-auth
   leftover) and `name` is only a fallback before `useProfile()` resolves. The sell-form
   draft would sit better in the form itself or `sessionStorage`.

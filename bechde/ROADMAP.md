@@ -1,6 +1,6 @@
 # Bech De — Roadmap
 
-**Current state: phases 0–10 are done.** The prototype is a real marketplace on Supabase —
+**Current state: phases 0–11 are done.** The prototype is a real marketplace on Supabase —
 auth, listings with photo upload, real geographic distances, ranked search, live chat with
 offers, derived seller reputation, reporting and blocking enforced in RLS, legal pages, and
 a test suite with CI. Nothing a user sees is mocked.
@@ -141,3 +141,9 @@ acceptance criteria, in **[CLAUDE.md §8](./CLAUDE.md)**:
   sweep; abuse/rate limits (done)
 - **P2** — radar crowding, dropping legacy columns, offer semantics, `next/image`, SEO
   metadata per listing, Hindi copy, test gaps
+
+### Phase 10 — UI Polish & Missing Data Sync ✅
+- [x] Web App Manifest and standard Apple/Favicon generated for PWA support
+- [x] Login page layout responsiveness restored (side-by-side login form on desktop)
+- [x] "Public Spot" map privacy feature: checkbox on Sell form + explicit map copy + pinpoint map behavior.
+- [x] Database synchronized: Added missing `km`, `dist`, `home`, `map`, and `public_spot` to the production `listings` table and the 0001_init.sql migrations, allowing the seed script to run cleanly with real coordinates.
