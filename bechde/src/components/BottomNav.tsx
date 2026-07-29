@@ -4,21 +4,22 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { colors } from "@/lib/colors";
 import { useUnreadCount } from "@/lib/queries";
+import { IconHome, IconMap, IconPlus, IconChat, IconUser } from "./icons";
 
 interface Tab {
   href: string;
-  icon: string;
+  Icon: React.ComponentType<{ size?: number }>;
   label: string;
   center?: boolean;
   badge?: number;
 }
 
 const tabs: Tab[] = [
-  { href: "/home", icon: "🏠", label: "Home" },
-  { href: "/map", icon: "🗺️", label: "Map" },
-  { href: "/sell", icon: "＋", label: "Sell", center: true },
-  { href: "/chat", icon: "💬", label: "Chats" },
-  { href: "/profile", icon: "👤", label: "You" },
+  { href: "/home", Icon: IconHome, label: "Home" },
+  { href: "/map", Icon: IconMap, label: "Map" },
+  { href: "/sell", Icon: IconPlus, label: "Sell", center: true },
+  { href: "/chat", Icon: IconChat, label: "Chats" },
+  { href: "/profile", Icon: IconUser, label: "You" },
 ];
 
 export default function BottomNav() {
@@ -65,14 +66,12 @@ export default function BottomNav() {
                   color: "#fff",
                   display: "grid",
                   placeItems: "center",
-                  fontSize: 26,
-                  fontWeight: 700,
                   transform: "rotate(-4deg)",
                   boxShadow: "0 6px 16px rgba(232,106,79,.4)",
                   border: "3px solid #fff",
                 }}
               >
-                {t.icon}
+                <t.Icon size={26} />
               </div>
               <span style={{ fontSize: 10, fontWeight: 800, color: colors.clay, marginTop: 2 }}>{t.label}</span>
             </Link>
@@ -94,8 +93,8 @@ export default function BottomNav() {
               color: active ? colors.clay : colors.textFaint,
             }}
           >
-            <span style={{ position: "relative", fontSize: 20, lineHeight: 1, filter: active ? "none" : "grayscale(35%)" }}>
-              {t.icon}
+            <span style={{ position: "relative", display: "flex", lineHeight: 1 }}>
+              <t.Icon size={22} />
               {badge ? (
                 <span
                   style={{

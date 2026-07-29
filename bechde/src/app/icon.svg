@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- The header mark: marigold tile, three round corners and one clipped, ink B.
+       An SVG rather than a generated PNG so it stays crisp at 16px and can use a real
+       bold weight — ImageResponse only bundles a regular face. -->
+  <path fill="#F2A93B" d="M18 0h28a18 18 0 0 1 18 18v28a18 18 0 0 1-18 18H5a5 5 0 0 1-5-5V18A18 18 0 0 1 18 0Z"/>
+  <text x="32" y="33" fill="#3B2A10" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+        font-size="42" font-weight="800" text-anchor="middle" dominant-baseline="central">B</text>
+</svg>
