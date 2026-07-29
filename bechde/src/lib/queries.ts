@@ -452,10 +452,14 @@ export interface MyProfile {
   rating_count: number;
   sold: number;
   reply_time: string | null;
+  // Read so the header can decide whether to offer the console at all. RLS still
+  // refuses the data either way; this only stops us showing a link into a dead end.
+  is_admin: boolean;
+  suspended_at: string | null;
 }
 
 const PROFILE_COLS =
-  "id,name,initial,email,lat,lng,neighbourhood,bio,created_at,rating_avg,rating_count,sold,reply_time";
+  "id,name,initial,email,lat,lng,neighbourhood,bio,created_at,rating_avg,rating_count,sold,reply_time,is_admin,suspended_at";
 
 // The signed-in profile is read by several screens at once (Header, sell, profile,
 // plus every distance calculation) — so it lives in one tiny module store instead of
@@ -1577,11 +1581,19 @@ export interface Report {
   listingStatus: string | null;
   reporterName: string | null;
   reportedName: string | null;
+  /** 0011 let people report a review, but nothing could act on one until 0016. */
+  reviewId: string | null;
+  reviewBody: string | null;
+  reviewRating: number | null;
+  resolvedBy: string | null;
+  resolvedAt: string | null;
 }
 
 const REPORT_SELECT =
-  "id,reason,details,status,created_at," +
+  "id,reason,details,status,created_at,resolved_at," +
   "listing:listings(id,name,status)," +
+  "review:reviews(id,body,rating)," +
+  "resolver:profiles!reports_resolved_by_fkey(name)," +
   "reporter:profiles!reports_reporter_id_fkey(name)," +
   "reported_user:profiles!reports_profile_id_fkey(name)";
 
@@ -1591,7 +1603,10 @@ interface ReportRow {
   details: string | null;
   status: string;
   created_at: string;
+  resolved_at: string | null;
   listing: { id: string; name: string; status: string } | null;
+  review: { id: string; body: string | null; rating: number } | null;
+  resolver: { name: string } | null;
   reporter: { name: string } | null;
   reported_user: { name: string } | null;
 }
@@ -1618,13 +1633,358 @@ export function useReports() {
       listingStatus: r.listing?.status ?? null,
       reporterName: r.reporter?.name ?? null,
       reportedName: r.reported_user?.name ?? null,
+      reviewId: r.review?.id ?? null,
+      reviewBody: r.review?.body ?? null,
+      reviewRating: r.review?.rating ?? null,
+      resolvedBy: r.resolver?.name ?? null,
+      resolvedAt: r.resolved_at,
     }));
   }, [isAdmin, version]);
   return { ...state, reload: useCallback(() => setVersion((v) => v + 1), []) };
 }
 
-/** Admin action: set a report's status. RLS enforces the admin check. */
-export async function updateReportStatus(reportId: string, status: "reviewed" | "actioned") {
-  const { error } = await getSupabaseBrowser().from("reports").update({ status }).eq("id", reportId);
-  if (error) throw error;
+// ---------------------------------------------------------------------------
+// Taxonomy — categories, cities, localities, and per-category attributes.
+//
+// These used to be hardcoded in three different places: homeCategories in data.ts
+// (which drove the UI while the `categories` table drove the foreign key),
+// POPULAR_CITIES in LocationModal.tsx, and nothing at all for attributes. The
+// database is the definition now; an admin edits it at /admin/taxonomy.
+// ---------------------------------------------------------------------------
+
+export interface Category {
+  name: string;
+  icon: string | null;
+  sort: number;
+  active: boolean;
+}
+
+/** Active categories, in display order. Readable signed out. */
+export function useCategories(): AsyncState<Category[]> {
+  return useAsync<Category[]>(async () => {
+    const { data, error } = await getSupabaseBrowser()
+      .from("categories")
+      .select("name,icon,sort,active")
+      .eq("active", true)
+      .order("sort");
+    if (error) throw error;
+    return (data ?? []) as Category[];
+  }, []);
+}
+
+export interface City {
+  id: string;
+  name: string;
+  state: string | null;
+  lat: number;
+  lng: number;
+  sort: number;
+  active: boolean;
+}
+
+export interface Locality {
+  id: string;
+  city_id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  sort: number;
+  active: boolean;
+}
+
+/** Cities with their localities, for the location sheet. Readable signed out. */
+export function useCities(): AsyncState<{ city: City; localities: Locality[] }[]> {
+  return useAsync(async () => {
+    const sb = getSupabaseBrowser();
+    const [{ data: cities, error: cErr }, { data: locs, error: lErr }] = await Promise.all([
+      sb.from("cities").select("*").eq("active", true).order("sort"),
+      sb.from("localities").select("*").eq("active", true).order("sort"),
+    ]);
+    if (cErr) throw cErr;
+    if (lErr) throw lErr;
+    return ((cities ?? []) as City[]).map((city) => ({
+      city,
+      localities: ((locs ?? []) as Locality[]).filter((l) => l.city_id === city.id),
+    }));
+  }, []);
+}
+
+export interface CategoryAttribute {
+  id: string;
+  category: string | null;
+  key: string;
+  label: string;
+  type: "text" | "number" | "select" | "boolean";
+  options: string[];
+  hint: string | null;
+  required: boolean;
+  sort: number;
+  active: boolean;
+}
+
+/**
+ * The attributes a listing in `category` should be asked for: the universal ones
+ * (category is null) plus that category's own, in sort order. Pass null to get every
+ * template, which is what the admin editor wants.
+ */
+export function useCategoryAttributes(category: string | null): AsyncState<CategoryAttribute[]> {
+  return useAsync<CategoryAttribute[]>(async () => {
+    let q = getSupabaseBrowser().from("category_attributes").select("*").eq("active", true);
+    if (category) q = q.or(`category.is.null,category.eq.${category}`);
+    const { data, error } = await q.order("sort");
+    if (error) throw error;
+    return (data ?? []) as CategoryAttribute[];
+  }, [category]);
+}
+
+// ---------------------------------------------------------------------------
+// Admin write API.
+//
+// Every one of these is an RPC rather than a table write, and that is the whole
+// point: the SECURITY DEFINER function in 0016 makes the change and writes its
+// audit row in the same transaction, so there is no way to do the first without
+// the second. `reason` is required by a check constraint on admin_actions — pass
+// something a human reading the log in six months would find useful.
+// ---------------------------------------------------------------------------
+
+async function adminRpc<T>(fn: string, args: Record<string, unknown>): Promise<T> {
+  const { data, error } = await getSupabaseBrowser().rpc(fn, args);
+  if (error) throw new Error(error.message);
+  return data as T;
+}
+
+export type ListingPatch = Partial<{
+  name: string;
+  label: string | null;
+  price: string;
+  category: string;
+  note: string | null;
+  negotiable: boolean;
+  neighbourhood: string | null;
+  pickup: string | null;
+  lat: number | null;
+  lng: number | null;
+  public_spot: boolean;
+  status: "active" | "sold" | "removed";
+  story: unknown[];
+  facts: unknown[];
+  attrs: Record<string, string>;
+}>;
+
+export const adminUpdateListing = (id: string, patch: ListingPatch, reason: string) =>
+  adminRpc("admin_update_listing", { p_id: id, p_patch: patch, p_reason: reason });
+
+export type ProfilePatch = Partial<{ name: string; initial: string | null; color: string | null; bio: string | null }>;
+
+export const adminUpdateProfile = (id: string, patch: ProfilePatch, reason: string) =>
+  adminRpc("admin_update_profile", { p_id: id, p_patch: patch, p_reason: reason });
+
+export const adminSetSuspension = (id: string, suspend: boolean, reason: string) =>
+  adminRpc("admin_set_suspension", { p_id: id, p_suspend: suspend, p_reason: reason });
+
+export const adminRemoveReview = (id: string, reason: string) =>
+  adminRpc("admin_remove_review", { p_id: id, p_reason: reason });
+
+export const adminSetReportStatus = (id: string, status: "open" | "reviewed" | "actioned", reason: string) =>
+  adminRpc("admin_set_report_status", { p_id: id, p_status: status, p_reason: reason });
+
+export const adminUpsertCategory = (name: string, icon: string, sort: number, active: boolean, reason: string) =>
+  adminRpc("admin_upsert_category", { p_name: name, p_icon: icon, p_sort: sort, p_active: active, p_reason: reason });
+
+export const adminRenameCategory = (from: string, to: string, reason: string) =>
+  adminRpc("admin_rename_category", { p_from: from, p_to: to, p_reason: reason });
+
+export const adminUpsertCity = (c: Omit<City, "active"> & { active: boolean }, reason: string) =>
+  adminRpc("admin_upsert_city", {
+    p_id: c.id, p_name: c.name, p_state: c.state, p_lat: c.lat, p_lng: c.lng,
+    p_sort: c.sort, p_active: c.active, p_reason: reason,
+  });
+
+export const adminUpsertLocality = (l: Partial<Locality> & { city_id: string; name: string; lat: number; lng: number }, reason: string) =>
+  adminRpc("admin_upsert_locality", {
+    p_id: l.id ?? null, p_city_id: l.city_id, p_name: l.name, p_lat: l.lat, p_lng: l.lng,
+    p_sort: l.sort ?? 100, p_active: l.active ?? true, p_reason: reason,
+  });
+
+export const adminDeleteLocality = (id: string, reason: string) =>
+  adminRpc("admin_delete_locality", { p_id: id, p_reason: reason });
+
+export const adminUpsertAttribute = (a: Partial<CategoryAttribute> & { key: string; label: string }, reason: string) =>
+  adminRpc("admin_upsert_attribute", {
+    p_id: a.id ?? null, p_category: a.category ?? "", p_key: a.key, p_label: a.label,
+    p_type: a.type ?? "text", p_options: a.options ?? [], p_hint: a.hint ?? null,
+    p_required: a.required ?? false, p_sort: a.sort ?? 100, p_active: a.active ?? true,
+    p_reason: reason,
+  });
+
+export const adminDeleteAttribute = (id: string, reason: string) =>
+  adminRpc("admin_delete_attribute", { p_id: id, p_reason: reason });
+
+// ---------------------------------------------------------------------------
+// Admin reads
+// ---------------------------------------------------------------------------
+
+export interface AuditEntry {
+  id: string;
+  actorName: string | null;
+  action: string;
+  targetTable: string;
+  targetId: string;
+  before: Record<string, unknown> | null;
+  after: Record<string, unknown> | null;
+  reason: string;
+  createdAt: string;
+}
+
+/** The audit log, newest first. Returns nothing unless RLS says you're an admin. */
+export function useAuditLog(filter: { target?: string; action?: string } = {}) {
+  const isAdmin = useIsAdmin();
+  const { target, action } = filter;
+  const [version, setVersion] = useState(0);
+  const state = useAsync<AuditEntry[]>(async () => {
+    if (!isAdmin) return [];
+    let q = getSupabaseBrowser()
+      .from("admin_actions")
+      .select("*, actor:profiles!admin_actions_actor_id_fkey(name)")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (target) q = q.eq("target_id", target);
+    if (action) q = q.ilike("action", `${action}%`);
+    const { data, error } = await q;
+    if (error) throw error;
+    return (data ?? []).map((r: Record<string, unknown>) => ({
+      id: r.id as string,
+      actorName: (r.actor as { name: string } | null)?.name ?? null,
+      action: r.action as string,
+      targetTable: r.target_table as string,
+      targetId: r.target_id as string,
+      before: r.before as Record<string, unknown> | null,
+      after: r.after as Record<string, unknown> | null,
+      reason: r.reason as string,
+      createdAt: r.created_at as string,
+    }));
+  }, [isAdmin, target ?? "", action ?? "", version]);
+  return { ...state, reload: useCallback(() => setVersion((v) => v + 1), []) };
+}
+
+export interface AdminListingRow {
+  id: string;
+  name: string;
+  price: string;
+  category: string;
+  status: string;
+  createdAt: string;
+  sellerId: string;
+  sellerName: string | null;
+}
+
+/** Listing search for the console. Empty query returns the most recent. */
+export function useAdminListings(query: string) {
+  const isAdmin = useIsAdmin();
+  const q = query.trim();
+  const [version, setVersion] = useState(0);
+  const state = useAsync<AdminListingRow[]>(async () => {
+    if (!isAdmin) return [];
+    let req = getSupabaseBrowser()
+      .from("listings")
+      .select("id,name,price,category,status,created_at,seller:profiles!listings_seller_id_fkey(id,name)")
+      .order("created_at", { ascending: false })
+      .limit(60);
+    if (q) req = req.ilike("name", `%${q}%`);
+    const { data, error } = await req;
+    if (error) throw error;
+    return (data ?? []).map((r: Record<string, unknown>) => {
+      const seller = r.seller as { id: string; name: string } | null;
+      return {
+        id: r.id as string,
+        name: r.name as string,
+        price: r.price as string,
+        category: r.category as string,
+        status: r.status as string,
+        createdAt: r.created_at as string,
+        sellerId: seller?.id ?? "",
+        sellerName: seller?.name ?? null,
+      };
+    });
+  }, [isAdmin, q, version]);
+  return { ...state, reload: useCallback(() => setVersion((v) => v + 1), []) };
+}
+
+export interface AdminProfileRow {
+  id: string;
+  name: string;
+  email: string | null;
+  bio: string | null;
+  sold: number;
+  ratingAvg: number | null;
+  ratingCount: number;
+  isAdmin: boolean;
+  suspendedAt: string | null;
+  suspendedReason: string | null;
+  createdAt: string;
+}
+
+export function useAdminProfiles(query: string) {
+  const isAdmin = useIsAdmin();
+  const q = query.trim();
+  const [version, setVersion] = useState(0);
+  const state = useAsync<AdminProfileRow[]>(async () => {
+    if (!isAdmin) return [];
+    let req = getSupabaseBrowser()
+      .from("profiles")
+      .select("id,name,email,bio,sold,rating_avg,rating_count,is_admin,suspended_at,suspended_reason,created_at")
+      .order("created_at", { ascending: false })
+      .limit(60);
+    if (q) req = req.or(`name.ilike.%${q}%,email.ilike.%${q}%`);
+    const { data, error } = await req;
+    if (error) throw error;
+    return (data ?? []).map((r: Record<string, unknown>) => ({
+      id: r.id as string,
+      name: r.name as string,
+      email: (r.email as string) ?? null,
+      bio: (r.bio as string) ?? null,
+      sold: (r.sold as number) ?? 0,
+      ratingAvg: (r.rating_avg as number) ?? null,
+      ratingCount: (r.rating_count as number) ?? 0,
+      isAdmin: !!r.is_admin,
+      suspendedAt: (r.suspended_at as string) ?? null,
+      suspendedReason: (r.suspended_reason as string) ?? null,
+      createdAt: r.created_at as string,
+    }));
+  }, [isAdmin, q, version]);
+  return { ...state, reload: useCallback(() => setVersion((v) => v + 1), []) };
+}
+
+export interface AdminStats {
+  openReports: number;
+  listingsToday: number;
+  activeListings: number;
+  suspended: number;
+  newProfilesWeek: number;
+}
+
+/** Counts for the console overview. Every one is a real query — no estimates. */
+export function useAdminStats(): AsyncState<AdminStats | null> {
+  const isAdmin = useIsAdmin();
+  return useAsync<AdminStats | null>(async () => {
+    if (!isAdmin) return null;
+    const sb = getSupabaseBrowser();
+    const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
+    const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
+    const head = { count: "exact" as const, head: true };
+    const [reports, today, active, suspended, newbies] = await Promise.all([
+      sb.from("reports").select("id", head).eq("status", "open"),
+      sb.from("listings").select("id", head).gte("created_at", dayAgo),
+      sb.from("listings").select("id", head).eq("status", "active"),
+      sb.from("profiles").select("id", head).not("suspended_at", "is", null),
+      sb.from("profiles").select("id", head).gte("created_at", weekAgo),
+    ]);
+    return {
+      openReports: reports.count ?? 0,
+      listingsToday: today.count ?? 0,
+      activeListings: active.count ?? 0,
+      suspended: suspended.count ?? 0,
+      newProfilesWeek: newbies.count ?? 0,
+    };
+  }, [isAdmin]);
 }

@@ -12,7 +12,8 @@ import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 export default function Header() {
   const pathname = usePathname();
-  const profileName = useProfile().data?.name;
+  const profile = useProfile().data;
+  const profileName = profile?.name;
   const unread = useUnreadCount();
   const { lang, setLang, t } = useTranslation();
   const avatarInitial = (profileName || "U").trim().charAt(0).toUpperCase() || "U";
@@ -89,6 +90,14 @@ export default function Header() {
               )}
             </span>
           </NavLink>
+          {/* Read from the profile rather than an extra RPC. RLS refuses the data to
+              everyone else regardless — this only avoids offering a link into a
+              "Checking permissions…" dead end. */}
+          {profile?.is_admin && (
+            <NavLink href="/admin" active={pathname.startsWith("/admin")}>
+              🛡️ Console
+            </NavLink>
+          )}
           <SellButton />
         </div>
 
