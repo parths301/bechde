@@ -33,10 +33,16 @@ export default function SignupPage() {
 
   return (
     <div
+      className="bd-login-page"
       style={{
         minHeight: "100vh",
-        display: "grid",
-        placeItems: "center",
+        // Flex, not grid. An auto grid track sizes to its item's max-content, so the
+        // column became 960px wide and `maxWidth: 100%` then resolved against *that* —
+        // the card stayed 960px on a 390px phone and hung two-thirds off the screen.
+        // A flex container's content box is the real width, so the clamp bites.
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
         padding: 30,
         background: "radial-gradient(circle at 20% 20%, #F6EEDD 0%, #FBF6ED 60%)",
       }}
@@ -46,6 +52,7 @@ export default function SignupPage() {
         style={{
           width: 960,
           maxWidth: "100%",
+          minWidth: 0,
           background: colors.bg,
           border: `1.5px solid ${colors.cardBorder}`,
           borderRadius: 26,
@@ -57,6 +64,7 @@ export default function SignupPage() {
       >
         {/* Left panel */}
         <div
+          className="bd-login-hero"
           style={{
             background: colors.ink,
             color: colors.bg,
@@ -91,6 +99,7 @@ export default function SignupPage() {
             </div>
           </div>
           <h1
+            className="bd-login-h1"
             style={{
               margin: "8px 0 0",
               fontFamily: "var(--font-bricolage)",
@@ -111,12 +120,12 @@ export default function SignupPage() {
             <div style={{ display: "flex", gap: 12 }}>💬 Chat, haggle, meet — no shipping drama</div>
             <div style={{ display: "flex", gap: 12 }}>✓ Verified neighbours only</div>
           </div>
-          <div style={{ position: "absolute", right: -90, bottom: -90, width: 260, height: 260, borderRadius: "50%", border: "2px dashed rgba(242,169,59,.4)" }} />
-          <div style={{ position: "absolute", right: -30, bottom: -30, width: 140, height: 140, borderRadius: "50%", border: "2px dashed rgba(242,169,59,.5)" }} />
+          <div className="bd-login-rings" style={{ position: "absolute", right: -90, bottom: -90, width: 260, height: 260, borderRadius: "50%", border: "2px dashed rgba(242,169,59,.4)" }} />
+          <div className="bd-login-rings" style={{ position: "absolute", right: -30, bottom: -30, width: 140, height: 140, borderRadius: "50%", border: "2px dashed rgba(242,169,59,.5)" }} />
         </div>
 
         {/* Right panel */}
-        <div style={{ padding: "44px 42px", display: "flex", flexDirection: "column", gap: 18, justifyContent: "center" }}>
+        <div className="bd-login-form" style={{ padding: "44px 42px", display: "flex", flexDirection: "column", gap: 18, justifyContent: "center" }}>
           {sent ? (
             <div style={{ animation: "bd-pop .25s ease-out" }}>
               <h2 style={{ margin: "0 0 4px", fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 26, letterSpacing: "-.6px" }}>

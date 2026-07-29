@@ -238,8 +238,16 @@ Read these. Each one was found the hard way.
   its own right edge instead of scrolling, so buttons and values just went missing with
   nothing looking broken. `e2e/responsive.spec.ts` guards this across 5 viewports; full
   account in `MOBILE-FIXES.md`.
+- **`max-width: 100%` on a centred grid item is a no-op.** An `auto` grid track sizes to
+  its item's max-content and may overflow the container, so `100%` resolves against the
+  track the item itself caused — the login card stayed a literal 960px on a 393px phone,
+  and the location sheet 520px. Centre with **flex**, whose content box is the real width.
 - Landscape phones (~915px) land **between** the breakpoints: too wide for the mobile
   layout, too narrow for desktop spacing. There's a dedicated `821–1080px` band.
+- **`/login` is invisible to most E2E specs.** The suite shares one signed-in
+  `storageState` and `src/proxy.ts` redirects authenticated visitors away from it, so the
+  first page every new user sees needs a guest `test.use({ storageState: … })` block or it
+  goes unchecked. That is exactly how it shipped 960px wide.
 
 ### Silent failures — the ones that cost the most
 These all shared a shape: something reported success while doing nothing.

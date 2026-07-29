@@ -58,9 +58,11 @@ test.describe("Mobile viewport", () => {
     // directly. Real users with the OS setting get the same via prefers-reduced-motion.
     await page.addStyleTag({ content: `*, *::before, *::after { animation: none !important; transition: none !important; }` });
 
-    // Bubbles are real listings, and each is a way into one.
+    // Bubbles are real listings, and each is a way into one. `count()` is a one-shot
+    // read with no auto-wait, so it sampled the radar before the listings query
+    // resolved and reported zero bubbles on a page that renders them a moment later.
     const bubbles = radar.getByRole("button");
-    expect(await bubbles.count()).toBeGreaterThan(0);
+    await expect(bubbles.first()).toBeVisible();
     await bubbles.first().click();
     await page.waitForURL(/\/product\//);
   });

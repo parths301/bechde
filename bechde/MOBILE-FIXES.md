@@ -241,11 +241,60 @@ the older build.
 
 ---
 
+### 9 · `/login` — the card was 960px wide on a 393px phone
+
+*Reported later, from a phone screenshot: the sign-in card hanging two-thirds off the
+right edge, everything at desktop scale.*
+
+Measured at three phone widths, the page was **990px wide regardless of viewport** — the
+card rendered at its literal `width: 960px` on a 360px, 393px and 430px screen alike.
+
+```
+=== 393px  doc=393 bodyScroll=990
+DIV.bd-login-card  w:960  right:990
+```
+
+**Why `maxWidth: "100%"` did nothing.** The wrapper was `display: grid; placeItems:
+center` with no explicit template, so it had one **auto** track. An auto track sizes to
+its item's max-content — 960px — and grid tracks are free to overflow their container.
+`max-width: 100%` on the card then resolved *against that 960px track*, so the clamp
+referred to its own cause and constrained nothing.
+
+This is the identical trap as the location sheet in §5, in a different place. A flex
+container's content box is the real available width, so the same one-line change fixes
+it: `display: flex; align-items: center; justify-content: center`.
+
+The mobile breakpoint's `.bd-login-card { grid-template-columns: 1fr }` had been working
+correctly all along — the panels *were* stacked. They were stacked inside a 960px box.
+
+Once it fit, two things were still desktop-scale and needed a mobile band: 30px of page
+padding either side (15% of a 360px screen) with 44/40px panel padding, and a 38px
+heading whose hand-written line break "second life waiting" cannot reflow its way out of
+an overflow. Reduced to 16px / 26×20px / 27px. The decorative dashed rings, positioned
+for a tall desktop panel, ran straight through the feature list in the short stacked one;
+nudged out and dimmed.
+
+**Why the existing overflow guard never caught it.** `ROUTES` in `responsive.spec.ts`
+omits `/login`, and not by oversight that could simply be corrected — the E2E suite shares
+one signed-in `storageState`, and `src/proxy.ts:41` redirects an authenticated visitor
+from `/login` to `/home`. The one page every new user sees first was structurally
+unreachable by the test that would have caught this. It now has its own
+`test.use({ storageState: { cookies: [], origins: [] } })` block, and asserts the card's
+right edge as well as `body.scrollWidth` — a page-level check alone would pass on a card
+that was merely being clipped.
+
+Mutation-tested: restoring `display: grid` fails all four phone viewports
+(*"/login at 393px overflows by 597px (card is 960px wide)"*) and correctly still passes
+at 1280px.
+
+---
+
 ## Verification
 
 `e2e/responsive.spec.ts` — 7 routes × 5 viewports, asserting `body.scrollWidth` never
-exceeds the viewport, plus the location sheet measured on its own at three widths
-(it's `position: fixed`, so it escapes the page-level check entirely).
+exceeds the viewport, plus `/login` as a guest at those same 5 viewports, plus the
+location sheet measured on its own at three widths (it's `position: fixed`, so it escapes
+the page-level check entirely).
 
 | Viewport | Result |
 |---|---|
@@ -261,8 +310,8 @@ On failure it names the offending elements, so the next person doesn't have to r
 ```
 npm run lint        zero errors and warnings
 npx tsc --noEmit    clean
-npm test            60 passed
-npx playwright test 27 passed  (18 existing + 9 new)
+npm test            66 passed
+npx playwright test 32 passed  (18 existing + 14 new)
 npm run build       clean
 ```
 

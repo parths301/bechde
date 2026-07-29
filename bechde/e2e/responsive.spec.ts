@@ -106,3 +106,44 @@ for (const vp of SHEET_VIEWPORTS) {
     expect(fits.reachable).toBe(true);
   });
 }
+
+/**
+ * /login is missing from ROUTES above for a reason worth stating: the suite shares one
+ * signed-in storageState, and src/proxy.ts bounces an authenticated visitor straight to
+ * /home. So the one page every new user sees first was the one page the overflow guard
+ * could never reach — and it sat 960px wide on a 390px phone.
+ *
+ * The card is `width: 960; max-width: 100%` inside a centred wrapper. As a grid, the
+ * auto track sized to the item's 960px max-content and 100% then resolved against that,
+ * so the clamp referred to itself and did nothing.
+ */
+test.describe("the sign-in page, as a guest", () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  for (const vp of VIEWPORTS) {
+    test(`/login has no horizontal overflow — ${vp.name}`, async ({ page }) => {
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto("/login");
+      await expect(page.getByText("Join in 30 seconds")).toBeVisible();
+
+      const { scrollWidth, clientWidth, cardRight, cardWidth } = await page.evaluate(() => {
+        const card = document.querySelector<HTMLElement>(".bd-login-card")!.getBoundingClientRect();
+        return {
+          scrollWidth: document.body.scrollWidth,
+          clientWidth: document.documentElement.clientWidth,
+          cardRight: Math.round(card.right),
+          cardWidth: Math.round(card.width),
+        };
+      });
+
+      expect(
+        scrollWidth,
+        `/login at ${vp.width}px overflows by ${scrollWidth - clientWidth}px (card is ${cardWidth}px wide)`
+      ).toBeLessThanOrEqual(clientWidth + 1);
+      // The page-level check alone would pass if the card were merely clipped.
+      expect(cardRight, `card's right edge is ${cardRight}px past the ${clientWidth}px viewport`).toBeLessThanOrEqual(
+        clientWidth + 1
+      );
+    });
+  }
+});

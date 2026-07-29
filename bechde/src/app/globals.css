@@ -403,6 +403,30 @@ input[type="range"] {
   .bd-login-card {
     grid-template-columns: 1fr !important;
   }
+  /* 30px of page padding either side is 15% of a 360px screen, and the panels'
+     44/40 was drawn for a 480px column. */
+  .bd-login-page {
+    padding: 16px !important;
+  }
+  .bd-login-hero {
+    padding: 26px 20px !important;
+    gap: 16px !important;
+  }
+  .bd-login-form {
+    padding: 26px 20px !important;
+  }
+  /* The heading breaks by hand ("second life waiting"), so it can't reflow its way
+     out of trouble — it has to be small enough for that line to fit. */
+  .bd-login-h1 {
+    font-size: 27px !important;
+    letter-spacing: -0.6px !important;
+  }
+  /* Corner decoration on a tall desktop panel; in the stacked layout the panel is
+     short enough that the rings ran straight through the feature list. */
+  .bd-login-rings {
+    opacity: 0.5;
+    transform: translate(38%, 38%);
+  }
 }
 
 /* =========================================================
