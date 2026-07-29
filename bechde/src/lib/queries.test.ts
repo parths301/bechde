@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { rowToItem, reportListing } from "./queries";
+import { rowToItem, reportListing, readStoredLocation, saveUserLocation } from "./queries";
 import * as clientModule from "./supabase/client";
 
 // Mock the supabase client module
@@ -101,5 +101,72 @@ describe("queries.ts", () => {
         // If myId() throws, we swallow it for this test structure
       }
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The location store. These guard the bug they were written for: GPS used to
+// overwrite a manually chosen city on the next page load, because the stored
+// location was read one render too late and nothing recorded that the person
+// had already decided.
+// ---------------------------------------------------------------------------
+describe("location store", () => {
+  const KEY = "bechde_user_location";
+  const PROMPTED = "bechde_location_prompted";
+
+  beforeEach(() => {
+    const store = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+      removeItem: (k: string) => void store.delete(k),
+      clear: () => store.clear(),
+    });
+  });
+
+  it("returns null when nothing has been stored", () => {
+    expect(readStoredLocation()).toBeNull();
+  });
+
+  it("round-trips a manual pick and marks the question settled", async () => {
+    await saveUserLocation({ lat: 26.9099, lng: 75.8016, label: "C-Scheme, Jaipur" }, "manual");
+
+    const stored = readStoredLocation();
+    expect(stored).toMatchObject({
+      lat: 26.9099,
+      lng: 75.8016,
+      label: "C-Scheme, Jaipur",
+      precise: true,
+      source: "manual",
+    });
+    // Set on any save, so auto-locate never runs once a location is known.
+    expect(localStorage.getItem(PROMPTED)).toBe("1");
+  });
+
+  it("records a GPS fix as such, so a manual pick can be told apart from it", async () => {
+    await saveUserLocation({ lat: 12.9352, lng: 77.6245, label: "Koramangala" }, "gps");
+    expect(readStoredLocation()?.source).toBe("gps");
+  });
+
+  it("defaults to manual, because saves were user-driven before source existed", () => {
+    localStorage.setItem(KEY, JSON.stringify({ lat: 19.0596, lng: 72.8295, label: "Bandra" }));
+    expect(readStoredLocation()?.source).toBe("manual");
+  });
+
+  it("returns the same object identity until storage changes", () => {
+    localStorage.setItem(KEY, JSON.stringify({ lat: 18.5362, lng: 73.894, label: "Koregaon Park" }));
+    const first = readStoredLocation();
+    // useSyncExternalStore compares snapshots by identity — a fresh object every call
+    // would re-render forever.
+    expect(readStoredLocation()).toBe(first);
+
+    localStorage.setItem(KEY, JSON.stringify({ lat: 13.0418, lng: 80.2341, label: "T. Nagar" }));
+    expect(readStoredLocation()).not.toBe(first);
+    expect(readStoredLocation()?.label).toBe("T. Nagar");
+  });
+
+  it("ignores a corrupt entry rather than throwing", () => {
+    localStorage.setItem(KEY, "{not json");
+    expect(readStoredLocation()).toBeNull();
   });
 });

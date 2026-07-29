@@ -4,8 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { colors } from "@/lib/colors";
-import { useProfile, useUserLocation, useUnreadCount } from "@/lib/queries";
+import { useProfile, useUnreadCount } from "@/lib/queries";
 import { DEFAULT_FILTERS, searchHref } from "@/lib/search";
+import LocationChip from "./LocationChip";
 
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 
@@ -60,6 +61,9 @@ export default function Header() {
 
       <nav style={{ display: "flex", alignItems: "center", gap: 16, fontWeight: 700, fontSize: 14.5 }}>
         <div className="bd-desktop-nav" style={{ display: "flex", alignItems: "center", gap: 18 }}>
+          {/* The only location control on desktop. It used to sit inside the search
+              bar as well, so /home showed two of them. */}
+          <LocationChip style={{ maxWidth: 190 }} />
           <NavLink href="/map" active={pathname === "/map"}>
             🗺️ {t("nav_map")}
           </NavLink>
@@ -136,96 +140,61 @@ export default function Header() {
   );
 }
 
-import LocationModal from "./LocationModal";
-
 export function SearchBar({ autoFocus }: { autoFocus?: boolean } = {}) {
   const router = useRouter();
-  const origin = useUserLocation();
-  const profile = useProfile().data;
   const [hover, setHover] = useState(false);
   const [q, setQ] = useState("");
-  const [modalOpen, setModalOpen] = useState(false);
 
   const submit = () => router.push(searchHref({ ...DEFAULT_FILTERS, q }));
-  const place = origin.precise
-    ? (profile?.neighbourhood ?? origin.label.replace(/^you · /, "")).split(",")[0]
-    : "Select location";
 
   return (
-    <>
-      <div
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
+    <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        flex: 1,
+        // Flex items default to min-width: auto and won't shrink past their content,
+        // which is what once pushed /home wider than the phone. See MOBILE-FIXES.md.
+        minWidth: 0,
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        background: "#fff",
+        border: `1.5px solid ${hover ? colors.marigold : colors.sand}`,
+        borderRadius: 999,
+        padding: "10px 20px",
+        color: colors.textFaint,
+        fontSize: 14.5,
+      }}
+    >
+      <button
+        type="button"
+        onClick={submit}
+        aria-label="Search"
+        style={{ background: "none", border: "none", padding: 0, font: "inherit", cursor: "pointer", color: "inherit" }}
+      >
+        ⌕
+      </button>
+      <input
+        value={q}
+        autoFocus={autoFocus}
+        onChange={(e) => setQ(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") submit();
+        }}
+        placeholder='Search "study table", "iPhone 12", "kurta"…'
         style={{
           flex: 1,
-          // Flex items won't shrink past their content without this, and the bar
-          // holds a nowrap place name — that alone made /home wider than the phone.
           minWidth: 0,
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          background: "#fff",
-          border: `1.5px solid ${hover ? colors.marigold : colors.sand}`,
-          borderRadius: 999,
-          padding: "10px 20px",
-          color: colors.textFaint,
+          border: "none",
+          outline: "none",
+          background: "transparent",
           fontSize: 14.5,
+          fontFamily: "inherit",
+          color: colors.ink,
         }}
-      >
-        <button type="button" onClick={submit} style={{ background: "none", border: "none", padding: 0, font: "inherit", cursor: "pointer", color: "inherit" }}>
-          ⌕
-        </button>
-        <input
-          value={q}
-          autoFocus={autoFocus}
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") submit();
-          }}
-          placeholder='Search "study table", "iPhone 12", "kurta"…'
-          style={{
-            flex: 1,
-            minWidth: 0,
-            border: "none",
-            outline: "none",
-            background: "transparent",
-            fontSize: 14.5,
-            fontFamily: "inherit",
-            color: colors.ink,
-          }}
-        />
-        <button
-          type="button"
-          onClick={() => setModalOpen(true)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            background: colors.bg2,
-            border: `1px solid ${colors.sand}`,
-            borderRadius: 999,
-            padding: "4px 12px",
-            fontSize: 12.5,
-            color: colors.textBody,
-            fontWeight: 600,
-            whiteSpace: "nowrap",
-            // Truncate rather than refuse to shrink. "Bengaluru (Koramangala)"
-            // with flex:none was pushing the whole home page 15px wider than the
-            // viewport, and the overflow was clipped, not scrollable.
-            flexShrink: 1,
-            minWidth: 0,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            maxWidth: "45%",
-            cursor: "pointer",
-          }}
-        >
-          📍 {place} ▾
-        </button>
-      </div>
-
-      <LocationModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
-    </>
+      />
+    </div>
   );
 }
 

@@ -56,7 +56,7 @@ export default function LocationModal({ isOpen, onClose }: LocationModalProps) {
 
   const selectLocation = async (lat: number, lng: number, label: string) => {
     try {
-      await saveUserLocation({ lat, lng, label });
+      await saveUserLocation({ lat, lng, label }, "manual");
       onClose();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Error saving location.");
@@ -68,7 +68,7 @@ export default function LocationModal({ isOpen, onClose }: LocationModalProps) {
     setError(null);
     try {
       const pos = await currentPosition();
-      await saveUserLocation(pos);
+      await saveUserLocation(pos, "gps");
       onClose();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Permission denied or unavailable.");

@@ -1,33 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { colors } from "@/lib/colors";
-import { currentPosition } from "@/lib/geo";
-import { useUserLocation, saveUserLocation, useProfile } from "@/lib/queries";
+import { useUserLocation, useProfile, useLocating } from "@/lib/queries";
 import LocationModal from "./LocationModal";
 
 export default function LocationChip({ style }: { style?: React.CSSProperties }) {
   const origin = useUserLocation();
   const profile = useProfile().data;
-  const [busy, setBusy] = useState(false);
+  // Auto-locating is a whole-app, once-ever concern and lives in useAutoLocate; the chip
+  // only reports it. Running it per chip is what re-prompted on every screen.
+  // Only "Locating…" while nothing is known yet — once a place is picked, showing it
+  // would replace the label the person just chose with a spinner.
+  const busy = useLocating() && !origin.precise;
   const [modalOpen, setModalOpen] = useState(false);
-
-  // Ask for browser geolocation automatically on first mount if not yet shared.
-  // The `busy` flag has to be raised here rather than in a lazy useState initialiser:
-  // whether we auto-locate depends on navigator.geolocation, which doesn't exist during
-  // the server render, so seeding it up front would change the first paint and trip
-  // hydration. Deliberate cascade, one render, on mount only.
-  useEffect(() => {
-    if (origin.precise || typeof window === "undefined" || !navigator.geolocation) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setBusy(true);
-    currentPosition()
-      .then((point) => saveUserLocation(point))
-      .catch(() => {
-        // If permission is denied or ignored, stay un-precise so user can pick manually
-      })
-      .finally(() => setBusy(false));
-  }, [origin.precise]);
 
   const placeLabel = origin.precise
     ? profile?.neighbourhood ?? origin.label.replace(/^you · /, "")

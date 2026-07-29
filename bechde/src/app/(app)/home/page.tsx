@@ -101,7 +101,11 @@ export default function HomePage() {
           >
             ✦ {nearbyCount} {nearbyCount === 1 ? "thing" : "things"} for sale within {radiusKm} km
           </div>
-          <LocationChip />
+          {/* Phones only — the header's copy is inside .bd-desktop-nav, which is
+              hidden under the breakpoint. Showing both would be the duplication. */}
+          <div className="bd-hero-loc">
+            <LocationChip />
+          </div>
           <h1 className="bd-hero-h1" style={{ margin: 0, fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 54, lineHeight: 1.05, letterSpacing: "-1.5px" }}>
             Good stuff,
             <br />

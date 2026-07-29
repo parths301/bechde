@@ -157,6 +157,9 @@ input[type="range"] {
 .bd-hero-mobilemap {
   display: none;
 }
+.bd-hero-loc {
+  display: none;
+}
 
 /* Transparent on desktop, so the radar remains the hero grid's own child and
    nothing about the existing layout changes. */
@@ -217,6 +220,9 @@ input[type="range"] {
   }
   .bd-bottomnav {
     display: flex !important;
+  }
+  .bd-hero-loc {
+    display: block !important;
   }
 
   /* ---- home ---- */

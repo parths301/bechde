@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { USER_LOCATION, type Item, type ChatThread } from "@/lib/data";
-import { haversineKm, formatKm, reverseGeocode, type LatLng } from "@/lib/geo";
+import { haversineKm, formatKm, reverseGeocode, currentPosition, type LatLng } from "@/lib/geo";
 import { listedAgo } from "@/lib/time";
 import { ANY_CATEGORY, matchesFilters, type Filters } from "@/lib/search";
 
@@ -481,7 +481,9 @@ async function loadProfile() {
     }
     const { data, error } = await sb.from("profiles").select(PROFILE_COLS).eq("user_id", user.id).maybeSingle();
     if (error) throw error;
-    setProfileState({ data: (data as MyProfile) ?? null, loading: false, error: null });
+    const profile = (data as MyProfile) ?? null;
+    setProfileState({ data: profile, loading: false, error: null });
+    reconcileStoredLocation(profile);
   } catch (e: unknown) {
     setProfileState({ data: null, loading: false, error: String((e as Error)?.message ?? e) });
   }
@@ -521,37 +523,84 @@ export interface UserLocation extends LatLng {
   precise: boolean;
 }
 
+/**
+ * How the coordinates were arrived at. A "manual" pick is a decision, and nothing
+ * automatic is ever allowed to overwrite it — GPS used to clobber a chosen city on
+ * the next page load.
+ */
+export type LocationSource = "gps" | "manual";
+
+interface StoredLocation extends UserLocation {
+  source: LocationSource;
+}
+
 const LOCATION_STORAGE_KEY = "bechde_user_location";
-const LOCATION_EVENT = "bechde_location_changed";
+/** Set the moment we ask the browser for a position, so a denial isn't re-asked. */
+const LOCATION_PROMPTED_KEY = "bechde_location_prompted";
+
+// A localStorage-backed external store, same shape as the language store in
+// src/lib/i18n/LanguageContext.tsx. It has to be read *synchronously* during render:
+// when this lived in an effect, the first render always claimed no location was known,
+// which is precisely the window in which the auto-locate below fired and overwrote one.
+const locationListeners = new Set<() => void>();
+let cachedRaw: string | null = null;
+let cachedLoc: StoredLocation | null = null;
+let locating = false;
+
+function notifyLocation() {
+  locationListeners.forEach((l) => l());
+}
+
+function subscribeLocation(onChange: () => void) {
+  locationListeners.add(onChange);
+  window.addEventListener("storage", onChange); // other tabs
+  return () => {
+    locationListeners.delete(onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}
+
+/**
+ * The stored location, or null. The parsed object is cached against the raw string it
+ * came from because useSyncExternalStore compares snapshots by identity — returning a
+ * fresh object every call re-renders forever.
+ */
+export function readStoredLocation(): StoredLocation | null {
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(LOCATION_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+  if (raw === cachedRaw) return cachedLoc;
+
+  cachedRaw = raw;
+  cachedLoc = null;
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed.lat === "number" && typeof parsed.lng === "number") {
+        cachedLoc = {
+          lat: parsed.lat,
+          lng: parsed.lng,
+          label: parsed.label || "you",
+          precise: true,
+          // Entries written before `source` existed came from a chip the user tapped.
+          source: parsed.source === "gps" ? "gps" : "manual",
+        };
+      }
+    } catch {}
+  }
+  return cachedLoc;
+}
+
+function noStoredLocation(): StoredLocation | null {
+  return null;
+}
 
 export function useUserLocation(): UserLocation {
   const profile = useProfile().data;
-  const [localLoc, setLocalLoc] = useState<UserLocation | null>(null);
-
-  useEffect(() => {
-    const updateFromStorage = () => {
-      try {
-        const raw = localStorage.getItem(LOCATION_STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed && typeof parsed.lat === "number" && typeof parsed.lng === "number") {
-            setLocalLoc({
-              lat: parsed.lat,
-              lng: parsed.lng,
-              label: parsed.label || "you",
-              precise: true,
-            });
-            return;
-          }
-        }
-      } catch {}
-      setLocalLoc(null);
-    };
-
-    updateFromStorage();
-    window.addEventListener(LOCATION_EVENT, updateFromStorage);
-    return () => window.removeEventListener(LOCATION_EVENT, updateFromStorage);
-  }, []);
+  const stored = useSyncExternalStore(subscribeLocation, readStoredLocation, noStoredLocation);
 
   if (profile && profile.lat != null && profile.lng != null) {
     return {
@@ -562,15 +611,32 @@ export function useUserLocation(): UserLocation {
     };
   }
 
-  if (localLoc) {
-    return localLoc;
+  if (stored) {
+    return stored;
   }
 
   return { ...USER_LOCATION, precise: false };
 }
 
+/** True while the one-shot auto-locate is waiting on the browser. */
+export function useLocating(): boolean {
+  return useSyncExternalStore(
+    subscribeLocation,
+    () => locating,
+    () => false,
+  );
+}
+
+function setLocating(next: boolean) {
+  locating = next;
+  notifyLocation();
+}
+
 /** Save location for guests and signed-in users alike */
-export async function saveUserLocation(point: LatLng & { label?: string }): Promise<string> {
+export async function saveUserLocation(
+  point: LatLng & { label?: string },
+  source: LocationSource = "manual",
+): Promise<string> {
   let label = point.label;
   if (!label) {
     try {
@@ -580,17 +646,20 @@ export async function saveUserLocation(point: LatLng & { label?: string }): Prom
     }
   }
 
-  const locObj: UserLocation = {
+  const locObj: StoredLocation = {
     lat: point.lat,
     lng: point.lng,
     label: label.replace(/^you · /, ""),
     precise: true,
+    source,
   };
 
   try {
     localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(locObj));
-    window.dispatchEvent(new Event(LOCATION_EVENT));
+    // Any stored location settles the question — nothing should auto-ask afterwards.
+    localStorage.setItem(LOCATION_PROMPTED_KEY, "1");
   } catch {}
+  notifyLocation();
 
   const profile = profileState.data;
   if (profile) {
@@ -612,6 +681,64 @@ export async function saveUserLocation(point: LatLng & { label?: string }): Prom
 
 export async function saveMyLocation(point: LatLng): Promise<string> {
   return saveUserLocation(point);
+}
+
+/**
+ * A guest picks a city, then signs in — and useUserLocation prefers the profile row,
+ * so they'd be snapped back to wherever the account was last set. Push the deliberate
+ * choice up to the profile instead of letting it be silently discarded.
+ */
+function reconcileStoredLocation(profile: MyProfile | null) {
+  if (!profile) return;
+  const stored = readStoredLocation();
+  if (!stored || stored.source !== "manual") return;
+  if (profile.lat === stored.lat && profile.lng === stored.lng) return;
+  void saveUserLocation({ lat: stored.lat, lng: stored.lng, label: stored.label }, "manual");
+}
+
+// The browser is asked for a position at most once per person. This used to live in
+// LocationChip, so it re-ran on every mount of every chip — /home, /map, /sell and
+// /profile each re-prompted, and the answer overwrote whatever city had been chosen.
+let autoLocateRan = false;
+
+export function useAutoLocate() {
+  const profile = useProfile();
+  const profileData = profile.data;
+  const profileLoading = profile.loading;
+
+  useEffect(() => {
+    if (autoLocateRan || profileLoading) return;
+    if (profileData?.lat != null && profileData?.lng != null) return;
+    if (readStoredLocation()) return;
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    try {
+      if (localStorage.getItem(LOCATION_PROMPTED_KEY)) return;
+    } catch {
+      return;
+    }
+
+    autoLocateRan = true;
+    // Recorded *before* the prompt: a denial, a timeout or a closed tab all still
+    // count as having asked, otherwise the next refresh asks again.
+    try {
+      localStorage.setItem(LOCATION_PROMPTED_KEY, "1");
+    } catch {}
+
+    setLocating(true);
+    currentPosition()
+      .then((point) => {
+        // Resolving a fix takes seconds — long enough for someone to open the chip and
+        // pick a city meanwhile. The background answer must lose that race, or picking
+        // a city is silently undone a moment later. (An explicit "use my GPS location"
+        // tap in LocationModal still overrides, as it should.)
+        if (readStoredLocation()) return;
+        return saveUserLocation(point, "gps");
+      })
+      .catch(() => {
+        // Denied or unavailable — they can still pick a city from the chip.
+      })
+      .finally(() => setLocating(false));
+  }, [profileLoading, profileData]);
 }
 
 // ---------------------------------------------------------------------------

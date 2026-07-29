@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
+import AutoLocate from "@/components/AutoLocate";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -7,6 +8,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <a href="#main" className="bd-skip-link">
         Skip to content
       </a>
+      <AutoLocate />
       <Header />
       <main id="main" style={{ display: "contents" }}>
         {children}
