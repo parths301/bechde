@@ -11,8 +11,10 @@ import OsmMap, { MapMarker } from "@/components/OsmMap";
 import Chip from "@/components/Chip";
 import LocationChip from "@/components/LocationChip";
 import PriceInput from "@/components/PriceInput";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 export default function MapPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { mapRadius, setMapRadius, activeCat, setActiveCat } = useAppState();
   const origin = useUserLocation();
@@ -89,10 +91,10 @@ export default function MapPage() {
 
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
-            <span style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 16 }}>Radius</span>
+            <span style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 16 }}>{t("common.radius")}</span>
             <span style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 16, color: colors.clay }}>{mapRadius} km</span>
           </div>
-          <input type="range" aria-label="Map radius in kilometres" min={1} max={10} value={mapRadius} onChange={(e) => setMapRadius(Number(e.target.value))} style={{ width: "100%", cursor: "pointer" }} />
+          <input type="range" aria-label={t("map.radiusLabel")} min={1} max={10} value={mapRadius} onChange={(e) => setMapRadius(Number(e.target.value))} style={{ width: "100%", cursor: "pointer" }} />
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 700, color: colors.textFaint }}>
             <span>1 km</span>
             <span>10 km</span>
@@ -100,7 +102,7 @@ export default function MapPage() {
         </div>
 
         <div>
-          <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 16, marginBottom: 10 }}>Category</div>
+          <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 16, marginBottom: 10 }}>{t("common.category")}</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {searchCategories.map((c) => (
               <Chip key={c.name} icon={c.icon} name={c.name} active={activeCat === c.name} onClick={() => setActiveCat(c.name)} />
@@ -109,10 +111,10 @@ export default function MapPage() {
         </div>
 
         <div>
-          <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 16, marginBottom: 10 }}>Price</div>
+          <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 16, marginBottom: 10 }}>{t("common.price")}</div>
           <div style={{ display: "flex", gap: 8 }}>
-            <PriceInput placeholder="₹ min" value={minPrice} onCommit={setMinPrice} />
-            <PriceInput placeholder="₹ max" value={maxPrice} onCommit={setMaxPrice} />
+            <PriceInput placeholder={t("common.priceMin")} value={minPrice} onCommit={setMinPrice} />
+            <PriceInput placeholder={t("common.priceMax")} value={maxPrice} onCommit={setMaxPrice} />
           </div>
         </div>
 
@@ -143,7 +145,7 @@ export default function MapPage() {
               : saveState === "saved"
                 ? "✓ Search saved"
                 : saveState === "error"
-                  ? "Couldn't save — try again"
+                  ? t("map.saveFailed")
                   : "♡ Save this search"}
           </div>
         </div>

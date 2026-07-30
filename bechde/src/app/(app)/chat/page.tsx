@@ -21,14 +21,16 @@ import {
   type ChatOffer,
 } from "@/lib/queries";
 import Stripe from "@/components/Stripe";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 const quickReplyTexts = ["Is it available?", "Last price?", "Can I see it today?"];
 
 type Entry = { at: string; msg: ChatMessage } | { at: string; offer: ChatOffer };
 
 export default function ChatPage() {
+  const { t } = useTranslation();
   return (
-    <Suspense fallback={<ChatFallback>Loading chats…</ChatFallback>}>
+    <Suspense fallback={<ChatFallback>{t("chat.loadingChats")}</ChatFallback>}>
       <ChatScreen />
     </Suspense>
   );
@@ -43,6 +45,7 @@ function ChatFallback({ children }: { children: React.ReactNode }) {
 }
 
 function ChatScreen() {
+  const { t } = useTranslation();
   const { draft, setDraft } = useAppState();
   const me = useProfile().data;
   const chatThreads = useChatThreads().data ?? [];
@@ -138,12 +141,12 @@ function ChatScreen() {
             type="button"
             className="bd-chat-back"
             onClick={() => setOpenId(null)}
-            aria-label="Back to chats"
+            aria-label={t("chat.backToChats")}
             style={{ fontFamily: "inherit", border: "none", padding: 0, flex: "none", width: 36, height: 36, borderRadius: "50%", placeItems: "center", background: colors.bg2, color: colors.ink, fontSize: 18, cursor: "pointer" }}
           >
             ←
           </button>
-          <Link href={`/product/${activeThread.itemId}`} aria-label={`View listing: ${activeItem.name}`} style={{ display: "block", flex: "none" }}>
+          <Link href={`/product/${activeThread.itemId}`} aria-label={t("chat.viewListing", { name: activeItem.name })} style={{ display: "block", flex: "none" }}>
             <Stripe angle={activeThread.angle} src={activeItem.cover} band={6} style={{ width: 52, height: 52, borderRadius: 14, cursor: "pointer" }} />
           </Link>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -156,11 +159,11 @@ function ChatScreen() {
         </div>
 
         <div className="bd-chat-body" style={{ flex: 1, padding: "24px 26px", display: "flex", flexDirection: "column", gap: 14, background: "radial-gradient(circle at 80% 10%,#F6EEDD 0%,#FBF6ED 55%)" }}>
-          {convo.loading && <div style={{ alignSelf: "center", fontSize: 12.5, fontWeight: 700, color: colors.textFaint }}>Loading messages…</div>}
+          {convo.loading && <div style={{ alignSelf: "center", fontSize: 12.5, fontWeight: 700, color: colors.textFaint }}>{t("chat.loadingMessages")}</div>}
 
           {!convo.loading && timeline.length === 0 && (
             <div style={{ alignSelf: "center", background: "#EFE7DA", color: colors.textMuted, fontSize: 12.5, fontWeight: 700, borderRadius: 999, padding: "6px 16px" }}>
-              No messages yet — break the ice 👋
+              {t("chat.empty")}
             </div>
           )}
 
@@ -191,10 +194,10 @@ function ChatScreen() {
             <div style={{ alignSelf: "flex-start", background: colors.sage, borderRadius: 16, padding: "14px 18px", maxWidth: 400, animation: "bd-pop .35s ease-out" }}>
               <div style={{ fontSize: 11, fontWeight: 800, color: colors.pine, textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 6 }}>📍 Meet-up suggestion</div>
               <div style={{ fontWeight: 800, fontSize: 14.5, color: colors.pineDark }}>{activeItem.pickup || "A public spot nearby"}</div>
-              <div style={{ fontSize: 12.5, color: colors.pineMuted, margin: "2px 0 10px" }}>Pick a time that works · public spot, well lit</div>
+              <div style={{ fontSize: 12.5, color: colors.pineMuted, margin: "2px 0 10px" }}>{t("chat.quickTime")}</div>
               <div style={{ display: "flex", gap: 8 }}>
-                <MeetupChip label="Works for me ✓" primary onClick={() => send("That meet-up spot works for me ✓")} />
-                <MeetupChip label="Suggest another" onClick={() => send("Could we meet somewhere else?")} />
+                <MeetupChip label={t("chat.quickWorks")} primary onClick={() => send("That meet-up spot works for me ✓")} />
+                <MeetupChip label={t("chat.quickSuggest")} onClick={() => send("Could we meet somewhere else?")} />
               </div>
             </div>
           )}
@@ -237,7 +240,7 @@ function ChatScreen() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") submitOffer();
                 }}
-                placeholder="offer ₹"
+                placeholder={t("chat.offerPlaceholder")}
                 style={{
                   width: 92,
                   background: "#fff",
@@ -260,7 +263,7 @@ function ChatScreen() {
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleSend();
               }}
-              placeholder="Type a message…"
+              placeholder={t("chat.typeMessage")}
               style={{
                 flex: 1,
                 background: "#fff",
@@ -291,6 +294,7 @@ function dayLabel(at: string, prev?: string): string | null {
 
 /** Appears once a deal is accepted — the only way a rating ever gets created. */
 function ReviewCard({ otherName, onSubmit }: { otherName: string; onSubmit: (rating: number, body: string) => Promise<void> }) {
+  const { t } = useTranslation();
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [body, setBody] = useState("");
@@ -326,7 +330,7 @@ function ReviewCard({ otherName, onSubmit }: { otherName: string; onSubmit: (rat
         How did it go with {otherName}?
       </div>
       <div style={{ fontSize: 12.5, color: colors.textFaint, fontWeight: 600, marginBottom: 10 }}>
-        Your rating shows on their profile.
+        {t("chat.reviewNote")}
       </div>
       <div style={{ display: "flex", justifyContent: "center", gap: 4, marginBottom: 12 }}>
         {[1, 2, 3, 4, 5].map((n) => (
@@ -349,7 +353,7 @@ function ReviewCard({ otherName, onSubmit }: { otherName: string; onSubmit: (rat
         onKeyDown={(e) => {
           if (e.key === "Enter") send();
         }}
-        placeholder="Add a line about the meet-up (optional)"
+        placeholder={t("chat.reviewPlaceholder")}
         style={{
           width: "100%",
           background: colors.bg,
@@ -429,6 +433,7 @@ function OfferCard({
   isLatest: boolean;
   onRespond: (offer: ChatOffer, status: "accepted" | "declined") => void;
 }) {
+  const { t } = useTranslation();
   if (offer.status === "accepted") {
     return (
       <div
@@ -480,14 +485,14 @@ function OfferCard({
         <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 22, color: colors.clay }}>{offer.amount}</div>
       </div>
       {offer.mine ? (
-        <div style={{ fontSize: 12.5, color: colors.offerText, fontWeight: 700 }}>waiting for {otherName}…</div>
+        <div style={{ fontSize: 12.5, color: colors.offerText, fontWeight: 700 }}>{t("chat.offerWaiting", { name: otherName })}</div>
       ) : isLatest ? (
         <div style={{ display: "flex", gap: 8 }}>
-          <OfferButton label="Accept ✓" primary onClick={() => onRespond(offer, "accepted")} />
-          <OfferButton label="Decline" onClick={() => onRespond(offer, "declined")} />
+          <OfferButton label={t("chat.accept")} primary onClick={() => onRespond(offer, "accepted")} />
+          <OfferButton label={t("chat.decline")} onClick={() => onRespond(offer, "declined")} />
         </div>
       ) : (
-        <div style={{ fontSize: 12.5, color: colors.offerText, fontWeight: 700 }}>superseded</div>
+        <div style={{ fontSize: 12.5, color: colors.offerText, fontWeight: 700 }}>{t("chat.offerSuperseded")}</div>
       )}
     </div>
   );

@@ -5,24 +5,29 @@ import { usePathname } from "next/navigation";
 import { colors } from "@/lib/colors";
 import { useUnreadCount } from "@/lib/queries";
 import { IconHome, IconMap, IconPlus, IconChat, IconUser } from "./icons";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface Tab {
   href: string;
   Icon: React.ComponentType<{ size?: number }>;
-  label: string;
+  key: string;
   center?: boolean;
   badge?: number;
 }
 
 const tabs: Tab[] = [
-  { href: "/home", Icon: IconHome, label: "Home" },
-  { href: "/map", Icon: IconMap, label: "Map" },
-  { href: "/sell", Icon: IconPlus, label: "Sell", center: true },
-  { href: "/chat", Icon: IconChat, label: "Chats" },
-  { href: "/profile", Icon: IconUser, label: "You" },
+  { href: "/home", Icon: IconHome, key: "home" },
+  { href: "/map", Icon: IconMap, key: "map" },
+  { href: "/sell", Icon: IconPlus, key: "sell", center: true },
+  { href: "/chat", Icon: IconChat, key: "chat" },
+  { href: "/profile", Icon: IconUser, key: "you" },
 ];
 
 export default function BottomNav() {
+  const { t: translate } = useTranslation();
+  // `t` is already the loop variable for a tab below, so the hook is aliased rather
+  // than shadowed — renaming the tab would touch more lines than it's worth.
+  const label = (key: string) => translate(`bottomNav.${key}`);
   const pathname = usePathname();
   const unread = useUnreadCount();
 
@@ -53,7 +58,7 @@ export default function BottomNav() {
             <Link
               key={t.href}
               href={t.href}
-              aria-label={t.label}
+              aria-label={label(t.key)}
               style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flex: 1 }}
             >
               <div
@@ -73,7 +78,7 @@ export default function BottomNav() {
               >
                 <t.Icon size={26} />
               </div>
-              <span style={{ fontSize: 10, fontWeight: 800, color: colors.clay, marginTop: 2 }}>{t.label}</span>
+              <span style={{ fontSize: 10, fontWeight: 800, color: colors.clay, marginTop: 2 }}>{label(t.key)}</span>
             </Link>
           );
         }
@@ -82,7 +87,7 @@ export default function BottomNav() {
           <Link
             key={t.href}
             href={t.href}
-            aria-label={t.label}
+            aria-label={label(t.key)}
             style={{
               display: "flex",
               flexDirection: "column",
@@ -113,7 +118,7 @@ export default function BottomNav() {
                 </span>
               ) : null}
             </span>
-            <span style={{ fontSize: 10, fontWeight: active ? 800 : 700 }}>{t.label}</span>
+            <span style={{ fontSize: 10, fontWeight: active ? 800 : 700 }}>{label(t.key)}</span>
           </Link>
         );
       })}

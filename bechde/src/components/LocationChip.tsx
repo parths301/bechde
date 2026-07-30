@@ -4,8 +4,10 @@ import { useState } from "react";
 import { colors } from "@/lib/colors";
 import { useUserLocation, useProfile, useLocating } from "@/lib/queries";
 import LocationModal from "./LocationModal";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 export default function LocationChip({ style }: { style?: React.CSSProperties }) {
+  const { t } = useTranslation();
   const origin = useUserLocation();
   const profile = useProfile().data;
   // Auto-locating is a whole-app, once-ever concern and lives in useAutoLocate; the chip
@@ -17,7 +19,7 @@ export default function LocationChip({ style }: { style?: React.CSSProperties })
 
   const placeLabel = origin.precise
     ? profile?.neighbourhood ?? origin.label.replace(/^you · /, "")
-    : "Select location / city";
+    : t("location.selectPrompt");
 
   return (
     <>
@@ -28,7 +30,7 @@ export default function LocationChip({ style }: { style?: React.CSSProperties })
           type="button"
           onClick={() => setModalOpen(true)}
           aria-haspopup="dialog"
-          aria-label={`Change location — currently ${placeLabel}`}
+          aria-label={t("location.change", { place: placeLabel })}
           style={{
             display: "flex",
             alignItems: "center",

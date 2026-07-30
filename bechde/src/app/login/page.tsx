@@ -5,8 +5,12 @@ import Link from "next/link";
 import { colors } from "@/lib/colors";
 import { useAppState } from "@/lib/store";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
+import LanguageToggle from "@/components/LanguageToggle";
+import { Trans } from "react-i18next";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 export default function SignupPage() {
+  const { t } = useTranslation();
   const { radiusKm, setRadiusKm } = useAppState();
   const [name, setName] = useState("Aisha");
   const [email, setEmail] = useState("");
@@ -134,16 +138,16 @@ export default function SignupPage() {
               letterSpacing: "-1px",
             }}
           >
-            Your stuff has a
+            {t("login.headline1")}
             <br />
-            <span style={{ color: colors.marigold }}>second life</span> waiting
+            <span style={{ color: colors.marigold }}>{t("login.headlineHighlight")}</span> {t("login.headline2")}
             <br />
-            next door.
+            {t("login.headline3")}
           </h1>
           <div style={{ display: "flex", flexDirection: "column", gap: 14, fontSize: 14.5, lineHeight: 1.5, color: "rgba(251,246,237,.85)" }}>
-            <div style={{ display: "flex", gap: 12 }}>🏠 Buy &amp; sell within your own neighbourhood</div>
-            <div style={{ display: "flex", gap: 12 }}>💬 Chat, haggle, meet — no shipping drama</div>
-            <div style={{ display: "flex", gap: 12 }}>✓ Verified neighbours only</div>
+            <div style={{ display: "flex", gap: 12 }}>{t("login.perk1")}</div>
+            <div style={{ display: "flex", gap: 12 }}>{t("login.perk2")}</div>
+            <div style={{ display: "flex", gap: 12 }}>{t("login.perk3")}</div>
           </div>
           <div className="bd-login-rings" style={{ position: "absolute", right: -90, bottom: -90, width: 260, height: 260, borderRadius: "50%", border: "2px dashed rgba(242,169,59,.4)" }} />
           <div className="bd-login-rings" style={{ position: "absolute", right: -30, bottom: -30, width: 140, height: 140, borderRadius: "50%", border: "2px dashed rgba(242,169,59,.5)" }} />
@@ -151,19 +155,24 @@ export default function SignupPage() {
 
         {/* Right panel */}
         <div className="bd-login-form" style={{ padding: "44px 42px", display: "flex", flexDirection: "column", gap: 18, justifyContent: "center" }}>
+          {/* /login has no header, so the switch has to live here — otherwise a Hindi
+              speaker meets the app in English and never learns it speaks Hindi. */}
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <LanguageToggle />
+          </div>
           {sent ? (
             <div style={{ animation: "bd-pop .25s ease-out" }}>
               <h2 style={{ margin: "0 0 4px", fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 26, letterSpacing: "-.6px" }}>
-                Check your email 📬
+                {t("login.sentTitle")}
               </h2>
               <div style={{ fontSize: 13.5, color: colors.textMuted, fontWeight: 600, marginBottom: 22 }}>
-                We sent a sign-in link to <b style={{ color: colors.ink }}>{email}</b>. Open it on this device to finish signing in.
+                <Trans i18nKey="login.sentBody" values={{ email }} components={{ b: <b style={{ color: colors.ink }} /> }} />
               </div>
               {/* The link only works in *this* browser — PKCE ties it to the code
                   verifier stored here. Anyone reading the mail on their phone needs
                   the code, so it can't be buried as a fallback. */}
               <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 7 }}>
-                Reading the email somewhere else? Enter the 6-digit code
+                {t("login.codePrompt")}
               </div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <input
@@ -174,7 +183,7 @@ export default function SignupPage() {
                   }}
                   inputMode="numeric"
                   autoComplete="one-time-code"
-                  aria-label="Six-digit sign-in code"
+                  aria-label={t("login.codeAria")}
                   placeholder="123456"
                   style={{
                     flex: 1,
@@ -207,7 +216,7 @@ export default function SignupPage() {
                     cursor: code.length === 6 && !verifying ? "pointer" : "not-allowed",
                   }}
                 >
-                  {verifying ? "Checking…" : "Sign in"}
+                  {verifying ? t("login.codeChecking") : t("login.codeSubmit")}
                 </button>
               </div>
               {error && (
@@ -226,7 +235,7 @@ export default function SignupPage() {
                   lineHeight: 1.5,
                 }}
               >
-                ✨ On this device, the link in the email signs you in with one tap.
+                {t("login.linkHint")}
               </div>
               <button
                 type="button"
@@ -249,21 +258,21 @@ export default function SignupPage() {
                   cursor: "pointer",
                 }}
               >
-                ← use a different email
+                {t("login.differentEmail")}
               </button>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
               <div>
                 <h2 style={{ margin: "0 0 4px", fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 26, letterSpacing: "-.6px" }}>
-                  Join in 30 seconds
+                  {t("login.joinTitle")}
                 </h2>
-                <div style={{ fontSize: 13.5, color: colors.textMuted, fontWeight: 600 }}>Just your email. No passwords to forget.</div>
+                <div style={{ fontSize: 13.5, color: colors.textMuted, fontWeight: 600 }}>{t("login.joinSub")}</div>
               </div>
               <div>
-                <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 7 }}>Email</div>
+                <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 7 }}>{t("login.email")}</div>
                 <input
-                  aria-label="Email"
+                  aria-label={t("login.email")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   onKeyDown={(e) => {
@@ -271,7 +280,7 @@ export default function SignupPage() {
                   }}
                   type="email"
                   autoComplete="email"
-                  placeholder="you@example.com"
+                  placeholder={t("login.emailPlaceholder")}
                   style={{
                     width: "100%",
                     background: "#fff",
@@ -286,12 +295,12 @@ export default function SignupPage() {
                 />
               </div>
               <div>
-                <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 7 }}>What should we call you?</div>
+                <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 7 }}>{t("login.nameLabel")}</div>
                 <input
-                  aria-label="What should we call you?"
+                  aria-label={t("login.nameLabel")}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="First name is enough"
+                  placeholder={t("login.namePlaceholder")}
                   style={{
                     width: "100%",
                     background: "#fff",
@@ -306,7 +315,7 @@ export default function SignupPage() {
                 />
               </div>
               <div>
-                <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 7 }}>Your neighbourhood</div>
+                <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 7 }}>{t("login.neighbourhood")}</div>
                 <div
                   style={{
                     display: "flex",
@@ -321,24 +330,24 @@ export default function SignupPage() {
                     color: colors.pine,
                   }}
                 >
-                  📍 Koramangala, Bengaluru <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>change</span>
+                  📍 Koramangala, Bengaluru <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>{t("login.change")}</span>
                 </div>
               </div>
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 7 }}>
-                  <span style={{ fontWeight: 800, fontSize: 13 }}>How far will you go for a deal?</span>
+                  <span style={{ fontWeight: 800, fontSize: 13 }}>{t("login.radiusQuestion")}</span>
                   <span style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 15, color: colors.clay }}>{radiusKm} km</span>
                 </div>
-                <input type="range" aria-label="How far you'll go for a deal, in kilometres" min={1} max={10} value={radiusKm} onChange={(e) => setRadiusKm(Number(e.target.value))} style={{ width: "100%", cursor: "pointer" }} />
+                <input type="range" aria-label={t("login.radiusAria")} min={1} max={10} value={radiusKm} onChange={(e) => setRadiusKm(Number(e.target.value))} style={{ width: "100%", cursor: "pointer" }} />
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 700, color: colors.textFaint }}>
-                  <span>my street</span>
-                  <span>my whole city</span>
+                  <span>{t("login.radiusNear")}</span>
+                  <span>{t("login.radiusFar")}</span>
                 </div>
               </div>
               {error && (
                 <div style={{ fontSize: 13, fontWeight: 700, color: colors.terracotta }}>{error}</div>
               )}
-              <PillButton label={sending ? "Sending…" : "Email me a link →"} onClick={sendLink} disabled={sending} />
+              <PillButton label={sending ? t("login.sending") : t("login.sendLink")} onClick={sendLink} disabled={sending} />
               {/* The person who most needs the code is the one reading the email on a
                   second device — and they already have it. Without this they'd press
                   "email me a link" again, which GoTrue throttles to one send a minute,
@@ -347,7 +356,7 @@ export default function SignupPage() {
                 type="button"
                 onClick={() => {
                   if (!email.trim()) {
-                    setError("Enter your email first, then the code we sent you.");
+                    setError(t("login.needEmailFirst"));
                     return;
                   }
                   setError(null);
@@ -365,20 +374,19 @@ export default function SignupPage() {
                   textAlign: "center",
                 }}
               >
-                I already have a code →
+                {t("login.haveCode")}
               </button>
               <div style={{ textAlign: "center", fontSize: 12, color: colors.textFaint, fontWeight: 600, lineHeight: 1.6 }}>
-                By joining you agree to be a decent neighbour ✌️
-                <br />
-                and to our{" "}
-                <Link href="/legal/terms" style={{ color: colors.clay, fontWeight: 700 }}>
-                  Terms
-                </Link>{" "}
-                and{" "}
-                <Link href="/legal/privacy" style={{ color: colors.clay, fontWeight: 700 }}>
-                  Privacy Policy
-                </Link>
-                .
+                {/* Trans, not string concatenation: Hindi puts the links in a different
+                    place in the sentence, and a split-and-join would hardcode English
+                    word order. */}
+                <Trans
+                  i18nKey="login.agree"
+                  components={{
+                    terms: <Link href="/legal/terms" style={{ color: colors.clay, fontWeight: 700 }} />,
+                    privacy: <Link href="/legal/privacy" style={{ color: colors.clay, fontWeight: 700 }} />,
+                  }}
+                />
               </div>
             </div>
           )}

@@ -46,7 +46,7 @@ and it predates everything from `0016` on.
 npx supabase login
 npx supabase link --project-ref iwhefgykblkwnuazfczv
 npx supabase migration list --linked    # see where it actually is
-npx supabase db push                    # applies 0012 … 0020
+npx supabase db push                    # applies 0012 … 0021
 ```
 
 `0017` is the one to not skip: before it, the `categories` rows existed **only** because
@@ -57,6 +57,9 @@ have rejected every listing on the `listings.category` foreign key.
 - [ ] `db push` clean
 - [ ] Table editor shows `admin_actions`, `cities`, `localities`, `category_attributes`,
       `notification_tokens`
+- [ ] `select count(*) from cities` returns **9**. Before `0021` the table held four, while
+      the picker rendered its own hardcoded list of nine — so the table looked complete
+      while five cities were quietly missing from production's picker.
 
 ---
 

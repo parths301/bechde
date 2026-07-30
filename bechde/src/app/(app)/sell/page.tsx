@@ -21,6 +21,9 @@ import Chip from "@/components/Chip";
 import Button from "@/components/Button";
 import LocationChip from "@/components/LocationChip";
 import { validateImage, compressImage } from "@/lib/image";
+import { Trans } from "react-i18next";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { localised, localisedOption } from "@/lib/i18n/localised";
 
 // The chips used to read "Everything else" while the DB row is "Everything", so the
 // two had to be reconciled on every write. Categories come from the database now, so
@@ -37,6 +40,7 @@ interface Chapter {
 }
 
 export default function SellPage() {
+  const { t, lang } = useTranslation();
   const router = useRouter();
   const [sellTitle, setSellTitle] = useState("Yamaha F310 acoustic guitar");
   const [sellPrice, setSellPrice] = useState("3,200");
@@ -124,14 +128,14 @@ export default function SellPage() {
       }
     }
 
-    setUploadingState(`Uploading 1 of ${toUpload.length}…`);
+    setUploadingState(t("sell.uploading", { current: 1, total: toUpload.length }));
     setError(null);
     const sb = getSupabaseBrowser();
     const uploaded: string[] = [];
     try {
       for (let i = 0; i < toUpload.length; i++) {
         const file = toUpload[i];
-        if (i > 0) setUploadingState(`Uploading ${i + 1} of ${toUpload.length}…`);
+        if (i > 0) setUploadingState(t("sell.uploading", { current: i + 1, total: toUpload.length }));
         
         const { blob, ext } = await compressImage(file);
         const path = `${profile.id}/${crypto.randomUUID()}.${ext}`;
@@ -150,16 +154,16 @@ export default function SellPage() {
   const submit = async () => {
     if (submitting || uploading) return;
     if (!profile) {
-      setError("Still loading your profile — try again in a moment.");
+      setError(t("sell.profileLoading"));
       return;
     }
     if (!sellTitle.trim()) {
-      setError("Give your listing a name first.");
+      setError(t("sell.needName"));
       return;
     }
     const missing = attributes.filter((a) => a.required && !(attrs[a.key] ?? "").trim());
     if (missing.length) {
-      setError(`Still needed: ${missing.map((a) => a.label).join(", ")}.`);
+      setError(t("sell.needAttributes", { fields: missing.map((a) => a.label).join(", ") }));
       return;
     }
     setSubmitting(true);
@@ -236,7 +240,7 @@ export default function SellPage() {
 
     if (insErr || !data) {
       setSubmitting(false);
-      setError(insErr?.message ?? "Could not create the listing.");
+      setError(insErr?.message ?? t("sell.createFailed"));
       return;
     }
 
@@ -262,23 +266,23 @@ export default function SellPage() {
             <div style={{ width: 92, height: 92, borderRadius: "50%", background: colors.pine, display: "grid", placeItems: "center", fontSize: 42, transform: "rotate(-6deg)" }}>
               🎉
             </div>
-            <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 34, letterSpacing: "-1px" }}>Bech diya!</div>
+            <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 34, letterSpacing: "-1px" }}>{t("sell.successTitle")}</div>
             <div style={{ fontSize: 15, color: colors.textBody, maxWidth: 340, lineHeight: 1.6 }}>
-              Your {sellPingWord} is live.{" "}
+              {t("sell.successLive", { item: sellPingWord })}{" "}
               {watching > 0 ? (
                 <>
-                  It matches a saved search for <b>{watching} {watching === 1 ? "person" : "people"}</b> nearby.
+                  <Trans i18nKey="sell.successMatches" count={watching} components={{ b: <b /> }} />
                 </>
               ) : (
-                <>It&apos;ll show up for anyone browsing your neighbourhood.</>
+                <>{t("sell.successBrowse")}</>
               )}
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
               <Button onClick={() => router.push(`/product/${newId}`)} style={{ padding: "13px 26px", fontSize: 14.5 }}>
-                View listing →
+                {t("sell.viewListing")}
               </Button>
               <Button href="/home" variant="secondary" style={{ padding: "11px 24px", fontSize: 14.5 }}>
-                Back home
+                {t("common.backHome")}
               </Button>
             </div>
           </div>
@@ -299,7 +303,7 @@ export default function SellPage() {
 
       <div className="bd-sell-grid" style={{ display: "grid", gridTemplateColumns: "1fr 400px", gap: 34, padding: "34px 36px 44px" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-          <h1 className="bd-sell-h1" style={{ margin: 0, fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 36, letterSpacing: "-1px" }}>What are you letting go? 👋</h1>
+          <h1 className="bd-sell-h1" style={{ margin: 0, fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 36, letterSpacing: "-1px" }}>{t("sell.title")}</h1>
 
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <PhotoDropzone onClick={() => fileRef.current?.click()} uploadingState={uploadingState} />
@@ -307,24 +311,24 @@ export default function SellPage() {
               <Stripe key={url} src={url} style={{ width: 120, height: 170, borderRadius: 16 }}>
                 {i === 0 && (
                   <div style={{ position: "absolute", top: 8, left: 8, background: colors.ink, color: colors.bg, fontSize: 10, fontWeight: 800, borderRadius: 6, padding: "2px 7px" }}>
-                    cover
+                    {t("sell.cover")}
                   </div>
                 )}
               </Stripe>
             ))}
             {photos.length === 0 && (
-              <Stripe angle="45deg" band={8} label="photo 1" style={{ width: 120, height: 170, borderRadius: 16, fontSize: 10 }}>
+              <Stripe angle="45deg" band={8} label={t("sell.photoPlaceholder")} style={{ width: 120, height: 170, borderRadius: 16, fontSize: 10 }}>
                 <div style={{ position: "absolute", top: 8, left: 8, background: colors.ink, color: colors.bg, fontSize: 10, fontWeight: 800, borderRadius: 6, padding: "2px 7px" }}>
-                  cover
+                  {t("sell.cover")}
                 </div>
               </Stripe>
             )}
           </div>
 
           <div>
-            <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 8 }}>Give it a name</div>
+            <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 8 }}>{t("sell.nameLabel")}</div>
             <input
-              aria-label="Listing name"
+              aria-label={t("sell.nameAria")}
               value={sellTitle}
               onChange={(e) => { setSellTitle(e.target.value); saveDraft("sellTitle", e.target.value); }}
               style={{
@@ -342,13 +346,13 @@ export default function SellPage() {
           </div>
 
           <div>
-            <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 8 }}>Where does it belong?</div>
+            <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 8 }}>{t("sell.categoryLabel")}</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 9 }}>
               {(categories.data ?? []).map((c) => (
                 <Chip
                   key={c.name}
                   icon={c.icon ?? "✨"}
-                  name={c.name}
+                  name={localised(lang, c.name, c.name_hi)}
                   active={normalizeCategory(sellCat) === c.name}
                   onClick={() => {
                     setSellCat(c.name);
@@ -362,9 +366,9 @@ export default function SellPage() {
           {attributes.length > 0 && (
             <div>
               <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 8 }}>
-                About the {normalizeCategory(sellCat).toLowerCase()}{" "}
+                {t("sell.attributesTitle", { category: localised(lang, normalizeCategory(sellCat), categories.data?.find((c) => c.name === normalizeCategory(sellCat))?.name_hi).toLowerCase() })}{" "}
                 <span style={{ color: colors.textFaint, fontWeight: 600 }}>
-                  (buyers ask these first — answering saves you the messages)
+                  ({t("sell.attributesHint")})
                 </span>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 14 }}>
@@ -377,14 +381,14 @@ export default function SellPage() {
 
           <div>
             <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 8 }}>
-              Where can buyers pick it up? <span style={{ color: colors.textFaint, fontWeight: 600 }}>(neighbourhood only — never your exact address)</span>
+              {t("sell.pickupLabel")} <span style={{ color: colors.textFaint, fontWeight: 600 }}>({t("sell.pickupHint")})</span>
             </div>
             <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
               <input
-                aria-label="Pickup neighbourhood"
+                aria-label={t("sell.pickupAria")}
                 value={placeValue}
                 onChange={(e) => setPlace(e.target.value)}
-                placeholder="e.g. Koramangala, Bengaluru"
+                placeholder={t("sell.pickupPlaceholder")}
                 style={{
                   flex: 1,
                   minWidth: 220,
@@ -402,17 +406,17 @@ export default function SellPage() {
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 12 }}>
                 <input type="checkbox" id="public_spot" checked={isPublicSpot} onChange={e => setIsPublicSpot(e.target.checked)} style={{ width: 16, height: 16, accentColor: colors.terracotta }} />
-                <label htmlFor="public_spot" style={{ fontSize: 13, color: colors.textBody, fontWeight: 600 }}>Meeting at a public spot</label>
+                <label htmlFor="public_spot" style={{ fontSize: 13, color: colors.textBody, fontWeight: 600 }}>{t("sell.publicSpot")}</label>
             </div>
-            <div style={{ fontSize: 12, color: colors.textFaint, fontWeight: 600, marginTop: 4 }}>We recommend you to choose a nearby public spot for privacy.</div>
+            <div style={{ fontSize: 12, color: colors.textFaint, fontWeight: 600, marginTop: 4 }}>{t("sell.publicSpotHint")}</div>
           </div>
 
           <div>
-            <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 8 }}>Your price</div>
+            <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 8 }}>{t("sell.priceLabel")}</div>
             <div className="bd-sell-price-row" style={{ display: "flex", gap: 14, alignItems: "center" }}>
               <input
                 className="bd-sell-price-input"
-                aria-label="Price in rupees"
+                aria-label={t("sell.priceAria")}
                 value={sellPrice}
                 onChange={(e) => { setSellPrice(e.target.value); saveDraft("sellPrice", e.target.value); }}
                 style={{
@@ -430,17 +434,18 @@ export default function SellPage() {
               />
               {priceGuide && (
                 <div style={{ background: colors.sage, borderRadius: 12, padding: "10px 16px", fontSize: 13, color: colors.pine, fontWeight: 600, lineHeight: 1.45 }}>
-                  💡 {priceGuide.count}{" "}
-                  {priceGuide.basis === "similar"
-                    ? "similar items"
-                    : `other ${normalizeCategory(sellCat).toLowerCase()} listings`}{" "}
-                  near you are <b>asking</b>{" "}
-                  <b>
-                    {inr(priceGuide.low)}–{inr(priceGuide.high)}
-                  </b>
-                  .
                   {/* Asking, not selling. Nothing here has sold yet, so calling these
                       sale prices would be a claim the data can't support. */}
+                  <Trans
+                    i18nKey={priceGuide.basis === "similar" ? "sell.priceGuideSimilar" : "sell.priceGuideCategory"}
+                    values={{
+                      count: priceGuide.count,
+                      category: normalizeCategory(sellCat).toLowerCase(),
+                      low: inr(priceGuide.low),
+                      high: inr(priceGuide.high),
+                    }}
+                    components={{ b: <b /> }}
+                  />
                 </div>
               )}
             </div>
@@ -448,10 +453,10 @@ export default function SellPage() {
 
           <div>
             <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 8 }}>
-              Tell its story <span style={{ color: colors.textFaint, fontWeight: 600 }}>(listings with a story sell 2× faster)</span>
+              {t("sell.storyLabel")} <span style={{ color: colors.textFaint, fontWeight: 600 }}>({t("sell.storyHint")})</span>
             </div>
             <textarea
-              aria-label="Tell its story"
+              aria-label={t("sell.storyLabel")}
               value={sellNote}
               onChange={(e) => { setSellNote(e.target.value); saveDraft("sellNote", e.target.value); }}
               rows={3}
@@ -484,16 +489,16 @@ export default function SellPage() {
               >
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <input
-                    aria-label={`Chapter ${i + 1} title`}
+                    aria-label={t("sell.chapterTitle", { n: i + 1 })}
                     value={c.title}
                     onChange={(e) =>
                       setChapters(chapters.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))
                     }
-                    placeholder="Bought it for the flat"
+                    placeholder={t("sell.chapterTitlePlaceholder")}
                     style={{ ...chapterInput, flex: 2, minWidth: 160 }}
                   />
                   <input
-                    aria-label={`Chapter ${i + 1} when`}
+                    aria-label={t("sell.chapterWhen", { n: i + 1 })}
                     value={c.when}
                     onChange={(e) =>
                       setChapters(chapters.map((x, j) => (j === i ? { ...x, when: e.target.value } : x)))
@@ -503,7 +508,7 @@ export default function SellPage() {
                   />
                   <button
                     type="button"
-                    aria-label={`Remove chapter ${i + 1}`}
+                    aria-label={t("sell.removeChapter", { n: i + 1 })}
                     onClick={() => setChapters(chapters.filter((_, j) => j !== i))}
                     style={{
                       border: "none",
@@ -519,10 +524,10 @@ export default function SellPage() {
                   </button>
                 </div>
                 <input
-                  aria-label={`Chapter ${i + 1} detail`}
+                  aria-label={t("sell.chapterDetail", { n: i + 1 })}
                   value={c.text}
                   onChange={(e) => setChapters(chapters.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)))}
-                  placeholder="Where it came from, what it's been through…"
+                  placeholder={t("sell.chapterDetailPlaceholder")}
                   style={chapterInput}
                 />
               </div>
@@ -545,7 +550,7 @@ export default function SellPage() {
                   cursor: "pointer",
                 }}
               >
-                + Add an earlier chapter
+                {t("sell.addChapter")}
               </button>
             )}
           </div>
@@ -561,25 +566,23 @@ export default function SellPage() {
             disabled={submitting || uploading || !profile}
             style={{ alignSelf: "flex-start", padding: "15px 34px", fontSize: 16, opacity: submitting || uploading || !profile ? 0.7 : 1 }}
           >
-            {submitting ? "Posting…" : uploading ? "Waiting for the photo…" : !profile ? "One moment…" : "Bech de! →"}
+            {submitting ? t("sell.submitting") : uploading ? t("sell.uploadingWait") : !profile ? t("common.loading") : t("sell.submit")}
           </Button>
 
           <div style={{ fontSize: 12, color: colors.textFaint, fontWeight: 600, lineHeight: 1.6 }}>
-            By listing you confirm it&apos;s yours to sell and isn&apos;t on the{" "}
-            <Link href="/legal/prohibited" style={{ color: colors.clay, fontWeight: 700 }}>
-              prohibited items list
-            </Link>
-            . Listings that break the{" "}
-            <Link href="/legal/terms" style={{ color: colors.clay, fontWeight: 700 }}>
-              rules
-            </Link>{" "}
-            get taken down.
+            <Trans
+              i18nKey="sell.terms"
+              components={{
+                prohibited: <Link href="/legal/prohibited" style={{ color: colors.clay, fontWeight: 700 }} />,
+                rules: <Link href="/legal/terms" style={{ color: colors.clay, fontWeight: 700 }} />,
+              }}
+            />
           </div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <div style={{ fontSize: 12, fontWeight: 800, color: colors.textFaint, textTransform: "uppercase", letterSpacing: "1px" }}>
-            Live preview · how buyers see it
+            {t("sell.preview")}
           </div>
           <div
             style={{
@@ -591,7 +594,7 @@ export default function SellPage() {
               transform: "rotate(1.2deg)",
             }}
           >
-            <Stripe angle="45deg" src={cover} band={9} label="cover photo" style={{ height: 190, fontSize: 11 }}>
+            <Stripe angle="45deg" src={cover} band={9} label={t("sell.coverPhoto")} style={{ height: 190, fontSize: 11 }}>
               <div
                 style={{
                   position: "absolute",
@@ -606,7 +609,7 @@ export default function SellPage() {
                   whiteSpace: "nowrap",
                 }}
               >
-                📍 {placeValue.trim() || "your neighbourhood"}
+                📍 {placeValue.trim() || t("sell.yourNeighbourhood")}
               </div>
             </Stripe>
             <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 7 }}>
@@ -617,17 +620,17 @@ export default function SellPage() {
               <div style={{ fontSize: 12.5, fontStyle: "italic", color: colors.textMuted, lineHeight: 1.5 }}>&ldquo;{noteTrim}&rdquo;</div>
               <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: colors.textBody, fontWeight: 600 }}>
                 <span style={{ width: 20, height: 20, borderRadius: "50%", background: colors.teal, flex: "none" }} />
-                {profile?.name ?? "Someone"} · new seller ✨
+                {profile?.name ?? t("sell.someone")} · {t("product.newSeller")} ✨
               </div>
             </div>
           </div>
           <div style={{ background: colors.offerBg, borderRadius: 14, padding: "14px 18px", fontSize: 13, color: "#6B5320", lineHeight: 1.55, marginTop: 8 }}>
             {watching > 0 ? (
               <>
-                🔔 <b>{watching} {watching === 1 ? "person has" : "people have"}</b> a saved search this would match.
+                <Trans i18nKey="sell.watchingCount" count={watching} components={{ b: <b /> }} />
               </>
             ) : (
-              <>🔍 Nobody has a saved search for this yet — it&apos;ll still show up for anyone browsing nearby.</>
+              <>{t("sell.watchingNone")}</>
             )}
           </div>
         </div>
@@ -663,6 +666,9 @@ function AttributeField({
   value: string;
   onChange: (v: string) => void;
 }) {
+  const { t, lang } = useTranslation();
+  const label = localised(lang, attr.label, attr.label_hi);
+  const hint = localised(lang, attr.hint ?? "", attr.hint_hi) || null;
   const common: React.CSSProperties = {
     width: "100%",
     minWidth: 0,
@@ -680,48 +686,50 @@ function AttributeField({
   return (
     <div style={{ minWidth: 0 }}>
       <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 6 }}>
-        {attr.label}
+        {label}
         {attr.required && <span style={{ color: colors.terracotta }}> *</span>}
       </div>
 
       {attr.type === "select" ? (
-        <select aria-label={attr.label} value={value} onChange={(e) => onChange(e.target.value)} style={common}>
-          <option value="">Choose…</option>
+        <select aria-label={label} value={value} onChange={(e) => onChange(e.target.value)} style={common}>
+          <option value="">{t("sell.choose")}</option>
           {/* A value the template no longer offers — an option since renamed, or a
               seeded listing written before the vocabulary existed. Carry it rather
               than render "Choose…" over the top of an answer and blank it on save. */}
           {value && !attr.options.includes(value) && <option value={value}>{value}</option>}
+          {/* value stays English, display follows the language — see localisedOption */}
           {attr.options.map((o) => (
             <option key={o} value={o}>
-              {o}
+              {localisedOption(lang, attr.options, attr.options_hi, o)}
             </option>
           ))}
         </select>
       ) : attr.type === "boolean" ? (
         <select aria-label={attr.label} value={value} onChange={(e) => onChange(e.target.value)} style={common}>
           <option value="">Choose…</option>
-          <option value="Yes">Yes</option>
-          <option value="No">No</option>
+          <option value="Yes">{t("sell.yes")}</option>
+          <option value="No">{t("sell.no")}</option>
         </select>
       ) : (
         <input
-          aria-label={attr.label}
+          aria-label={label}
           type={attr.type === "number" ? "number" : "text"}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder={attr.hint ?? ""}
+          placeholder={hint ?? ""}
           style={common}
         />
       )}
 
-      {attr.hint && attr.type !== "text" && (
-        <div style={{ fontSize: 11.5, color: colors.textFaint, fontWeight: 600, marginTop: 4 }}>{attr.hint}</div>
+      {hint && attr.type !== "text" && (
+        <div style={{ fontSize: 11.5, color: colors.textFaint, fontWeight: 600, marginTop: 4 }}>{hint}</div>
       )}
     </div>
   );
 }
 
 function PhotoDropzone({ onClick, uploadingState }: { onClick: () => void; uploadingState: string | null }) {
+  const { t } = useTranslation();
   const [hover, setHover] = useState(false);
   const uploading = uploadingState !== null;
   return (
@@ -744,8 +752,8 @@ function PhotoDropzone({ onClick, uploadingState }: { onClick: () => void; uploa
     >
       <div>
         <div style={{ fontSize: 26, marginBottom: 6 }}>{uploading ? "⏳" : "📸"}</div>
-        <div style={{ fontWeight: 800, fontSize: 15 }}>{uploadingState ?? "Add photos"}</div>
-        <div style={{ fontSize: 12.5, color: colors.textFaint, fontWeight: 600 }}>up to 6 · first one becomes the cover</div>
+        <div style={{ fontWeight: 800, fontSize: 15 }}>{uploadingState ?? t("sell.addPhotos")}</div>
+        <div style={{ fontSize: 12.5, color: colors.textFaint, fontWeight: 600 }}>{t("sell.photoHint")}</div>
       </div>
     </div>
   );

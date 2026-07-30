@@ -7,6 +7,7 @@ import { colors } from "@/lib/colors";
 import { useProfile, useUnreadCount } from "@/lib/queries";
 import { DEFAULT_FILTERS, searchHref } from "@/lib/search";
 import LocationChip from "./LocationChip";
+import LanguageToggle from "./LanguageToggle";
 
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 
@@ -15,7 +16,7 @@ export default function Header() {
   const profile = useProfile().data;
   const profileName = profile?.name;
   const unread = useUnreadCount();
-  const { lang, setLang, t } = useTranslation();
+  const { t } = useTranslation();
   const avatarInitial = (profileName || "U").trim().charAt(0).toUpperCase() || "U";
 
   return (
@@ -66,11 +67,11 @@ export default function Header() {
               bar as well, so /home showed two of them. */}
           <LocationChip style={{ maxWidth: 190 }} />
           <NavLink href="/map" active={pathname === "/map"}>
-            🗺️ {t("nav_map")}
+            🗺️ {t("nav.map")}
           </NavLink>
           <NavLink href="/chat" active={pathname === "/chat"}>
             <span style={{ position: "relative" }}>
-              {t("nav_chat")}
+              {t("nav.chat")}
               {unread > 0 && (
                 <span
                   style={{
@@ -95,34 +96,13 @@ export default function Header() {
               "Checking permissions…" dead end. */}
           {profile?.is_admin && (
             <NavLink href="/admin" active={pathname.startsWith("/admin")}>
-              🛡️ Console
+              {t("nav.console")}
             </NavLink>
           )}
           <SellButton />
         </div>
 
-        {/* Language Toggle Button */}
-        <button
-          onClick={() => setLang(lang === "en" ? "hi" : "en")}
-          aria-label="Toggle language"
-          style={{
-            background: colors.bg2,
-            border: `1px solid ${colors.sand}`,
-            borderRadius: 999,
-            padding: "4px 10px",
-            fontSize: 12,
-            fontWeight: 700,
-            cursor: "pointer",
-            color: colors.ink,
-            display: "flex",
-            alignItems: "center",
-            gap: 4,
-          }}
-        >
-          <span style={{ opacity: lang === "en" ? 1 : 0.4 }}>EN</span>
-          <span>|</span>
-          <span style={{ opacity: lang === "hi" ? 1 : 0.4 }}>हिन्दी</span>
-        </button>
+        <LanguageToggle />
 
         {profileName ? (
           <Link href="/profile" className="bd-header-avatar" style={{ display: "block" }}>
@@ -141,7 +121,7 @@ export default function Header() {
               textDecoration: "none",
             }}
           >
-            Sign in
+            {t("nav.signIn")}
           </Link>
         )}
       </nav>
@@ -150,6 +130,7 @@ export default function Header() {
 }
 
 export function SearchBar({ autoFocus }: { autoFocus?: boolean } = {}) {
+  const { t } = useTranslation();
   const router = useRouter();
   const [hover, setHover] = useState(false);
   const [q, setQ] = useState("");
@@ -179,7 +160,7 @@ export function SearchBar({ autoFocus }: { autoFocus?: boolean } = {}) {
       <button
         type="button"
         onClick={submit}
-        aria-label="Search"
+        aria-label={t("common.search")}
         style={{ background: "none", border: "none", padding: 0, font: "inherit", cursor: "pointer", color: "inherit" }}
       >
         ⌕
@@ -191,7 +172,7 @@ export function SearchBar({ autoFocus }: { autoFocus?: boolean } = {}) {
         onKeyDown={(e) => {
           if (e.key === "Enter") submit();
         }}
-        placeholder='Search "study table", "iPhone 12", "kurta"…'
+        placeholder={t("nav.searchPlaceholder")}
         style={{
           flex: 1,
           minWidth: 0,
@@ -222,6 +203,7 @@ function NavLink({ href, active, children }: { href: string; active: boolean; ch
 }
 
 function SellButton() {
+  const { t } = useTranslation();
   const [hover, setHover] = useState(false);
   return (
     <Link
@@ -239,7 +221,7 @@ function SellButton() {
         display: "inline-block",
       }}
     >
-      + Bech de!
+      {t("nav.sell")}
     </Link>
   );
 }

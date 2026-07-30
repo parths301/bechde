@@ -15,10 +15,12 @@ import RadarBubble from "@/components/RadarBubble";
 import ListingCard from "@/components/ListingCard";
 import OsmMap from "@/components/OsmMap";
 import LocationChip from "@/components/LocationChip";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 const RADAR_BOX = { w: 560, h: 520 };
 
 export default function HomePage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { radiusKm, setRadiusKm } = useAppState();
   const origin = useUserLocation();
@@ -107,12 +109,12 @@ export default function HomePage() {
             <LocationChip />
           </div>
           <h1 className="bd-hero-h1" style={{ margin: 0, fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 54, lineHeight: 1.05, letterSpacing: "-1.5px" }}>
-            Good stuff,
+            {t("home.headline1")}
             <br />
-            walking distance.
+            {t("home.headline2")}
           </h1>
           <p style={{ margin: 0, maxWidth: 400, fontSize: 16.5, lineHeight: 1.6, color: colors.textBody }}>
-            Buy and sell with people in your own neighbourhood. No shipping, no strangers from far away — just meet, check, and take it home.
+            {t("home.blurb")}
           </p>
           {/* mobile-only: the header search is hidden under the breakpoint */}
           <div className="bd-mobile-search" style={{ display: "none" }}>
@@ -251,7 +253,7 @@ export default function HomePage() {
             <span style={{ fontSize: 12.5, fontWeight: 700, color: colors.textBody, whiteSpace: "nowrap" }}>Radius</span>
             <input
               type="range"
-              aria-label="Search radius in kilometres"
+              aria-label={t("home.radiusLabel")}
               min={1}
               max={10}
               value={radiusKm}
@@ -281,7 +283,7 @@ export default function HomePage() {
             Fresh within {radiusKm} km
           </h2>
           <Link href="/map" style={{ fontSize: 13.5, fontWeight: 700, color: colors.clay, cursor: "pointer" }}>
-            see all on map →
+            {t("home.seeAllOnMap")}
           </Link>
         </div>
         <div className="bd-feed-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 18 }}>

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { colors } from "@/lib/colors";
 import { reportListing, reportReview, reportReasons, type ReportReason } from "@/lib/queries";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 /**
  * In-page report sheet. Deliberately not a browser confirm()/alert() — those block
@@ -22,6 +23,7 @@ export default function ReportDialog({
   targetName: string;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [details, setDetails] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
@@ -105,7 +107,7 @@ export default function ReportDialog({
         {state === "sent" ? (
           <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
             <div style={{ fontSize: 34 }}>🛡️</div>
-            <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 21 }}>Thanks — report sent</div>
+            <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 21 }}>{t("report.sentTitle")}</div>
             <div style={{ fontSize: 13.5, color: colors.textBody, lineHeight: 1.6 }}>
               We&apos;ve logged it. If it breaks the rules it comes down. You can also block this user so you stop seeing them.
             </div>
@@ -114,7 +116,7 @@ export default function ReportDialog({
               onClick={onClose}
               style={{ marginTop: 6, background: colors.ink, color: colors.bg, border: "none", borderRadius: 999, padding: "10px 24px", fontWeight: 800, fontSize: 14, cursor: "pointer", font: "inherit", fontFamily: "inherit" }}
             >
-              Done
+              {t("common.done")}
             </button>
           </div>
         ) : (
@@ -129,7 +131,7 @@ export default function ReportDialog({
               <button
                 type="button"
                 onClick={onClose}
-                aria-label="Close report dialog"
+                aria-label={t("report.close")}
                 style={{ fontSize: 20, color: colors.textFaint, cursor: "pointer", lineHeight: 1, background: "none", border: "none", padding: 0, fontFamily: "inherit" }}
               >
                 ×
@@ -165,7 +167,7 @@ export default function ReportDialog({
               value={details}
               onChange={(e) => setDetails(e.target.value)}
               rows={3}
-              placeholder="Anything else we should know? (optional)"
+              placeholder={t("report.detailsPlaceholder")}
               style={{
                 width: "100%",
                 background: "#fff",
@@ -197,7 +199,7 @@ export default function ReportDialog({
                 onClick={onClose}
                 style={{ background: "#fff", border: `1.5px solid ${colors.sand}`, borderRadius: 999, padding: "10px 20px", fontWeight: 800, fontSize: 13.5, cursor: "pointer", fontFamily: "inherit" }}
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 type="button"
@@ -215,7 +217,7 @@ export default function ReportDialog({
                   cursor: reason ? "pointer" : "not-allowed",
                 }}
               >
-                {state === "sending" ? "Sending…" : "Send report"}
+                {state === "sending" ? t("report.sending") : t("report.submit")}
               </button>
             </div>
           </>

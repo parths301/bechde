@@ -24,6 +24,7 @@ import type { Item } from "@/lib/data";
 import Stripe from "@/components/Stripe";
 import LocationChip from "@/components/LocationChip";
 import ReportDialog from "@/components/ReportDialog";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface GridCard {
   id?: string;
@@ -38,6 +39,7 @@ interface GridCard {
 }
 
 export default function ProfilePage() {
+  const { t } = useTranslation();
   const { profTab, setProfTab } = useAppState();
   const saved = useSavedListings().data ?? [];
   const mine = useMyListings().data ?? [];
@@ -69,16 +71,16 @@ export default function ProfilePage() {
   });
 
   const tabs: { key: ProfileTab; label: string }[] = [
-    { key: "listings", label: `My listings · ${active.length}` },
-    { key: "sold", label: `Sold · ${sold.length}` },
-    { key: "saved", label: `Saved ♡ · ${saved.length}` },
-    { key: "reviews", label: `Reviews · ${reviews.length}` },
+    { key: "listings", label: t("profile.tabListings", { count: active.length }) },
+    { key: "sold", label: t("profile.tabSold", { count: sold.length }) },
+    { key: "saved", label: t("profile.tabSaved", { count: saved.length }) },
+    { key: "reviews", label: t("profile.tabReviews", { count: reviews.length }) },
   ];
 
   const grids: Record<ProfileTab, GridCard[]> = {
-    listings: active.map((i) => card(i, "● Active", colors.sage, colors.pine, i.listedAgo || "listed")),
-    sold: sold.map((i) => card(i, "✓ Sold", colors.ink, colors.bg, "sold 🎉")),
-    saved: saved.map((i) => card(i, "♡ Saved", colors.savedBg, colors.savedText, `${i.dist} away`)),
+    listings: active.map((i) => card(i, t("profile.tagActive"), colors.sage, colors.pine, i.listedAgo || "listed")),
+    sold: sold.map((i) => card(i, t("profile.tagSold"), colors.ink, colors.bg, t("profile.soldCelebrate"))),
+    saved: saved.map((i) => card(i, t("profile.tagSaved"), colors.savedBg, colors.savedText, t("profile.distAway", { dist: i.dist }))),
     // Reviews aren't listings — rendered separately below.
     reviews: [],
   };
@@ -86,9 +88,9 @@ export default function ProfilePage() {
   // All three come from the profile row, which triggers keep in sync with the
   // reviews, sold listings and message timings behind them.
   const profStats = [
-    { v: String(myProfile?.sold ?? 0), k: "sold" },
-    { v: myProfile?.rating_avg ? `★ ${Number(myProfile.rating_avg).toFixed(1)}` : "—", k: myProfile?.rating_count ? `from ${myProfile.rating_count}` : "no reviews yet" },
-    { v: myProfile?.reply_time ?? "—", k: "avg reply" },
+    { v: String(myProfile?.sold ?? 0), k: t("profile.statSold") },
+    { v: myProfile?.rating_avg ? `★ ${Number(myProfile.rating_avg).toFixed(1)}` : "—", k: myProfile?.rating_count ? t("profile.statFromReviews", { count: myProfile.rating_count }) : t("profile.statNoReviews") },
+    { v: myProfile?.reply_time ?? "—", k: t("profile.statReply") },
   ];
 
   // Only badges we can actually derive. The prototype's "🤝 Reliable meeter — never
@@ -139,12 +141,12 @@ export default function ProfilePage() {
                 in does prove the email, so that's what the badge claims now. */}
             {myProfile?.email && (
               <span style={{ background: colors.sage, color: colors.pine, borderRadius: 999, padding: "4px 12px", fontSize: 12, fontWeight: 800, whiteSpace: "nowrap" }}>
-                ✓ email verified
+                {t("profile.emailVerified")}
               </span>
             )}
           </div>
           <div style={{ fontSize: 13.5, color: colors.textMuted, fontWeight: 600, marginTop: 3 }}>
-            {[where, joined ? `joined ${joined}` : null, myProfile?.bio ? `“${myProfile.bio}”` : null]
+            {[where, joined ? `${t("profile.joined", { when: joined })}` : null, myProfile?.bio ? `“${myProfile.bio}”` : null]
               .filter(Boolean)
               .join(" · ")}
           </div>
@@ -157,7 +159,7 @@ export default function ProfilePage() {
             onClick={() => signOut()}
             style={{ fontFamily: "inherit", background: "none", border: "none", padding: 0, display: "inline-block", marginTop: 8, fontSize: 12.5, fontWeight: 700, color: colors.clay, cursor: "pointer" }}
           >
-            Sign out →
+            {t("profile.signOut")}
           </button>
         </div>
         <div className="bd-prof-stats" style={{ display: "flex", gap: 26, paddingBottom: 4 }}>
@@ -212,7 +214,7 @@ export default function ProfilePage() {
                 border: reviewSubtab === "received" ? "1.5px solid transparent" : `1.5px solid ${colors.cardBorder}`
               }}
             >
-              Received
+              {t("profile.reviewsReceived")}
             </button>
             <button
               onClick={() => setReviewSubtab("written")}
@@ -223,7 +225,7 @@ export default function ProfilePage() {
                 border: reviewSubtab === "written" ? "1.5px solid transparent" : `1.5px solid ${colors.cardBorder}`
               }}
             >
-              Written
+              {t("profile.reviewsWritten")}
             </button>
           </div>
 
@@ -231,7 +233,7 @@ export default function ProfilePage() {
             <>
               {reviews.length === 0 && (
                 <div style={{ fontSize: 13.5, color: colors.textFaint, fontWeight: 600, lineHeight: 1.6 }}>
-                  No reviews received yet. Once a deal is accepted in chat, the buyer can leave one.
+                  {t("profile.noReviewsReceived")}
                 </div>
               )}
               {reviews.map((r) => (
@@ -294,7 +296,7 @@ export default function ProfilePage() {
             <>
               {writtenReviews.length === 0 && (
                 <div style={{ fontSize: 13.5, color: colors.textFaint, fontWeight: 600, lineHeight: 1.6 }}>
-                  You haven&apos;t written any reviews yet.
+                  {t("profile.noReviewsWritten")}
                 </div>
               )}
               {writtenReviews.map((r) => (
@@ -449,13 +451,13 @@ export default function ProfilePage() {
 
       <div style={{ padding: "8px 36px 44px", display: "flex", gap: 16, flexWrap: "wrap", fontSize: 12.5, fontWeight: 700, color: colors.textFaint }}>
         <Link href="/legal/terms" style={{ color: colors.textFaint }}>
-          Terms
+          {t("profile.footerTerms")}
         </Link>
         <Link href="/legal/privacy" style={{ color: colors.textFaint }}>
-          Privacy
+          {t("profile.footerPrivacy")}
         </Link>
         <Link href="/legal/prohibited" style={{ color: colors.textFaint }}>
-          What&apos;s not allowed
+          {t("profile.footerProhibited")}
         </Link>
       </div>
     </div>
@@ -475,6 +477,7 @@ function parseReplyMinutes(reply: string | null | undefined): number | null {
 
 /** Inline editor for the two fields a person actually sets themselves. */
 function EditProfile({ name, bio, disabled }: { name: string; bio: string; disabled: boolean }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [draftName, setDraftName] = useState(name);
   const [draftBio, setDraftBio] = useState(bio);
@@ -488,7 +491,7 @@ function EditProfile({ name, bio, disabled }: { name: string; bio: string; disab
       await updateMyProfile({ name: draftName, bio: draftBio });
       setOpen(false);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Couldn't save that.");
+      setError(e instanceof Error ? e.message : t("profile.emailSaveFailed"));
     } finally {
       setBusy(false);
     }
@@ -536,14 +539,14 @@ function EditProfile({ name, bio, disabled }: { name: string; bio: string; disab
 
   return (
     <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-      <input value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder="Your name" style={{ ...field, width: 150 }} />
+      <input value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder={t("profile.yourName")} style={{ ...field, width: 150 }} />
       <input
         value={draftBio}
         onChange={(e) => setDraftBio(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter") save();
         }}
-        placeholder="One line about you"
+        placeholder={t("profile.oneLine")}
         style={{ ...field, width: 240 }}
       />
       <button type="button" onClick={save} style={{ fontFamily: "inherit", border: "none", background: colors.ink, color: colors.bg, borderRadius: 999, padding: "8px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer" }}>
@@ -559,6 +562,7 @@ function EditProfile({ name, bio, disabled }: { name: string; bio: string; disab
 
 /** People you've blocked, with a way back. Empty for almost everyone, so it hides itself. */
 function BlockedList() {
+  const { t } = useTranslation();
   const blocked = useBlockedIds();
   const [busy, setBusy] = useState<string | null>(null);
   const [gone, setGone] = useState<string[]>([]);
@@ -581,7 +585,7 @@ function BlockedList() {
 
   return (
     <div style={{ padding: "0 36px 24px" }}>
-      <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 16, marginBottom: 10 }}>Blocked people</div>
+      <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 16, marginBottom: 10 }}>{t("profile.blockedTitle")}</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 460 }}>
         {ids.map((id) => (
           <div
@@ -608,7 +612,7 @@ function BlockedList() {
         ))}
       </div>
       <div style={{ fontSize: 11.5, color: colors.textFaint, fontWeight: 600, marginTop: 8 }}>
-        Their listings stay hidden from you and they can&apos;t message you until you unblock them.
+        {t("profile.blockedNote")}
       </div>
     </div>
   );
@@ -703,6 +707,7 @@ function ProfileGridCard({ card }: { card: GridCard }) {
  * mechanism is worse than no promise.
  */
 function YourData() {
+  const { t } = useTranslation();
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -715,9 +720,9 @@ function YourData() {
     setNote(null);
     try {
       await forgetMyLocation();
-      setNote("Location forgotten. We'll ask again next time you need it.");
+      setNote(t("profile.dataForgotten"));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't clear it.");
+      setError(e instanceof Error ? e.message : t("profile.dataForgetFailed"));
     } finally {
       setBusy(null);
     }
@@ -730,7 +735,7 @@ function YourData() {
       await closeMyAccount();
       window.location.href = "/home";
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't close the account.");
+      setError(e instanceof Error ? e.message : t("profile.dataCloseFailed"));
       setBusy(null);
     }
   };
@@ -747,25 +752,25 @@ function YourData() {
         }}
       >
         <h2 style={{ margin: "0 0 4px", fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 16 }}>
-          Your data
+          {t("profile.dataTitle")}
         </h2>
         <div style={{ fontSize: 13, color: colors.textMuted, fontWeight: 600, lineHeight: 1.55, marginBottom: 14 }}>
-          Under the DPDP Act these are yours to exercise, and you shouldn&apos;t have to email anyone to do it.
+          {t("profile.dataBlurb")}
         </div>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <a href="/api/account/export" style={dataBtn}>
-            Download my data
+            {t("profile.dataDownload")}
           </a>
           <button type="button" onClick={forget} disabled={busy === "location"} style={dataBtn}>
-            {busy === "location" ? "Clearing…" : "Forget my location"}
+            {busy === "location" ? t("profile.dataForgetting") : t("profile.dataForget")}
           </button>
           <button
             type="button"
             onClick={() => setConfirming(!confirming)}
             style={{ ...dataBtn, color: colors.clay }}
           >
-            Close my account
+            {t("profile.dataClose")}
           </button>
         </div>
 
@@ -785,14 +790,12 @@ function YourData() {
             }}
           >
             <div style={{ fontSize: 13.5, color: colors.textBody, fontWeight: 600, lineHeight: 1.6, marginBottom: 12 }}>
-              Your name, bio and location are erased and your live listings are withdrawn. Messages you sent stay
-              in the other person&apos;s chat history — they are that person&apos;s record of a deal too, and
-              deleting them would take their side of the conversation with it. Your name won&apos;t be on them.
+              {t("profile.dataCloseWarning")}
               <br />
-              <b>This cannot be undone.</b>
+              <b>{t("profile.dataCloseFinal")}</b>
             </div>
             <label htmlFor="close-confirm" style={{ fontSize: 12.5, fontWeight: 800, display: "block", marginBottom: 6 }}>
-              Type CLOSE to confirm
+              {t("profile.dataCloseConfirm")}
             </label>
             <input
               id="close-confirm"
@@ -825,7 +828,7 @@ function YourData() {
                   cursor: typed === "CLOSE" ? "pointer" : "not-allowed",
                 }}
               >
-                {busy === "close" ? "Closing…" : "Close my account for good"}
+                {busy === "close" ? t("profile.dataClosing") : t("profile.dataCloseButton")}
               </button>
             </div>
           </div>
@@ -851,6 +854,7 @@ const dataBtn: React.CSSProperties = {
 
 /** Which emails Bech De may send. Mirrors what the unsubscribe links toggle. */
 function EmailPrefs() {
+  const { t } = useTranslation();
   const me = useProfile().data;
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -870,10 +874,10 @@ function EmailPrefs() {
   const rows: { key: "notify_messages" | "notify_saved_searches"; label: string; hint: string }[] = [
     {
       key: "notify_messages",
-      label: "New messages",
-      hint: "Only if you haven't already read it — an active conversation sends nothing.",
+      label: t("profile.emailMessages"),
+      hint: t("profile.emailMessagesHint"),
     },
-    { key: "notify_saved_searches", label: "Saved-search matches", hint: "A daily digest when something new turns up." },
+    { key: "notify_saved_searches", label: t("profile.emailSaved"), hint: t("profile.emailSavedHint") },
   ];
 
   return (
@@ -888,7 +892,7 @@ function EmailPrefs() {
         }}
       >
         <h2 style={{ margin: "0 0 12px", fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 16 }}>
-          Email
+          {t("profile.emailTitle")}
         </h2>
         {rows.map((r) => {
           const on = me ? me[r.key] : true;

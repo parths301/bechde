@@ -21,13 +21,15 @@ import {
 import ListingCard from "@/components/ListingCard";
 import Chip from "@/components/Chip";
 import PriceInput from "@/components/PriceInput";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 export default function SearchPage() {
+  const { t } = useTranslation();
   return (
     <Suspense
       fallback={
         <div style={{ flex: 1, display: "grid", placeItems: "center", minHeight: "calc(100vh - 76px)", color: colors.textFaint, fontWeight: 700 }}>
-          Searching…
+          {t("search.searching")}
         </div>
       }
     >
@@ -37,6 +39,7 @@ export default function SearchPage() {
 }
 
 function SearchScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const params = useSearchParams();
   // The URL is the single source of truth, so results are shareable and Back works.
@@ -64,7 +67,7 @@ function SearchScreen() {
       setSaveState("saved");
     } catch (e: unknown) {
       setSaveState("idle");
-      setError(e instanceof Error ? e.message : "Couldn't save that search.");
+      setError(e instanceof Error ? e.message : t("search.saveFailed"));
     }
   };
 
@@ -74,7 +77,7 @@ function SearchScreen() {
       await deleteSavedSearch(s.id);
       saved.reload();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Couldn't remove that search.");
+      setError(e instanceof Error ? e.message : t("search.removeFailed"));
     }
   };
 
@@ -91,15 +94,15 @@ function SearchScreen() {
         {!loading && results.length === 0 && (
           <div style={{ background: "#fff", border: `1.5px dashed ${colors.cardBorder}`, borderRadius: 18, padding: "28px 26px", maxWidth: 520 }}>
             <div style={{ fontSize: 30, marginBottom: 8 }}>🔍</div>
-            <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 19, marginBottom: 6 }}>Nothing matches — yet</div>
+            <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 19, marginBottom: 6 }}>{t("search.noMatchesTitle")}</div>
             <div style={{ fontSize: 13.5, color: colors.textBody, lineHeight: 1.6 }}>
               Try a wider radius, drop the price bound, or search a broader word. You can also save this search and we&apos;ll
               count new matches here as people list things.
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-              {filters.radiusKm < 10 && <MiniButton label="Widen to 10 km" onClick={() => apply({ radiusKm: 10 })} />}
+              {filters.radiusKm < 10 && <MiniButton label={t("search.widenTo10")} onClick={() => apply({ radiusKm: 10 })} />}
               {(filters.minPrice != null || filters.maxPrice != null) && (
-                <MiniButton label="Clear price" onClick={() => apply({ minPrice: null, maxPrice: null })} />
+                <MiniButton label={t("search.clearPrice")} onClick={() => apply({ minPrice: null, maxPrice: null })} />
               )}
               {filters.category !== ANY_CATEGORY && <MiniButton label="Any category" onClick={() => apply({ category: ANY_CATEGORY })} />}
             </div>
@@ -130,7 +133,7 @@ function SearchScreen() {
                 cursor: "pointer",
               }}
             >
-              Load more
+              {t("search.loadMore")}
             </button>
             <div style={{ fontSize: 12.5, color: colors.textMuted, fontWeight: 600, marginTop: 8 }}>
               Showing {total} results
@@ -142,14 +145,14 @@ function SearchScreen() {
       {/* filter rail — same shell as the map's, so it reuses the responsive rules */}
       <div className="bd-map-rail" style={{ borderLeft: `1.5px dashed ${colors.divider}`, padding: "26px 24px", display: "flex", flexDirection: "column", gap: 22, background: colors.bg }}>
         <div>
-          <RailTitle>Search</RailTitle>
+          <RailTitle>{t("common.search")}</RailTitle>
           <input
             value={queryDraft ?? filters.q}
             onChange={(e) => setQueryDraft(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") apply({ q: queryDraft ?? filters.q });
             }}
-            placeholder="study table, iPhone 12…"
+            placeholder={t("search.placeholder")}
             style={{
               width: "100%",
               background: "#fff",
@@ -166,12 +169,12 @@ function SearchScreen() {
 
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
-            <RailTitle inline>Radius</RailTitle>
+            <RailTitle inline>{t("common.radius")}</RailTitle>
             <span style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 16, color: colors.clay }}>{filters.radiusKm} km</span>
           </div>
           <input
             type="range"
-            aria-label="Search radius in kilometres"
+            aria-label={t("search.radiusLabel")}
             min={1}
             max={10}
             value={filters.radiusKm}
@@ -181,7 +184,7 @@ function SearchScreen() {
         </div>
 
         <div>
-          <RailTitle>Category</RailTitle>
+          <RailTitle>{t("common.category")}</RailTitle>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {searchCategories.map((c) => (
               <Chip key={c.name} icon={c.icon} name={c.name} active={filters.category === c.name} onClick={() => apply({ category: c.name })} />
@@ -190,10 +193,10 @@ function SearchScreen() {
         </div>
 
         <div>
-          <RailTitle>Price</RailTitle>
+          <RailTitle>{t("common.price")}</RailTitle>
           <div style={{ display: "flex", gap: 8 }}>
-            <PriceInput placeholder="₹ min" value={filters.minPrice} onCommit={(v) => apply({ minPrice: v })} />
-            <PriceInput placeholder="₹ max" value={filters.maxPrice} onCommit={(v) => apply({ maxPrice: v })} />
+            <PriceInput placeholder={t("common.priceMin")} value={filters.minPrice} onCommit={(v) => apply({ minPrice: v })} />
+            <PriceInput placeholder={t("common.priceMax")} value={filters.maxPrice} onCommit={(v) => apply({ maxPrice: v })} />
           </div>
         </div>
 
@@ -220,14 +223,14 @@ function SearchScreen() {
 
         {(saved.data?.length ?? 0) > 0 && (
           <div>
-            <RailTitle>Saved searches</RailTitle>
+            <RailTitle>{t("search.savedSearches")}</RailTitle>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {saved.data!.map((s) => (
                 <SavedRow key={s.id} search={s} onOpen={() => router.push(searchHref(s))} onForget={() => onForget(s)} />
               ))}
             </div>
             <div style={{ fontSize: 11, color: colors.textFaint, fontWeight: 600, marginTop: 8, lineHeight: 1.5 }}>
-              New matches are counted here — no emails yet.
+              {t("search.savedNote")}
             </div>
           </div>
         )}
@@ -243,6 +246,7 @@ function RailTitle({ children, inline }: { children: React.ReactNode; inline?: b
 }
 
 function SavedRow({ search, onOpen, onForget }: { search: SavedSearch; onOpen: () => void; onForget: () => void }) {
+  const { t } = useTranslation();
   const [hover, setHover] = useState(false);
   const bits = [
     search.q.trim() || "everything",
@@ -277,7 +281,7 @@ function SavedRow({ search, onOpen, onForget }: { search: SavedSearch; onOpen: (
       <button
         type="button"
         onClick={onForget}
-        aria-label="Remove saved search"
+        aria-label={t("search.removeSaved")}
         style={{ fontFamily: "inherit", background: "none", border: "none", flex: "none", color: colors.textFaint, fontSize: 14, fontWeight: 800, cursor: "pointer", padding: "0 2px" }}
       >
         ×

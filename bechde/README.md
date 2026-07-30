@@ -152,6 +152,7 @@ publicly reachable.
 | `0018_listing_attributes` | per-category question templates, `listings.attrs` |
 | `0019_account_closure` | `close_my_account()` |
 | `0020_email_notifications` | prefs, `notification_tokens`, `messages.notified_at` |
+| `0021_taxonomy_hindi` | `_hi` columns on the taxonomy, the five missing cities |
 
 **Never change an applied migration.** Editing `0001` to add `public_spot` is why posting
 a listing failed with *"Could not find the 'public_spot' column"*: the file only runs on a
@@ -322,6 +323,28 @@ conventions in both.
 
 Adding a string: add it to `en`, add it to `hi`, use the key. A unit test fails if a key
 exists in one and not the other, so a half-translated screen can't ship.
+
+### Text that isn't in the resource files
+
+Categories, cities, localities and the sell-form questions are **rows**, not strings — an
+admin adds "Bicycles" at `/admin/taxonomy` and no resource file knows about it. Those
+tables carry a `_hi` column per translatable field (`0021`), rendered through
+`localised(lang, english, hindi)` with the English as fallback, so a new row shows English
+rather than nothing.
+
+For selects, `options_hi` must line up **index-for-index** with `options`: only the display
+changes and the **stored value stays English**. Storing the Hindi string would make
+`condition = 'Good'` unqueryable for anyone who posted in Hindi mode. A check constraint
+enforces the lengths match.
+
+Two traps that cost time here:
+
+- **`/login` renders no header**, so there is no language toggle on it. A spec that reaches
+  for one fails for a reason that has nothing to do with translation.
+- **`create or replace function` with a new defaulted argument creates an *overload*, not a
+  replacement.** Both versions then exist and PostgREST refuses every call with `PGRST203`
+  — "could not choose the best candidate function". `drop function` the old signature
+  first; see the comment in `0021`.
 
 ---
 

@@ -1749,6 +1749,8 @@ export interface Category {
   icon: string | null;
   sort: number;
   active: boolean;
+  /** Hindi display name; falls back to `name`. See 0021. */
+  name_hi: string | null;
 }
 
 /** Active categories, in display order. Readable signed out. */
@@ -1756,7 +1758,7 @@ export function useCategories(): AsyncState<Category[]> {
   return useAsync<Category[]>(async () => {
     const { data, error } = await getSupabaseBrowser()
       .from("categories")
-      .select("name,icon,sort,active")
+      .select("name,icon,sort,active,name_hi")
       .eq("active", true)
       .order("sort");
     if (error) throw error;
@@ -1767,6 +1769,7 @@ export function useCategories(): AsyncState<Category[]> {
 export interface City {
   id: string;
   name: string;
+  name_hi?: string | null;
   state: string | null;
   lat: number;
   lng: number;
@@ -1778,6 +1781,7 @@ export interface Locality {
   id: string;
   city_id: string;
   name: string;
+  name_hi?: string | null;
   lat: number;
   lng: number;
   sort: number;
@@ -1812,6 +1816,11 @@ export interface CategoryAttribute {
   required: boolean;
   sort: number;
   active: boolean;
+  /** Hindi display strings; each falls back to its English twin. See 0021. */
+  label_hi: string | null;
+  hint_hi: string | null;
+  /** Same length and order as `options` when set — the stored value stays English. */
+  options_hi: string[];
 }
 
 /**
@@ -1880,8 +1889,17 @@ export const adminRemoveReview = (id: string, reason: string) =>
 export const adminSetReportStatus = (id: string, status: "open" | "reviewed" | "actioned", reason: string) =>
   adminRpc("admin_set_report_status", { p_id: id, p_status: status, p_reason: reason });
 
-export const adminUpsertCategory = (name: string, icon: string, sort: number, active: boolean, reason: string) =>
-  adminRpc("admin_upsert_category", { p_name: name, p_icon: icon, p_sort: sort, p_active: active, p_reason: reason });
+export const adminUpsertCategory = (
+  name: string,
+  icon: string,
+  sort: number,
+  active: boolean,
+  reason: string,
+  nameHi = ""
+) =>
+  adminRpc("admin_upsert_category", {
+    p_name: name, p_icon: icon, p_sort: sort, p_active: active, p_reason: reason, p_name_hi: nameHi,
+  });
 
 export const adminRenameCategory = (from: string, to: string, reason: string) =>
   adminRpc("admin_rename_category", { p_from: from, p_to: to, p_reason: reason });
@@ -1907,6 +1925,9 @@ export const adminUpsertAttribute = (a: Partial<CategoryAttribute> & { key: stri
     p_type: a.type ?? "text", p_options: a.options ?? [], p_hint: a.hint ?? null,
     p_required: a.required ?? false, p_sort: a.sort ?? 100, p_active: a.active ?? true,
     p_reason: reason,
+    // Hindi is optional — the resolver falls back to English, so an admin adding a
+    // question at speed isn't blocked on knowing the translation.
+    p_label_hi: a.label_hi ?? "", p_hint_hi: a.hint_hi ?? "", p_options_hi: a.options_hi ?? [],
   });
 
 export const adminDeleteAttribute = (id: string, reason: string) =>

@@ -42,6 +42,7 @@ function Categories() {
   const cats = useCategories();
   const [ask, dialog] = useReasonPrompt(() => window.location.reload());
   const [name, setName] = useState("");
+  const [nameHi, setNameHi] = useState("");
   const [icon, setIcon] = useState("");
 
   return (
@@ -52,6 +53,10 @@ function Categories() {
           <div style={{ flex: 2, minWidth: 160 }}>
             <div style={label}>Name</div>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Bicycles" style={input} />
+          </div>
+          <div style={{ flex: 2, minWidth: 160 }}>
+            <div style={label}>Name in Hindi</div>
+            <input value={nameHi} onChange={(e) => setNameHi(e.target.value)} placeholder="साइकिल" style={input} />
           </div>
           <div style={{ flex: 1, minWidth: 90 }}>
             <div style={label}>Icon</div>
@@ -64,7 +69,7 @@ function Categories() {
               ask({
                 title: `Add the category “${name}”?`,
                 confirmLabel: "Add",
-                run: (reason) => adminUpsertCategory(name.trim(), icon.trim(), 500, true, reason),
+                run: (reason) => adminUpsertCategory(name.trim(), icon.trim(), 500, true, reason, nameHi.trim()),
               })
             }
           >
@@ -87,7 +92,7 @@ function Categories() {
                   detail:
                     "It stops being offered on the sell form. Existing listings keep the category — retiring is not deleting, because a foreign key points at this name.",
                   confirmLabel: "Retire",
-                  run: (reason) => adminUpsertCategory(c.name, c.icon ?? "", c.sort, false, reason),
+                  run: (reason) => adminUpsertCategory(c.name, c.icon ?? "", c.sort, false, reason, c.name_hi ?? ""),
                 })
               }
             >
@@ -244,7 +249,7 @@ function Attributes() {
   const cats = useCategories();
   const all = useCategoryAttributes(null);
   const [ask, dialog] = useReasonPrompt(() => window.location.reload());
-  const [f, setF] = useState({ category: "", key: "", labelText: "", type: "text", options: "", hint: "" });
+  const [f, setF] = useState({ category: "", key: "", labelText: "", labelHi: "", type: "text", options: "", optionsHi: "", hint: "", hintHi: "" });
 
   const universal = (all.data ?? []).filter((a) => !a.category);
   const byCategory = (all.data ?? []).filter((a) => a.category);
@@ -283,6 +288,15 @@ function Attributes() {
             />
           </div>
           <div style={{ minWidth: 0 }}>
+            <div style={label}>Label in Hindi</div>
+            <input
+              value={f.labelHi}
+              onChange={(e) => setF({ ...f, labelHi: e.target.value })}
+              placeholder="फ्रेम का साइज़"
+              style={input}
+            />
+          </div>
+          <div style={{ minWidth: 0 }}>
             <div style={label}>Type</div>
             <select value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })} style={input}>
               <option value="text">text</option>
@@ -292,14 +306,24 @@ function Attributes() {
             </select>
           </div>
           {f.type === "select" && (
-            <div style={{ minWidth: 0 }}>
-              <div style={label}>Options (comma separated)</div>
-              <input value={f.options} onChange={(e) => setF({ ...f, options: e.target.value })} style={input} />
-            </div>
+            <>
+              <div style={{ minWidth: 0 }}>
+                <div style={label}>Options (comma separated)</div>
+                <input value={f.options} onChange={(e) => setF({ ...f, options: e.target.value })} style={input} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={label}>Options in Hindi (same order)</div>
+                <input value={f.optionsHi} onChange={(e) => setF({ ...f, optionsHi: e.target.value })} style={input} />
+              </div>
+            </>
           )}
           <div style={{ minWidth: 0 }}>
             <div style={label}>Hint</div>
             <input value={f.hint} onChange={(e) => setF({ ...f, hint: e.target.value })} style={input} />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={label}>Hint in Hindi</div>
+            <input value={f.hintHi} onChange={(e) => setF({ ...f, hintHi: e.target.value })} style={input} />
           </div>
         </div>
         <div style={{ marginTop: 14 }}>
@@ -322,6 +346,12 @@ function Attributes() {
                         .map((s) => s.trim())
                         .filter(Boolean),
                       hint: f.hint.trim() || null,
+                      label_hi: f.labelHi.trim() || null,
+                      hint_hi: f.hintHi.trim() || null,
+                      options_hi: f.optionsHi
+                        .split(",")
+                        .map((s) => s.trim())
+                        .filter(Boolean),
                       sort: 500,
                     },
                     reason

@@ -17,6 +17,8 @@ import Stripe from "@/components/Stripe";
 import Button from "@/components/Button";
 import OsmMap from "@/components/OsmMap";
 import ReportDialog from "@/components/ReportDialog";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { localised, localisedOption } from "@/lib/i18n/localised";
 
 const categoryIcons: Record<string, string> = {
   Gadgets: "📱",
@@ -35,6 +37,7 @@ const thumbLabels = [
 ];
 
 export default function ProductPage() {
+  const { t } = useTranslation();
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { data: item, loading } = useItem(params.id);
@@ -48,7 +51,7 @@ export default function ProductPage() {
   const [localStatus, setLocalStatus] = useState<string | null>(null);
 
   if (loading) {
-    return <div style={{ padding: "60px 36px", textAlign: "center", color: colors.textFaint, fontWeight: 700 }}>Loading…</div>;
+    return <div style={{ padding: "60px 36px", textAlign: "center", color: colors.textFaint, fontWeight: 700 }}>{t("product.loading")}</div>;
   }
   if (!item) notFound();
 
@@ -64,7 +67,7 @@ export default function ProductPage() {
       const chatId = await startChat(item.id, item.seller.id);
       router.push(`/chat?c=${encodeURIComponent(chatId)}`);
     } catch (e: unknown) {
-      setChatError(e instanceof Error ? e.message : "Couldn't open the chat.");
+      setChatError(e instanceof Error ? e.message : t("product.chatFailed"));
       setOpening(false);
     }
   };
@@ -76,7 +79,7 @@ export default function ProductPage() {
       await blockProfile(item.seller.id);
       setBlocked(true);
     } catch (e: unknown) {
-      setChatError(e instanceof Error ? e.message : "Couldn't block that seller.");
+      setChatError(e instanceof Error ? e.message : t("product.blockFailed"));
     }
   };
 
@@ -90,13 +93,13 @@ export default function ProductPage() {
       await setListingStatus(item.id, next);
       setLocalStatus(next);
     } catch (e: unknown) {
-      setChatError(e instanceof Error ? e.message : "Couldn't update the listing.");
+      setChatError(e instanceof Error ? e.message : t("product.statusFailed"));
     } finally {
       setStatusBusy(false);
     }
   };
 
-  const storyTitle = item.id === "yamaha-f310" ? "This guitar's story 📖" : "This one's story 📖";
+  const storyTitle = item.id === "yamaha-f310" ? t("product.guitarStoryTitle") : t("product.storyTitle");
 
   return (
     <div style={{ maxWidth: 1240, margin: "0 auto", width: "100%" }}>
@@ -109,7 +112,7 @@ export default function ProductPage() {
 
       <div className="bd-product-grid" style={{ display: "grid", gridTemplateColumns: "560px 1fr", gap: 34, padding: "14px 36px 40px" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <Stripe angle={item.angle} src={item.cover} band={10} label="main product photo" style={{ height: 420, borderRadius: 22, fontSize: 12 }}>
+          <Stripe angle={item.angle} src={item.cover} band={10} label={t("product.mainPhoto")} style={{ height: 420, borderRadius: 22, fontSize: 12 }}>
             <div
               style={{
                 position: "absolute",
@@ -171,7 +174,7 @@ export default function ProductPage() {
               <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 34, color: colors.clay }}>{item.price}</div>
               {item.negotiable && (
                 <div style={{ background: colors.sage, color: colors.pine, borderRadius: 999, padding: "4px 12px", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>
-                  negotiable
+                  {t("product.negotiable")}
                 </div>
               )}
               <div style={{ fontSize: 13, color: colors.textFaint, fontWeight: 600 }}>{item.listedAgo}</div>
@@ -219,16 +222,16 @@ export default function ProductPage() {
           {isMine ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <div style={{ background: colors.sage, color: colors.pine, borderRadius: 14, padding: "14px 18px", fontSize: 13.5, fontWeight: 700 }}>
-                This is your listing — buyers&apos; chats show up under 💬 Chats.
+                {t("product.yourListing")}
               </div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 {status !== "sold" && (
-                  <SafetyAction label={statusBusy ? "Saving…" : "✓ Mark as sold"} onClick={() => changeStatus("sold")} />
+                  <SafetyAction label={statusBusy ? t("common.saving") : t("product.markSold")} onClick={() => changeStatus("sold")} />
                 )}
                 {status === "active" ? (
-                  <SafetyAction label="Withdraw listing" onClick={() => changeStatus("removed")} />
+                  <SafetyAction label={t("product.withdrawListing")} onClick={() => changeStatus("removed")} />
                 ) : (
-                  <SafetyAction label="Put it back up" onClick={() => changeStatus("active")} />
+                  <SafetyAction label={t("product.putBackUp")} onClick={() => changeStatus("active")} />
                 )}
               </div>
             </div>
@@ -241,15 +244,15 @@ export default function ProductPage() {
             <>
               <div style={{ display: "flex", gap: 12 }}>
                 <Button onClick={openChat} variant="primary" flex>
-                  {opening ? "Opening…" : `💬 Chat with ${item.seller.name.split(" ")[0]}`}
+                  {opening ? t("product.opening") : t("product.chatWith", { name: item.seller.name.split(" ")[0] })}
                 </Button>
                 <Button onClick={openChat} variant="secondary" flex>
-                  Make an offer
+                  {t("product.makeOffer")}
                 </Button>
               </div>
               <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
-                <SafetyAction label="⚑ Report listing" onClick={() => setReporting(true)} />
-                <SafetyAction label="Block seller" onClick={block} />
+                <SafetyAction label={t("product.reportListing")} onClick={() => setReporting(true)} />
+                <SafetyAction label={t("product.blockSeller")} onClick={block} />
               </div>
             </>
           )}
@@ -281,7 +284,7 @@ export default function ProductPage() {
               <div>
                 <div style={{ fontWeight: 800, fontSize: 14.5, color: colors.pine }}>{item.pickup}</div>
                 <div style={{ fontSize: 13, color: colors.pineMuted, lineHeight: 1.5 }}>
-                  {item.publicSpot ? "Exact public spot for meetup." : "Exact spot shared after you chat. Public meetup points suggested."}
+                  {item.publicSpot ? t("product.publicSpotNote") : t("product.pickupNote")}
                 </div>
               </div>
             </div>
@@ -341,6 +344,7 @@ function Thumb({ src, label, angle }: { src?: string; label?: string; angle?: st
 }
 
 function ViewProfileLink() {
+  const { t } = useTranslation();
   const [hover, setHover] = useState(false);
   return (
     <Link
@@ -349,7 +353,7 @@ function ViewProfileLink() {
       onMouseLeave={() => setHover(false)}
       style={{ fontSize: 13, fontWeight: 700, color: hover ? colors.terracottaDark : colors.clay, cursor: "pointer" }}
     >
-      view profile →
+      {t("product.viewProfile")}
     </Link>
   );
 }
@@ -391,12 +395,20 @@ function SafetyAction({ label, onClick }: { label: string; onClick: () => void }
  * the question isn't a reason to hide the answer.
  */
 function AttributeGrid({ category, attrs }: { category: string; attrs: Record<string, string> }) {
+  const { lang } = useTranslation();
   const template = useCategoryAttributes(category).data ?? [];
   const entries = Object.entries(attrs).filter(([, v]) => v);
   if (entries.length === 0) return null;
 
-  const labelFor = (key: string) =>
-    template.find((t) => t.key === key)?.label ?? key.replace(/_/g, " ");
+  const labelFor = (key: string) => {
+    const a = template.find((t) => t.key === key);
+    return a ? localised(lang, a.label, a.label_hi) : key.replace(/_/g, " ");
+  };
+  // The stored value is English; show its Hindi twin when there is one.
+  const valueFor = (key: string, value: string) => {
+    const a = template.find((t) => t.key === key);
+    return a ? localisedOption(lang, a.options, a.options_hi, value) : value;
+  };
   const order = (key: string) => template.find((t) => t.key === key)?.sort ?? 9999;
 
   return (
@@ -425,7 +437,7 @@ function AttributeGrid({ category, attrs }: { category: string; attrs: Record<st
             >
               {labelFor(key)}
             </div>
-            <div style={{ fontWeight: 700, fontSize: 14.5, marginTop: 3 }}>{value}</div>
+            <div style={{ fontWeight: 700, fontSize: 14.5, marginTop: 3 }}>{valueFor(key, value)}</div>
           </div>
         ))}
     </div>

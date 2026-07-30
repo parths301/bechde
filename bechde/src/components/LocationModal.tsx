@@ -4,18 +4,10 @@ import { useState } from "react";
 import { colors } from "@/lib/colors";
 import { geocode, currentPosition, type GeocodeResult } from "@/lib/geo";
 import { saveUserLocation, useUserLocation } from "@/lib/queries";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { localised } from "@/lib/i18n/localised";
+import { useCities } from "@/lib/queries";
 
-const POPULAR_CITIES = [
-  { name: "Bengaluru (Koramangala)", lat: 12.9352, lng: 77.6245 },
-  { name: "Mumbai (Bandra)", lat: 19.0596, lng: 72.8295 },
-  { name: "Delhi NCR (Connaught Place)", lat: 28.6315, lng: 77.2167 },
-  { name: "Hyderabad (Hitec City)", lat: 17.4435, lng: 78.3772 },
-  { name: "Pune (Koregaon Park)", lat: 18.5362, lng: 73.894 },
-  { name: "Chennai (T. Nagar)", lat: 13.0418, lng: 80.2341 },
-  { name: "Kolkata (Park Street)", lat: 22.5532, lng: 88.3524 },
-  { name: "Ahmedabad (Navrangpura)", lat: 23.0366, lng: 72.5608 },
-  { name: "Jaipur (C-Scheme)", lat: 26.9099, lng: 75.8016 },
-];
 
 interface LocationModalProps {
   isOpen: boolean;
@@ -23,6 +15,10 @@ interface LocationModalProps {
 }
 
 export default function LocationModal({ isOpen, onClose }: LocationModalProps) {
+  const { t, lang } = useTranslation();
+  // Rows, not a hardcoded list: 0017 made these admin-editable, and until now the
+  // sheet ignored the table entirely — a city added at /admin/taxonomy never appeared.
+  const cities = useCities().data ?? [];
   const currentLocation = useUserLocation();
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
@@ -48,7 +44,7 @@ export default function LocationModal({ isOpen, onClose }: LocationModalProps) {
         setResults([]);
       }
     } catch {
-      setError("Could not search location. Please try again.");
+      setError(t("location.failed"));
     } finally {
       setSearching(false);
     }
@@ -121,10 +117,10 @@ export default function LocationModal({ isOpen, onClose }: LocationModalProps) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <h3 style={{ margin: 0, fontFamily: "var(--font-bricolage)", fontSize: 22, fontWeight: 800, color: colors.ink }}>
-              Select Location & City
+              {t("location.title")}
             </h3>
             <div style={{ fontSize: 13, color: colors.textMuted, marginTop: 2 }}>
-              Find second-hand deals in your exact neighbourhood
+              {t("location.subtitle")}
             </div>
           </div>
           <button
@@ -169,13 +165,13 @@ export default function LocationModal({ isOpen, onClose }: LocationModalProps) {
         {/* Manual Search */}
         <div>
           <div style={{ fontSize: 13, fontWeight: 800, color: colors.ink, marginBottom: 6 }}>
-            Or search city / neighbourhood
+            {t("location.searchLabel")}
           </div>
           <input
             type="text"
             value={query}
             onChange={(e) => handleSearch(e.target.value)}
-            placeholder='Type "Indiranagar", "Bandra", "Connaught Place"...'
+            placeholder={t("location.searchPlaceholder")}
             style={{
               width: "100%",
               background: "#fff",
@@ -188,7 +184,7 @@ export default function LocationModal({ isOpen, onClose }: LocationModalProps) {
               color: colors.ink,
             }}
           />
-          {searching && <div style={{ fontSize: 12, color: colors.textMuted, marginTop: 4 }}>Searching...</div>}
+          {searching && <div style={{ fontSize: 12, color: colors.textMuted, marginTop: 4 }}>{t("location.searching")}</div>}
           {results.length > 0 && (
             <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
               {results.map((r, idx) => (
@@ -215,27 +211,43 @@ export default function LocationModal({ isOpen, onClose }: LocationModalProps) {
         {/* Popular Cities Quick Select */}
         <div>
           <div style={{ fontSize: 13, fontWeight: 800, color: colors.ink, marginBottom: 8 }}>
-            Popular Cities
+            {t("location.popularCities")}
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {POPULAR_CITIES.map((c) => (
-              <button
-                key={c.name}
-                onClick={() => selectLocation(c.lat, c.lng, c.name)}
-                style={{
-                  background: currentLocation.label.includes(c.name.split(" ")[0]) ? colors.ink : colors.bg2,
-                  color: currentLocation.label.includes(c.name.split(" ")[0]) ? "#fff" : colors.textBody,
-                  border: `1px solid ${colors.sand}`,
-                  borderRadius: 999,
-                  padding: "6px 14px",
-                  fontSize: 12.5,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                {c.name}
-              </button>
-            ))}
+            {cities.flatMap(({ city, localities }) => {
+              // One chip per locality where a city has them, so "Bengaluru
+              // (Koramangala)" still drops you in the right neighbourhood rather than
+              // the city centre — the old hardcoded strings conflated the two.
+              const spots = localities.length
+                ? localities.map((l) => ({
+                    key: `${city.id}-${l.id}`,
+                    lat: l.lat,
+                    lng: l.lng,
+                    label: `${localised(lang, city.name, city.name_hi)} (${localised(lang, l.name, l.name_hi)})`,
+                    match: city.name,
+                  }))
+                : [{ key: city.id, lat: city.lat, lng: city.lng, label: localised(lang, city.name, city.name_hi), match: city.name }];
+              return spots.map((sp) => (
+                <button
+                  key={sp.key}
+                  type="button"
+                  onClick={() => selectLocation(sp.lat, sp.lng, sp.label)}
+                  style={{
+                    background: currentLocation.label.includes(sp.match) ? colors.ink : colors.bg2,
+                    color: currentLocation.label.includes(sp.match) ? "#fff" : colors.textBody,
+                    border: `1px solid ${colors.sand}`,
+                    borderRadius: 999,
+                    padding: "6px 14px",
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    fontFamily: "inherit",
+                    cursor: "pointer",
+                  }}
+                >
+                  {sp.label}
+                </button>
+              ));
+            })}
           </div>
         </div>
       </div>
