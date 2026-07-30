@@ -16,6 +16,8 @@ import {
   useWrittenReviews,
   updateReview,
   updateMyProfile,
+  forgetMyLocation,
+  closeMyAccount,
 } from "@/lib/queries";
 import type { Item } from "@/lib/data";
 import Stripe from "@/components/Stripe";
@@ -440,6 +442,8 @@ export default function ProfilePage() {
 
       <BlockedList />
 
+      <YourData />
+
       <div style={{ padding: "8px 36px 44px", display: "flex", gap: 16, flexWrap: "wrap", fontSize: 12.5, fontWeight: 700, color: colors.textFaint }}>
         <Link href="/legal/terms" style={{ color: colors.textFaint }}>
           Terms
@@ -686,3 +690,158 @@ function ProfileGridCard({ card }: { card: GridCard }) {
   }
   return <div style={style}>{inner}</div>;
 }
+
+/**
+ * The DPDP rights the privacy policy promises, as buttons rather than an email address.
+ *
+ * The policy already said you can get a copy of your data, withdraw location consent
+ * and have your account erased within 30 days — but the only route to any of it was
+ * grievance@bechde.local, a mailbox that cannot receive mail. A promised right with no
+ * mechanism is worse than no promise.
+ */
+function YourData() {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [typed, setTyped] = useState("");
+
+  const forget = async () => {
+    setBusy("location");
+    setError(null);
+    setNote(null);
+    try {
+      await forgetMyLocation();
+      setNote("Location forgotten. We'll ask again next time you need it.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't clear it.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const close = async () => {
+    setBusy("close");
+    setError(null);
+    try {
+      await closeMyAccount();
+      window.location.href = "/home";
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't close the account.");
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div style={{ padding: "20px 36px 8px" }}>
+      <div
+        style={{
+          background: "#fff",
+          border: `1.5px solid ${colors.cardBorder}`,
+          borderRadius: 18,
+          padding: "20px 22px",
+          maxWidth: 620,
+        }}
+      >
+        <h2 style={{ margin: "0 0 4px", fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 16 }}>
+          Your data
+        </h2>
+        <div style={{ fontSize: 13, color: colors.textMuted, fontWeight: 600, lineHeight: 1.55, marginBottom: 14 }}>
+          Under the DPDP Act these are yours to exercise, and you shouldn&apos;t have to email anyone to do it.
+        </div>
+
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <a href="/api/account/export" style={dataBtn}>
+            Download my data
+          </a>
+          <button type="button" onClick={forget} disabled={busy === "location"} style={dataBtn}>
+            {busy === "location" ? "Clearing…" : "Forget my location"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirming(!confirming)}
+            style={{ ...dataBtn, color: colors.clay }}
+          >
+            Close my account
+          </button>
+        </div>
+
+        {note && (
+          <div style={{ fontSize: 13, fontWeight: 700, color: colors.pine, marginTop: 12 }}>{note}</div>
+        )}
+        {error && (
+          <div style={{ fontSize: 13, fontWeight: 700, color: colors.terracotta, marginTop: 12 }}>{error}</div>
+        )}
+
+        {confirming && (
+          <div
+            style={{
+              marginTop: 16,
+              paddingTop: 16,
+              borderTop: `2px dashed ${colors.divider}`,
+            }}
+          >
+            <div style={{ fontSize: 13.5, color: colors.textBody, fontWeight: 600, lineHeight: 1.6, marginBottom: 12 }}>
+              Your name, bio and location are erased and your live listings are withdrawn. Messages you sent stay
+              in the other person&apos;s chat history — they are that person&apos;s record of a deal too, and
+              deleting them would take their side of the conversation with it. Your name won&apos;t be on them.
+              <br />
+              <b>This cannot be undone.</b>
+            </div>
+            <label htmlFor="close-confirm" style={{ fontSize: 12.5, fontWeight: 800, display: "block", marginBottom: 6 }}>
+              Type CLOSE to confirm
+            </label>
+            <input
+              id="close-confirm"
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              style={{
+                background: "#fff",
+                border: `1.5px solid ${colors.sand}`,
+                borderRadius: 12,
+                padding: "11px 14px",
+                fontSize: 14,
+                fontWeight: 700,
+                fontFamily: "inherit",
+                color: colors.ink,
+                outline: "none",
+                width: 200,
+                maxWidth: "100%",
+              }}
+            />
+            <div style={{ marginTop: 12 }}>
+              <button
+                type="button"
+                onClick={close}
+                disabled={typed !== "CLOSE" || busy === "close"}
+                style={{
+                  ...dataBtn,
+                  background: typed === "CLOSE" ? colors.terracotta : colors.bg3,
+                  color: typed === "CLOSE" ? "#fff" : colors.textFaint,
+                  borderColor: "transparent",
+                  cursor: typed === "CLOSE" ? "pointer" : "not-allowed",
+                }}
+              >
+                {busy === "close" ? "Closing…" : "Close my account for good"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const dataBtn: React.CSSProperties = {
+  borderRadius: 999,
+  border: `1.5px solid ${colors.sand}`,
+  background: "#fff",
+  padding: "9px 18px",
+  fontSize: 13,
+  fontWeight: 800,
+  fontFamily: "inherit",
+  color: colors.ink,
+  cursor: "pointer",
+  textDecoration: "none",
+  display: "inline-block",
+};

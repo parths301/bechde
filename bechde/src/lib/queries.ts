@@ -690,6 +690,42 @@ export async function saveMyLocation(point: LatLng): Promise<string> {
 }
 
 /**
+ * Withdraw location consent — the one the privacy policy names explicitly ("withdraw a
+ * consent you gave us — for example, turning location back off").
+ *
+ * Clears the stored pick *and* the copy on the profile, and re-arms the prompt flag so
+ * the app asks again next time rather than silently re-acquiring a position the person
+ * just asked it to forget.
+ */
+export async function forgetMyLocation(): Promise<void> {
+  try {
+    localStorage.removeItem(LOCATION_STORAGE_KEY);
+    localStorage.removeItem(LOCATION_PROMPTED_KEY);
+  } catch {}
+  notifyLocation();
+
+  const profile = profileState.data;
+  if (profile) {
+    await getSupabaseBrowser()
+      .from("profiles")
+      .update({ lat: null, lng: null, neighbourhood: null })
+      .eq("id", profile.id);
+    setProfileState({
+      data: { ...profile, lat: null, lng: null, neighbourhood: null },
+      loading: false,
+      error: null,
+    });
+  }
+}
+
+/** Close the signed-in account. See src/app/api/account/delete/route.ts. */
+export async function closeMyAccount(): Promise<void> {
+  const res = await fetch("/api/account/delete", { method: "POST" });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error ?? "Could not close the account.");
+}
+
+/**
  * A guest picks a city, then signs in — and useUserLocation prefers the profile row,
  * so they'd be snapped back to wherever the account was last set. Push the deliberate
  * choice up to the profile instead of letting it be silently discarded.

@@ -95,8 +95,22 @@ export default function PrivacyPage() {
         <li>withdraw a consent you gave us — for example, turning location back off.</li>
       </ul>
       <p>
-        Email <b>{operator.grievanceEmail}</b> and we&apos;ll act within 30 days. Some data may be retained where the law
-        requires it (for example, records relating to a reported fraud).
+        Three of those you can do yourself, right now, from{" "}
+        <b>
+          Your data
+        </b>{" "}
+        at the bottom of your profile: download everything we hold about you, make us forget your location, or
+        close your account. No email, no waiting.
+      </p>
+      <p>
+        For anything else — a correction, or nominating someone to act for you — email{" "}
+        <b>{operator.grievanceEmail}</b> and we&apos;ll act within 30 days.
+      </p>
+      <p>
+        Two things closing an account deliberately does <i>not</i> erase. Messages you sent stay in the other
+        person&apos;s chat history, because a conversation is their record of a deal as much as yours — your name
+        comes off them. And some data may be retained where the law requires it, for example records relating to a
+        reported fraud.
       </p>
 
       <H2>Children</H2>
