@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
   if (denied) return denied;
 
   // Fail loudly rather than stamping rows as notified without sending — that exact
-  // silent success is what this whole change exists to undo (§5).
+  // silent success is what this whole change exists to undo (README §4).
   if (!emailConfigured) {
     return NextResponse.json({ error: "RESEND_API_KEY is not set; no mail was sent" }, { status: 503 });
   }

@@ -97,7 +97,7 @@ const rawItems: Omit<Item, "lat" | "lng">[] = [
     km: 1.1,
     dist: "1.1 km",
     // Music, not Everything. A guitar in the catch-all is how it ended up unfilterable
-    // once before (§4.5), and it left the Music category with a single amp in it.
+    // once before (README §3.5), and it left the Music category with a single amp in it.
     category: "Music",
     angle: "60deg",
     note: "This guitar got me through 3 years of hostel life. Selling because I finally upgraded — it deserves someone who'll actually play it.",

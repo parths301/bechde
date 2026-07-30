@@ -9,7 +9,7 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
  * pointed at somebody else's account no matter what is posted to it. There's a test
  * for exactly that in supabase/tests/account.test.ts.
  *
- * The service-role client appears here, which §4.4 otherwise forbids — deleting an
+ * The service-role client appears here, which README §3.4 otherwise forbids — deleting an
  * auth user is a privileged operation with no RLS equivalent. It is used for that one
  * call, on an id the anon client already proved belongs to the caller. The data side
  * of the erasure happens first, in close_my_account(), under the caller's own rights.

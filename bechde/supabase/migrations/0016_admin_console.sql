@@ -236,7 +236,7 @@ begin
   end if;
 
   -- Name, initial, colour and bio only. The derived stats (rating_avg, sold,
-  -- reply_time) are trigger-owned per the "derived, never written" rule in §4.5 —
+  -- reply_time) are trigger-owned per the "derived, never written" rule in README §3.5 —
   -- an admin editing a rating by hand would be inventing a number.
   update public.profiles set
     name    = case when p_patch ? 'name'    then p_patch->>'name'    else name    end,

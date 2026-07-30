@@ -88,7 +88,7 @@ describe("authorisation", () => {
     const before = (await admin.from("profiles").select("name").eq("id", civilianId).single()).data;
     await boss.from("profiles").update({ name: "Renamed the quiet way" }).eq("id", civilianId);
     const after = (await admin.from("profiles").select("name").eq("id", civilianId).single()).data;
-    // An RLS-denied UPDATE reports no error, so assert the value is unchanged (§5).
+    // An RLS-denied UPDATE reports no error, so assert the value is unchanged (README §4).
     expect(after?.name).toBe(before?.name);
   });
 

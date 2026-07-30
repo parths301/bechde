@@ -7,7 +7,7 @@ import "server-only";
  * function it replaces did `console.log("[EMAIL] To: …")` and then stamped
  * last_notified_at as though a message had gone out, so the digest feature reported
  * success for months while sending nothing. That is the same failure shape as the seed
- * that ignored `error` (CLAUDE.md §5), and the cure is the same: refuse to continue.
+ * that ignored `error` (README.md §4), and the cure is the same: refuse to continue.
  *
  * Provider is Resend. The adapter is small and isolated here so swapping it is one
  * file, but there is no "log instead" mode — that mode is what caused the bug.

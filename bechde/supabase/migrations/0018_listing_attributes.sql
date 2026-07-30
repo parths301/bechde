@@ -8,7 +8,7 @@
 --     facts: [{ k: "Condition", v: "As described" },
 --             { k: "Reason",    v: "Making space" }]   -- sell/page.tsx:174
 --
--- so a buyer read "Condition: As described" as though the seller had typed it. §4.5
+-- so a buyer read "Condition: As described" as though the seller had typed it. README §3.5
 -- forbids exactly this. The fix isn't a wider form, it's a *template*: a category
 -- declares which attributes it asks for, the sell form renders them, and the product
 -- page labels them. Adding a field to Furniture becomes an admin action, not a commit.
@@ -60,7 +60,7 @@ revoke insert, update, delete on public.category_attributes from anon, authentic
 -- The values, as a map on the listing: {"condition": "Good", "reason": "Redecorating"}.
 --
 -- `facts` is deliberately left in place for now. 0009 dropped four columns while the
--- seed was still writing them and the whole thing failed in silence for a phase (§5),
+-- seed was still writing them and the whole thing failed in silence for a phase (README §4),
 -- so the writer moves first: this migration only copies the data across. A later
 -- migration drops `facts` once nothing writes it.
 -- ---------------------------------------------------------------------------

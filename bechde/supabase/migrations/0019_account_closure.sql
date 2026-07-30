@@ -8,7 +8,7 @@
 -- `references auth.users on delete cascade`, and listings/chats/messages all cascade
 -- off profiles.id — so calling auth.admin.deleteUser() would take the *counterparty's*
 -- entire chat history with it. One person exercising their erasure right must not
--- destroy another person's records. §4.5's "status over delete" says the same thing
+-- destroy another person's records. README §3.5's "status over delete" says the same thing
 -- for a smaller reason.
 --
 -- What actually goes: the name, bio, location, email on the profile, plus saved items,

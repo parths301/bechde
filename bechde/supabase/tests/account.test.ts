@@ -17,7 +17,7 @@ const STAYER = "rls-stayer@bechde.local";
 
 let leaver: SupabaseClient;
 // Signed in once in beforeAll and reused: the helper clears Mailpit on every call, so
-// repeat sign-ins race each other and trip the auth rate limit (§5).
+// repeat sign-ins race each other and trip the auth rate limit (README §4).
 let stayer: SupabaseClient;
 let leaverId: string;
 let stayerId: string;

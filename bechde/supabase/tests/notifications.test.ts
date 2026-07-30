@@ -14,7 +14,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 const SUBBER = "rls-subscriber@bechde.local";
 // Signed in once and reused — the helper clears Mailpit on every call, so repeat
-// sign-ins race each other and trip the auth rate limit (§5).
+// sign-ins race each other and trip the auth rate limit (README §4).
 let subber: SupabaseClient;
 let subberId: string;
 let token: string;
@@ -95,7 +95,7 @@ describe("unsubscribing", () => {
 
     await subber.from("profiles").update({ notify_messages: false }).eq("id", rohan);
 
-    // An RLS-denied UPDATE reports success on zero rows, so assert the value (§5).
+    // An RLS-denied UPDATE reports success on zero rows, so assert the value (README §4).
     const after = await admin.from("profiles").select("notify_messages").eq("id", rohan).single();
     expect(after.data!.notify_messages).toBe(before.data!.notify_messages);
   });

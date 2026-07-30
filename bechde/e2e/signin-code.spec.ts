@@ -13,7 +13,7 @@ import { test, expect, type BrowserContext } from "@playwright/test";
  * were PKCE-bound like the link, the second context would fail — which is what would
  * happen if someone ever "simplified" the server route into a browser-side verifyOtp.
  *
- * §5 also warns that Node scripts get the implicit flow and pass while real browsers
+ * README §4 also warns that Node scripts get the implicit flow and pass while real browsers
  * are broken. Both halves here run in real Chromium contexts for that reason.
  */
 const MAILPIT = "http://127.0.0.1:54324";
@@ -44,7 +44,7 @@ async function guest(browser: { newContext: (o?: object) => Promise<BrowserConte
 }
 
 test("a code requested in one browser signs you in from another", async ({ browser }) => {
-  // A stale token from an earlier run reads as "invalid or expired" and is baffling (§5).
+  // A stale token from an earlier run reads as "invalid or expired" and is baffling (README §4).
   await fetch(`${MAILPIT}/api/v1/messages`, { method: "DELETE" });
 
   // Browser A asks for the code.

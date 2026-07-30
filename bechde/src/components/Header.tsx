@@ -163,7 +163,7 @@ export function SearchBar({ autoFocus }: { autoFocus?: boolean } = {}) {
       style={{
         flex: 1,
         // Flex items default to min-width: auto and won't shrink past their content,
-        // which is what once pushed /home wider than the phone. See MOBILE-FIXES.md.
+        // which is what once pushed /home wider than the phone. See README.md §4.
         minWidth: 0,
         display: "flex",
         alignItems: "center",

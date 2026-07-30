@@ -6,7 +6,7 @@
 --    listings.category) and as a hardcoded array in src/lib/data.ts:517 that actually
 --    drives the UI. They agree today only because the same six were written in both
 --    places. Adding a row would have changed nothing on screen; adding an array entry
---    would have violated the foreign key. §4.5's "one definition per concept" rule
+--    would have violated the foreign key. README §3.5's "one definition per concept" rule
 --    already forbids this — the database becomes the definition, and data.ts's list
 --    becomes the seed for it below.
 --

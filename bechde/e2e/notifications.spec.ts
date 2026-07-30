@@ -7,7 +7,7 @@ import { test, expect } from "@playwright/test";
  * The function these replaced did `console.log("[EMAIL] To: …")` and then advanced
  * last_notified_at as though a message had gone out, so P1-2 read as done for months
  * while nothing was ever sent. That is the same shape as the seed that ignored
- * `error` (§5). The first test here is the regression test for it: with no
+ * `error` (README §4). The first test here is the regression test for it: with no
  * RESEND_API_KEY the route must refuse, not quietly stamp rows.
  */
 const SECRET = "local-dev-cron-secret";
