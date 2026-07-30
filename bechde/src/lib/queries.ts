@@ -46,6 +46,7 @@ interface ListingRow {
   public_spot: boolean | null;
   story: Item["story"];
   facts: Item["facts"];
+  attrs: Record<string, string> | null;
   seller: ProfileRow | null;
   listing_images: { url: string; sort: number }[] | null;
 }
@@ -90,6 +91,7 @@ export function rowToItem(r: ListingRow): Item {
     },
     story: r.story ?? [],
     facts: r.facts ?? [],
+    attrs: r.attrs ?? {},
     pickup: r.pickup ?? "",
     lat: r.lat ?? 0,
     lng: r.lng ?? 0,
@@ -1336,28 +1338,80 @@ export interface PriceGuide {
   low: number;
   high: number;
   count: number;
+  /** Whether the sample is items with a matching word in the name, or the whole category. */
+  basis: "similar" | "category";
 }
 
-/** 10th–90th percentile of nearby listings in a category. Null under 3 comparables. */
-export function useComparablePrices(category: string, radiusKm = 10) {
+/** Words too common to say anything about what an item *is*. */
+const STOPWORDS = new Set([
+  "the", "a", "an", "and", "or", "for", "with", "in", "on", "of", "my", "new", "old",
+  "good", "condition", "sale", "selling", "used", "size", "set", "pcs", "piece",
+]);
+
+function keywordsOf(title: string): string[] {
+  return title
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w.length >= 3 && !STOPWORDS.has(w))
+    .slice(0, 4);
+}
+
+/**
+ * What comparable items nearby are *asking*.
+ *
+ * Three things this deliberately does not do. It doesn't claim to be sale prices —
+ * eBay and Mercari price off sold comparables, but Bech De has no sales history yet,
+ * so the copy says "asking" and `basis` tells the caller which claim it may make.
+ * It doesn't count withdrawn or sold rows, which the previous version did, so a
+ * long-gone listing no longer anchors a seller's price. And it doesn't treat a whole
+ * category as comparable: matching on category alone put a ₹350 book and a ₹3,200
+ * painting in the same sample and produced a range too wide to mean anything.
+ *
+ * Keyword matches are preferred and it falls back to the category when there aren't
+ * enough of them, so the hint stays useful on a thin marketplace instead of vanishing.
+ */
+export function useComparablePrices(category: string, title = "", radiusKm = 10) {
   const origin = useUserLocation();
   const { lat, lng } = origin;
+  const words = keywordsOf(title).join(" ");
   return useAsync<PriceGuide | null>(async () => {
     if (!category) return null;
+    // Bounding box first so a busy category isn't pulled to the browser in full.
+    // A degree of latitude is ~111 km; longitude shrinks with the cosine of it.
+    const dLat = radiusKm / 111;
+    const dLng = radiusKm / (111 * Math.max(0.2, Math.cos((lat * Math.PI) / 180)));
     const { data, error } = await getSupabaseBrowser()
       .from("listings")
-      .select("price_num,lat,lng")
+      .select("name,price_num,lat,lng")
       .eq("category", category)
-      .not("price_num", "is", null);
+      .eq("status", "active")
+      .not("price_num", "is", null)
+      .gte("lat", lat - dLat)
+      .lte("lat", lat + dLat)
+      .gte("lng", lng - dLng)
+      .lte("lng", lng + dLng)
+      .limit(500);
     if (error) throw error;
-    const prices = (data as { price_num: number; lat: number | null; lng: number | null }[])
-      .filter((r) => r.lat != null && r.lng != null && haversineKm({ lat, lng }, { lat: r.lat!, lng: r.lng! }) <= radiusKm)
-      .map((r) => r.price_num)
-      .sort((a, b) => a - b);
+
+    const near = (data as { name: string; price_num: number; lat: number | null; lng: number | null }[]).filter(
+      (r) => r.lat != null && r.lng != null && haversineKm({ lat, lng }, { lat: r.lat!, lng: r.lng! }) <= radiusKm
+    );
+
+    const wordList = words.split(" ").filter(Boolean);
+    const similar = wordList.length
+      ? near.filter((r) => {
+          const n = r.name.toLowerCase();
+          return wordList.some((w) => n.includes(w));
+        })
+      : [];
+
+    const basis: PriceGuide["basis"] = similar.length >= 3 ? "similar" : "category";
+    const sample = basis === "similar" ? similar : near;
+    const prices = sample.map((r) => r.price_num).sort((a, b) => a - b);
     if (prices.length < 3) return null;
     const at = (q: number) => prices[Math.min(prices.length - 1, Math.floor(q * (prices.length - 1)))];
-    return { low: at(0.1), high: at(0.9), count: prices.length };
-  }, [category, radiusKm, lat, lng]);
+    return { low: at(0.1), high: at(0.9), count: prices.length, basis };
+  }, [category, words, radiusKm, lat, lng]);
 }
 
 /** How many *other* people have a saved search this listing would match. */

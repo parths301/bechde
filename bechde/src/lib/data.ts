@@ -41,7 +41,10 @@ export interface Item {
   listedAgo: string;
   seller: Seller;
   story: StoryStep[];
+  /** Authoring format for the seed. The database column is `attrs`; see 0018. */
   facts: Fact[];
+  /** What the seller answered from their category's template: {condition: "Good"}. */
+  attrs?: Record<string, string>;
   pickup: string;
   neighbourhood: string;
   publicSpot?: boolean;
@@ -93,7 +96,9 @@ const rawItems: Omit<Item, "lat" | "lng">[] = [
     price: "₹3,200",
     km: 1.1,
     dist: "1.1 km",
-    category: "Everything",
+    // Music, not Everything. A guitar in the catch-all is how it ended up unfilterable
+    // once before (§4.5), and it left the Music category with a single amp in it.
+    category: "Music",
     angle: "60deg",
     note: "This guitar got me through 3 years of hostel life. Selling because I finally upgraded — it deserves someone who'll actually play it.",
     negotiable: true,

@@ -31,6 +31,22 @@ test.describe("Sell flow", () => {
     await page.getByRole("button", { name: /Furniture/ }).click();
     await page.getByLabel("Tell its story").fill("Just testing the sell flow.");
 
+    // Condition is required and comes from the category's template, not the code —
+    // the form renders whatever /admin/taxonomy says Furniture should be asked.
+    await page.getByLabel("Condition").selectOption("Good");
+    await page.getByLabel("Why are you selling it?").fill("Testing");
+    // Furniture-specific, so this proves the template varies by category rather than
+    // showing one fixed set everywhere.
+    await expect(page.getByLabel("Material")).toBeVisible();
+    await page.getByLabel("Material").fill("Teak");
+
+    // A second story chapter. The timeline always supported several; the form only
+    // ever wrote one, so a real listing couldn't say where an item came from.
+    await page.getByRole("button", { name: /Add an earlier chapter/ }).click();
+    await page.getByLabel("Chapter 1 title").fill("Bought for the flat");
+    await page.getByLabel("Chapter 1 when").fill("2023");
+    await page.getByLabel("Chapter 1 detail").fill("Picked it up second-hand.");
+
     // A 1×1 PNG is enough to exercise validate → compress → upload → public URL.
     await page.locator('input[type="file"]').setInputFiles({
       name: "test-image.png",
@@ -53,6 +69,16 @@ test.describe("Sell flow", () => {
     await expect(page.getByRole("heading", { name })).toBeVisible();
     await expect(page.getByText("₹1,500").first()).toBeVisible();
     await expect(page.getByText("Just testing the sell flow.").first()).toBeVisible();
+
+    // The answers reach the buyer, labelled from the template. Before this the grid
+    // showed "Condition: As described" on every listing — a value no seller typed.
+    await expect(page.getByText("Good", { exact: true })).toBeVisible();
+    await expect(page.getByText("Teak", { exact: true })).toBeVisible();
+    await expect(page.getByText("Material", { exact: true })).toBeVisible();
+
+    // Both chapters render, oldest first.
+    await expect(page.getByText("Bought for the flat")).toBeVisible();
+    await expect(page.getByText("Listed on Bech De")).toBeVisible();
 
     // Leave the database as we found it — otherwise every run adds a listing and the
     // seeded counts other specs assert against drift upwards.

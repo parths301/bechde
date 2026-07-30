@@ -5,8 +5,15 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { colors } from "@/lib/colors";
 import { useEffect } from "react";
-import { sellCategories } from "@/lib/data";
-import { useProfile, useUserLocation, useComparablePrices, useMatchingSavedSearchCount } from "@/lib/queries";
+import {
+  useProfile,
+  useUserLocation,
+  useComparablePrices,
+  useMatchingSavedSearchCount,
+  useCategories,
+  useCategoryAttributes,
+  type CategoryAttribute,
+} from "@/lib/queries";
 import { geocode, type LatLng } from "@/lib/geo";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import Stripe from "@/components/Stripe";
@@ -15,9 +22,18 @@ import Button from "@/components/Button";
 import LocationChip from "@/components/LocationChip";
 import { validateImage, compressImage } from "@/lib/image";
 
-// sellCategories has "Everything else"; the DB category is "Everything".
+// The chips used to read "Everything else" while the DB row is "Everything", so the
+// two had to be reconciled on every write. Categories come from the database now, so
+// the chip label *is* the category — this only covers a draft saved before the switch.
 function normalizeCategory(cat: string): string {
   return cat === "Everything else" ? "Everything" : cat;
+}
+
+/** An earlier chapter in a listing's story, beyond "listed on Bech De". */
+interface Chapter {
+  title: string;
+  when: string;
+  text: string;
 }
 
 export default function SellPage() {
@@ -71,6 +87,20 @@ export default function SellPage() {
   const [error, setError] = useState<string | null>(null);
   const [newId, setNewId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // What the seller answers about the item itself. Which questions get asked is a
+  // property of the category, editable at /admin/taxonomy — the form doesn't know
+  // them ahead of time. Before this, every listing was written with the same two
+  // invented pairs ("Condition: As described"), which buyers read as the seller's words.
+  const categories = useCategories();
+  const attributes = useCategoryAttributes(normalizeCategory(sellCat)).data ?? [];
+  const [attrs, setAttrs] = useState<Record<string, string>>({});
+  const setAttr = (key: string, value: string) => setAttrs((a) => ({ ...a, [key]: value }));
+
+  // The story is a timeline and always has been — the product page renders every
+  // entry. The form only ever wrote one, so a seeded listing could say where an item
+  // came from and a real listing couldn't.
+  const [chapters, setChapters] = useState<Chapter[]>([]);
 
   const noteTrim = sellNote.length > 70 ? sellNote.slice(0, 70) + "…" : sellNote;
   const sellPingWord = (sellTitle.split(" ").pop() || "item").toLowerCase();
@@ -127,6 +157,11 @@ export default function SellPage() {
       setError("Give your listing a name first.");
       return;
     }
+    const missing = attributes.filter((a) => a.required && !(attrs[a.key] ?? "").trim());
+    if (missing.length) {
+      setError(`Still needed: ${missing.map((a) => a.label).join(", ")}.`);
+      return;
+    }
     setSubmitting(true);
     setError(null);
     const sb = getSupabaseBrowser();
@@ -170,11 +205,31 @@ export default function SellPage() {
         angle: "45deg",
         listed_ago: "listed just now",
         status: "active",
-        story: [{ dot: "#E86A4F", title: "Listed on Bech De", when: "just now", text: sellNote.trim() || "Just listed — ask me anything." }],
-        facts: [
-          { k: "Condition", v: "As described" },
-          { k: "Reason", v: "Making space" },
+        // Oldest chapter first, with "listed on Bech De" closing the timeline —
+        // that's the order the product page renders them in.
+        story: [
+          ...chapters
+            .filter((c) => c.title.trim() || c.text.trim())
+            .map((c) => ({
+              dot: "#F2A93B",
+              title: c.title.trim() || "Earlier",
+              when: c.when.trim(),
+              text: c.text.trim(),
+            })),
+          {
+            dot: "#E86A4F",
+            title: "Listed on Bech De",
+            when: "just now",
+            text: sellNote.trim() || "Just listed — ask me anything.",
+          },
         ],
+        // Only what the seller actually answered. An unanswered question is absent
+        // rather than filled with a plausible default.
+        attrs: Object.fromEntries(
+          Object.entries(attrs)
+            .map(([k, v]) => [k, v.trim()])
+            .filter(([, v]) => v !== "")
+        ),
       })
       .select("id")
       .single();
@@ -289,11 +344,36 @@ export default function SellPage() {
           <div>
             <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 8 }}>Where does it belong?</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 9 }}>
-              {sellCategories.map((c) => (
-                <Chip key={c.name} icon={c.icon} name={c.name} active={sellCat === c.name} onClick={() => { setSellCat(c.name); saveDraft("sellCat", c.name); }} />
+              {(categories.data ?? []).map((c) => (
+                <Chip
+                  key={c.name}
+                  icon={c.icon ?? "✨"}
+                  name={c.name}
+                  active={normalizeCategory(sellCat) === c.name}
+                  onClick={() => {
+                    setSellCat(c.name);
+                    saveDraft("sellCat", c.name);
+                  }}
+                />
               ))}
             </div>
           </div>
+
+          {attributes.length > 0 && (
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 8 }}>
+                About the {normalizeCategory(sellCat).toLowerCase()}{" "}
+                <span style={{ color: colors.textFaint, fontWeight: 600 }}>
+                  (buyers ask these first — answering saves you the messages)
+                </span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 14 }}>
+                {attributes.map((a) => (
+                  <AttributeField key={a.id} attr={a} value={attrs[a.key] ?? ""} onChange={(v) => setAttr(a.key, v)} />
+                ))}
+              </div>
+            </div>
+          )}
 
           <div>
             <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 8 }}>
@@ -350,11 +430,17 @@ export default function SellPage() {
               />
               {priceGuide && (
                 <div style={{ background: colors.sage, borderRadius: 12, padding: "10px 16px", fontSize: 13, color: colors.pine, fontWeight: 600, lineHeight: 1.45 }}>
-                  💡 {priceGuide.count} similar {sellCat.toLowerCase()} listings near you are priced{" "}
+                  💡 {priceGuide.count}{" "}
+                  {priceGuide.basis === "similar"
+                    ? "similar items"
+                    : `other ${normalizeCategory(sellCat).toLowerCase()} listings`}{" "}
+                  near you are <b>asking</b>{" "}
                   <b>
                     {inr(priceGuide.low)}–{inr(priceGuide.high)}
                   </b>
                   .
+                  {/* Asking, not selling. Nothing here has sold yet, so calling these
+                      sale prices would be a claim the data can't support. */}
                 </div>
               )}
             </div>
@@ -383,6 +469,85 @@ export default function SellPage() {
                 resize: "vertical",
               }}
             />
+
+            {chapters.map((c, i) => (
+              <div
+                key={i}
+                style={{
+                  marginTop: 12,
+                  padding: "14px 16px",
+                  background: colors.bg2,
+                  borderRadius: 14,
+                  display: "grid",
+                  gap: 10,
+                }}
+              >
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <input
+                    aria-label={`Chapter ${i + 1} title`}
+                    value={c.title}
+                    onChange={(e) =>
+                      setChapters(chapters.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))
+                    }
+                    placeholder="Bought it for the flat"
+                    style={{ ...chapterInput, flex: 2, minWidth: 160 }}
+                  />
+                  <input
+                    aria-label={`Chapter ${i + 1} when`}
+                    value={c.when}
+                    onChange={(e) =>
+                      setChapters(chapters.map((x, j) => (j === i ? { ...x, when: e.target.value } : x)))
+                    }
+                    placeholder="2023"
+                    style={{ ...chapterInput, flex: 1, minWidth: 90 }}
+                  />
+                  <button
+                    type="button"
+                    aria-label={`Remove chapter ${i + 1}`}
+                    onClick={() => setChapters(chapters.filter((_, j) => j !== i))}
+                    style={{
+                      border: "none",
+                      background: "none",
+                      cursor: "pointer",
+                      fontWeight: 800,
+                      color: colors.clay,
+                      fontFamily: "inherit",
+                      fontSize: 15,
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+                <input
+                  aria-label={`Chapter ${i + 1} detail`}
+                  value={c.text}
+                  onChange={(e) => setChapters(chapters.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)))}
+                  placeholder="Where it came from, what it's been through…"
+                  style={chapterInput}
+                />
+              </div>
+            ))}
+
+            {chapters.length < 4 && (
+              <button
+                type="button"
+                onClick={() => setChapters([...chapters, { title: "", when: "", text: "" }])}
+                style={{
+                  marginTop: 12,
+                  border: `1.5px dashed ${colors.ring}`,
+                  background: "none",
+                  borderRadius: 12,
+                  padding: "10px 16px",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  fontFamily: "inherit",
+                  color: colors.textMuted,
+                  cursor: "pointer",
+                }}
+              >
+                + Add an earlier chapter
+              </button>
+            )}
           </div>
 
           {error && <div style={{ fontSize: 13.5, fontWeight: 700, color: colors.terracotta }}>{error}</div>}
@@ -467,6 +632,91 @@ export default function SellPage() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+const chapterInput: React.CSSProperties = {
+  width: "100%",
+  minWidth: 0,
+  background: "#fff",
+  border: `1.5px solid ${colors.sand}`,
+  borderRadius: 10,
+  padding: "10px 14px",
+  fontSize: 13.5,
+  fontWeight: 600,
+  fontFamily: "inherit",
+  color: colors.ink,
+  outline: "none",
+};
+
+/**
+ * One question from the category's template. The shape comes from the database, so
+ * adding "Frame size" to Bicycles is an admin action rather than a deploy.
+ */
+function AttributeField({
+  attr,
+  value,
+  onChange,
+}: {
+  attr: CategoryAttribute;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const common: React.CSSProperties = {
+    width: "100%",
+    minWidth: 0,
+    background: "#fff",
+    border: `1.5px solid ${colors.sand}`,
+    borderRadius: 12,
+    padding: "12px 16px",
+    fontSize: 14.5,
+    fontWeight: 600,
+    fontFamily: "inherit",
+    color: colors.ink,
+    outline: "none",
+  };
+
+  return (
+    <div style={{ minWidth: 0 }}>
+      <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 6 }}>
+        {attr.label}
+        {attr.required && <span style={{ color: colors.terracotta }}> *</span>}
+      </div>
+
+      {attr.type === "select" ? (
+        <select aria-label={attr.label} value={value} onChange={(e) => onChange(e.target.value)} style={common}>
+          <option value="">Choose…</option>
+          {/* A value the template no longer offers — an option since renamed, or a
+              seeded listing written before the vocabulary existed. Carry it rather
+              than render "Choose…" over the top of an answer and blank it on save. */}
+          {value && !attr.options.includes(value) && <option value={value}>{value}</option>}
+          {attr.options.map((o) => (
+            <option key={o} value={o}>
+              {o}
+            </option>
+          ))}
+        </select>
+      ) : attr.type === "boolean" ? (
+        <select aria-label={attr.label} value={value} onChange={(e) => onChange(e.target.value)} style={common}>
+          <option value="">Choose…</option>
+          <option value="Yes">Yes</option>
+          <option value="No">No</option>
+        </select>
+      ) : (
+        <input
+          aria-label={attr.label}
+          type={attr.type === "number" ? "number" : "text"}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={attr.hint ?? ""}
+          style={common}
+        />
+      )}
+
+      {attr.hint && attr.type !== "text" && (
+        <div style={{ fontSize: 11.5, color: colors.textFaint, fontWeight: 600, marginTop: 4 }}>{attr.hint}</div>
+      )}
     </div>
   );
 }

@@ -5,7 +5,14 @@ import Link from "next/link";
 import { useState } from "react";
 import { colors } from "@/lib/colors";
 import { useAppState } from "@/lib/store";
-import { useItem, useProfile, startChat, blockProfile, setListingStatus } from "@/lib/queries";
+import {
+  useItem,
+  useProfile,
+  startChat,
+  blockProfile,
+  setListingStatus,
+  useCategoryAttributes,
+} from "@/lib/queries";
 import Stripe from "@/components/Stripe";
 import Button from "@/components/Button";
 import OsmMap from "@/components/OsmMap";
@@ -257,14 +264,7 @@ export default function ProductPage() {
             />
           )}
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            {item.facts.map((fa) => (
-              <div key={fa.k} style={{ background: "#fff", border: `1.5px solid ${colors.cardBorder}`, borderRadius: 14, padding: "12px 16px" }}>
-                <div style={{ fontSize: 11.5, fontWeight: 700, color: colors.textFaint, textTransform: "uppercase", letterSpacing: ".5px" }}>{fa.k}</div>
-                <div style={{ fontWeight: 700, fontSize: 14.5, marginTop: 3 }}>{fa.v}</div>
-              </div>
-            ))}
-          </div>
+          <AttributeGrid category={item.category} attrs={item.attrs ?? {}} />
 
           <div style={{ background: colors.sage, borderRadius: 18, padding: 14, display: "flex", flexDirection: "column", gap: 12 }}>
             <OsmMap
@@ -378,5 +378,56 @@ function SafetyAction({ label, onClick }: { label: string; onClick: () => void }
     >
       {label}
     </button>
+  );
+}
+
+/**
+ * The attribute grid, labelled from the category's template.
+ *
+ * Keys are stored, labels are looked up — so renaming "Reason" to "Why are you
+ * selling it?" at /admin/taxonomy relabels every listing that already answered it,
+ * without touching a row. A key with no template left (an attribute since removed)
+ * still renders, from its key: the seller told a buyer something, and withdrawing
+ * the question isn't a reason to hide the answer.
+ */
+function AttributeGrid({ category, attrs }: { category: string; attrs: Record<string, string> }) {
+  const template = useCategoryAttributes(category).data ?? [];
+  const entries = Object.entries(attrs).filter(([, v]) => v);
+  if (entries.length === 0) return null;
+
+  const labelFor = (key: string) =>
+    template.find((t) => t.key === key)?.label ?? key.replace(/_/g, " ");
+  const order = (key: string) => template.find((t) => t.key === key)?.sort ?? 9999;
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+      {entries
+        .sort((a, b) => order(a[0]) - order(b[0]))
+        .map(([key, value]) => (
+          <div
+            key={key}
+            style={{
+              background: "#fff",
+              border: `1.5px solid ${colors.cardBorder}`,
+              borderRadius: 14,
+              padding: "12px 16px",
+              minWidth: 0,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 11.5,
+                fontWeight: 700,
+                color: colors.textFaint,
+                textTransform: "uppercase",
+                letterSpacing: ".5px",
+              }}
+            >
+              {labelFor(key)}
+            </div>
+            <div style={{ fontWeight: 700, fontSize: 14.5, marginTop: 3 }}>{value}</div>
+          </div>
+        ))}
+    </div>
   );
 }

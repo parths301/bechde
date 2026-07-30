@@ -50,6 +50,16 @@ async function write(label: string, op: PromiseLike<{ error: { message: string }
   if (error) throw new Error(`${label} failed — ${error.message}`);
 }
 
+/** {k: "Reason", v: "Redecorating"}[] → {reason: "Redecorating"}, as 0018 does in SQL. */
+function attrsFromFacts(facts: { k: string; v: string }[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const f of facts ?? []) {
+    if (!f?.k || !f?.v) continue;
+    out[f.k.toLowerCase().replace(/[^a-z0-9]+/g, "_")] = f.v;
+  }
+  return out;
+}
+
 async function main() {
   // 1. categories -----------------------------------------------------------
   const categories = homeCategories.map((c) => ({ name: c.name, icon: c.icon }));
@@ -121,6 +131,10 @@ async function main() {
     status: it.listedAgo.startsWith("sold") ? "sold" : "active",
     story: it.story,
     facts: it.facts,
+    // data.ts authors these as a {k,v} list because that reads well by hand; the
+    // column is a map. Derived here with the same transform 0018 used to backfill,
+    // so a reseed doesn't leave attrs empty while facts looks populated.
+    attrs: attrsFromFacts(it.facts),
   }));
   await write("listings", db.from("listings").upsert(listings, { onConflict: "id" }));
   console.log(`listings: ${listings.length}`);
