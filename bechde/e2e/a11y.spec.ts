@@ -56,3 +56,51 @@ test("the report dialog traps focus and closes on Escape", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
 });
+
+/**
+ * /login, as a guest.
+ *
+ * It sits outside `routes` above for the same reason it sat outside the overflow guard:
+ * the suite shares one signed-in storageState and src/proxy.ts bounces an authenticated
+ * visitor to /home, so the first page every new user sees was invisible to both. That
+ * blind spot is how the card shipped 960px wide on a phone, and how the *only* control
+ * that gets you into the app — "Email me a link" — stayed a `<div onClick>` through a
+ * whole accessibility pass, unreachable by keyboard.
+ */
+test.describe("the sign-in page, as a guest", () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test("has no serious accessibility violations", async ({ page }) => {
+    await page.goto("/login");
+    await page.waitForTimeout(600);
+
+    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+    const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+    if (serious.length) {
+      console.log(
+        "/login:\n" +
+          serious.map((v) => `  [${v.impact}] ${v.id} — ${v.help}\n    ${v.nodes[0]?.html?.slice(0, 120)}`).join("\n")
+      );
+    }
+    expect(serious).toEqual([]);
+  });
+
+  test("can be completed with the keyboard alone", async ({ page }) => {
+    await page.goto("/login");
+
+    // Type an address, then reach the submit control without touching the mouse.
+    await page.getByLabel("Email").focus();
+    await page.keyboard.type("keyboard-user@bechde.local");
+
+    const submit = page.getByRole("button", { name: /Email me a link/ });
+    await submit.focus();
+    await expect(submit).toBeFocused();
+
+    // The code path has to be reachable too — it's the one a phone user needs.
+    const already = page.getByRole("button", { name: /I already have a code/ });
+    await already.focus();
+    await expect(already).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page.getByLabel("Six-digit sign-in code")).toBeVisible();
+  });
+});

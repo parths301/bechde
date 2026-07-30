@@ -9,4 +9,12 @@
     Log in to Bech De
   </a>
 </p>
+{{/* The code matters more than the button on a phone. PKCE ties the link to the
+     browser that asked for it, so tapping it inside the Gmail app opens an in-app
+     webview with no verifier and sign-in fails silently. The code has no such tie —
+     it's redeemed server-side by /api/auth/verify-code and works anywhere. */}}
+<p style="margin-top:26px;color:#2E2A24">
+  Opening this on a different phone or browser? Type this code into the sign-in page instead:
+</p>
+<p style="font-size:30px;font-weight:800;letter-spacing:6px;color:#2E2A24;margin:6px 0 0">{{ .Token }}</p>
 <p style="color:#8a7a5c;font-size:13px">If you didn't request this, you can ignore this email.</p>
