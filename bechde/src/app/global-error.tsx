@@ -1,5 +1,8 @@
 "use client"; // Error boundaries must be Client Components
 
+import { useEffect } from "react";
+import { reportError } from "@/lib/observability";
+
 // Last-resort boundary: this replaces the root layout, so it brings its own
 // <html>/<body> and can't rely on the app's fonts or global styles.
 export default function GlobalError({
@@ -9,6 +12,10 @@ export default function GlobalError({
   error: Error & { digest?: string };
   unstable_retry: () => void;
 }) {
+  useEffect(() => {
+    reportError(error, { boundary: "global", digest: error.digest });
+  }, [error]);
+
   return (
     <html lang="en">
       <body style={{ margin: 0, background: "#FBF6ED", fontFamily: "system-ui, -apple-system, sans-serif", color: "#2E2A24" }}>

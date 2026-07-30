@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { notFound } from "next/navigation";
 import ProductClient from "./ProductClient";
 import { createPublicClient } from "@/lib/supabase/server";
 
@@ -45,8 +46,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ProductPage({ params }: Props) {
-  // Await params just to fulfill Next.js 15+ constraints if needed,
-  // though ProductClient will use `useParams()` on the client side.
-  await params;
+  const { id } = await params;
+
+  // Decide existence here, on the server, not in ProductClient.
+  //
+  // ProductClient calls notFound() too, but by the time a client component runs the
+  // 200 has already gone out — so a dead listing answered "200 OK" with a page saying
+  // "Nothing here", which is exactly the soft-404 that search engines index and keep
+  // serving. The listing has to be missing *before* the response starts to get a real
+  // 404. Anon client, matching generateMetadata: a scraper should see what a
+  // logged-out visitor sees.
+  const { data } = await createPublicClient().from("listings").select("id").eq("id", id).maybeSingle();
+  if (!data) notFound();
+
   return <ProductClient />;
 }

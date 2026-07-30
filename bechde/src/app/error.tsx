@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { colors } from "@/lib/colors";
+import { reportError } from "@/lib/observability";
 
 export default function Error({
   error,
@@ -12,9 +13,9 @@ export default function Error({
   unstable_retry: () => void;
 }) {
   useEffect(() => {
-    // Wire an error reporter here (see DEPLOY.md — Sentry needs your account).
-    // `digest` is the id Next puts in the server logs for the same failure.
-    console.error("[bechde] render error", error.digest ?? "", error);
+    // `digest` is the id Next puts in the server logs for the same failure, so it's
+    // what ties a user saying "reference 3f9a…" to the stack trace.
+    reportError(error, { boundary: "route", digest: error.digest });
   }, [error]);
 
   return (

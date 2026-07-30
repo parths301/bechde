@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Karla } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AppStateProvider } from "@/lib/store";
 import "./globals.css";
 
@@ -63,6 +65,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <LanguageProvider>
           <AppStateProvider>{children}</AppStateProvider>
         </LanguageProvider>
+        {/* Both are cookieless and store no identifiers, which is why there's no
+            consent banner in front of them — under the DPDP Act and the GDPR the
+            banner exists for tracking that needs consent, and this doesn't. They
+            no-op anywhere but Vercel, so local runs and tests are unaffected. */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
