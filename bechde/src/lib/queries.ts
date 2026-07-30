@@ -458,10 +458,12 @@ export interface MyProfile {
   // refuses the data either way; this only stops us showing a link into a dead end.
   is_admin: boolean;
   suspended_at: string | null;
+  notify_messages: boolean;
+  notify_saved_searches: boolean;
 }
 
 const PROFILE_COLS =
-  "id,name,initial,email,lat,lng,neighbourhood,bio,created_at,rating_avg,rating_count,sold,reply_time,is_admin,suspended_at";
+  "id,name,initial,email,lat,lng,neighbourhood,bio,created_at,rating_avg,rating_count,sold,reply_time,is_admin,suspended_at,notify_messages,notify_saved_searches";
 
 // The signed-in profile is read by several screens at once (Header, sell, profile,
 // plus every distance calculation) — so it lives in one tiny module store instead of
@@ -2077,4 +2079,20 @@ export function useAdminStats(): AsyncState<AdminStats | null> {
       newProfilesWeek: newbies.count ?? 0,
     };
   }, [isAdmin]);
+}
+
+/**
+ * Notification switches. `unsubscribe_token` is deliberately not readable here — 0020
+ * revokes the column from anon and authenticated, because profiles are world-readable
+ * and the token is a credential that mutes someone's mail.
+ */
+export async function setNotificationPrefs(patch: {
+  notify_messages?: boolean;
+  notify_saved_searches?: boolean;
+}): Promise<void> {
+  const profile = profileState.data;
+  if (!profile) throw new Error("Still loading your profile.");
+  const { error } = await getSupabaseBrowser().from("profiles").update(patch).eq("id", profile.id);
+  if (error) throw new Error(error.message);
+  setProfileState({ data: { ...profile, ...patch }, loading: false, error: null });
 }

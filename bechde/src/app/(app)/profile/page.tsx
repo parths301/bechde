@@ -18,6 +18,7 @@ import {
   updateMyProfile,
   forgetMyLocation,
   closeMyAccount,
+  setNotificationPrefs,
 } from "@/lib/queries";
 import type { Item } from "@/lib/data";
 import Stripe from "@/components/Stripe";
@@ -442,6 +443,8 @@ export default function ProfilePage() {
 
       <BlockedList />
 
+      <EmailPrefs />
+
       <YourData />
 
       <div style={{ padding: "8px 36px 44px", display: "flex", gap: 16, flexWrap: "wrap", fontSize: 12.5, fontWeight: 700, color: colors.textFaint }}>
@@ -845,3 +848,76 @@ const dataBtn: React.CSSProperties = {
   textDecoration: "none",
   display: "inline-block",
 };
+
+/** Which emails Bech De may send. Mirrors what the unsubscribe links toggle. */
+function EmailPrefs() {
+  const me = useProfile().data;
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const toggle = async (key: "notify_messages" | "notify_saved_searches", next: boolean) => {
+    setBusy(key);
+    setError(null);
+    try {
+      await setNotificationPrefs({ [key]: next });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't save that.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const rows: { key: "notify_messages" | "notify_saved_searches"; label: string; hint: string }[] = [
+    {
+      key: "notify_messages",
+      label: "New messages",
+      hint: "Only if you haven't already read it — an active conversation sends nothing.",
+    },
+    { key: "notify_saved_searches", label: "Saved-search matches", hint: "A daily digest when something new turns up." },
+  ];
+
+  return (
+    <div style={{ padding: "20px 36px 0" }}>
+      <div
+        style={{
+          background: "#fff",
+          border: `1.5px solid ${colors.cardBorder}`,
+          borderRadius: 18,
+          padding: "20px 22px",
+          maxWidth: 620,
+        }}
+      >
+        <h2 style={{ margin: "0 0 12px", fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 16 }}>
+          Email
+        </h2>
+        {rows.map((r) => {
+          const on = me ? me[r.key] : true;
+          return (
+            <div
+              key={r.key}
+              style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "10px 0" }}
+            >
+              <input
+                type="checkbox"
+                id={r.key}
+                checked={on}
+                disabled={!me || busy === r.key}
+                onChange={(e) => toggle(r.key, e.target.checked)}
+                style={{ width: 16, height: 16, marginTop: 2, accentColor: colors.terracotta }}
+              />
+              <div style={{ minWidth: 0 }}>
+                <label htmlFor={r.key} style={{ fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+                  {r.label}
+                </label>
+                <div style={{ fontSize: 12.5, color: colors.textMuted, fontWeight: 600, lineHeight: 1.5 }}>
+                  {r.hint}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        {error && <div style={{ fontSize: 13, fontWeight: 700, color: colors.terracotta }}>{error}</div>}
+      </div>
+    </div>
+  );
+}
