@@ -28,6 +28,26 @@ list of post-launch work.
 
 ---
 
+## Phase 12 — launch readiness ✅
+
+Everything a public site needs that a working prototype doesn't. Detail in the git log.
+
+- [x] **Admin console** — edit any listing or profile, suspend, manage categories /
+      cities / localities / sell-form questions, with an audit trail that cannot be
+      skipped (the change and its log row are one transaction)
+- [x] **Account closure + data export** — the DPDP rights the privacy policy already
+      promised, which had no mechanism behind them. Closing anonymises rather than
+      deletes, so it can't take the counterparty's chat history with it
+- [x] **Real email** — message digests, saved-search digests, preferences and a
+      signed-out unsubscribe. The Edge Function it replaces logged `[EMAIL]` and
+      stamped rows as sent
+- [x] **Cross-device sign-in** — a 6-digit code beside the link, redeemed server-side,
+      because PKCE ties the link to the browser that requested it
+- [x] **Listing attributes** — per-category templates, admin-editable, replacing two
+      invented facts hardcoded onto every listing
+- [x] **Hardening** — real 404 (was a soft 200), security headers, geocode behind a
+      session and a rate limit, Sentry, analytics, health check
+
 ## Still needed from you (launch blockers)
 
 - [ ] **Reconcile the hosted Supabase project** (`iwhefgykblkwnuazfczv`, already linked).
@@ -38,9 +58,17 @@ list of post-launch work.
       email, support email. They are currently `.local` addresses that **cannot receive
       mail**, so the draft banner is up: DPDP requires a named human at a contact that
       actually works.
-- [ ] **Real SMTP provider** (Resend / SES / Postmark) — Supabase's shared sender is
-      rate-limited and not for production. Sign-in is the front door.
+- [ ] **Resend account + verified domain**, then `RESEND_API_KEY`, `EMAIL_FROM` and
+      `CRON_SECRET` in Vercel. Also point Supabase Auth's custom SMTP at it — the
+      shared sender is rate-limited and sign-in is the front door. Until the key is
+      set the cron routes return 503 and send nothing, by design.
+- [ ] **`SEED_SELLER_EMAIL`** before re-seeding the hosted database. The seeded
+      listings are staying up as real inventory, so a buyer who messages one has to
+      reach a person; the seed refuses to run against a hosted URL without it.
 - [ ] **Vercel project** + env vars, then a **domain**
+- [ ] **Paste `supabase/templates/magic_link.html`** into the Magic Link template — it
+      now carries `{{ .Token }}` as well as the link, and without it the code half of
+      sign-in silently does nothing
 - [x] ~~MapTiler API key~~ — not needed; Leaflet + raw OSM tiles + Nominatim are free and keyless
 - [x] **OTP decision: B** — email magic-link (shipped)
 - [x] ~~GitHub Personal Access Token~~ — the `origin` remote is already set

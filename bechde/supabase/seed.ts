@@ -34,6 +34,39 @@ if (!url || !key) {
 }
 const db = createClient(url, key, { auth: { persistSession: false } });
 
+/**
+ * Who a buyer actually reaches when they message a seeded listing.
+ *
+ * The seeded listings are being kept as real inventory, which means a real buyer can
+ * message the guitar seller — and `rohan@bechde.local` cannot receive mail, so nobody
+ * would ever reply. Set SEED_SELLER_EMAIL to an address you read and the seed
+ * plus-addresses each seller off it (you+rohan@…), so the mail lands with you and you
+ * can tell which listing it came from.
+ *
+ * Not hardcoded, because a personal address in a public repo is a different problem
+ * from the one being solved. Left as .local for local development, where Mailpit
+ * catches everything anyway — but seeding a *hosted* database without it is refused
+ * below, since that is the case where a silent dead end reaches a real person.
+ */
+const SELLER_INBOX = process.env.SEED_SELLER_EMAIL?.trim();
+const isLocalTarget = /127\.0\.0\.1|localhost/.test(url);
+
+if (!isLocalTarget && !SELLER_INBOX) {
+  console.error(
+    "Refusing to seed a hosted database with unreachable seller addresses.\n" +
+      "Set SEED_SELLER_EMAIL to a mailbox you monitor — a buyer who messages a seeded\n" +
+      "listing has to reach a human, or the listing is a dead end wearing a face."
+  );
+  process.exit(1);
+}
+
+/** you@example.com + "rohan" → you+rohan@example.com */
+function sellerAddress(handle: string): string {
+  if (!SELLER_INBOX) return `${handle}@bechde.local`;
+  const [local, domain] = SELLER_INBOX.split("@");
+  return domain ? `${local}+${handle}@${domain}` : SELLER_INBOX;
+}
+
 // Deterministic UUID (v5-ish) from a stable string, so re-seeding is idempotent.
 function uuidFrom(seed: string): string {
   const h = createHash("sha1").update(seed).digest("hex");
@@ -76,7 +109,7 @@ async function main() {
       name: "Aisha",
       initial: "A",
       color: "#3E9B8F",
-      email: "aisha@bechde.local", // demo login links to this profile via handle_new_user
+      email: sellerAddress("aisha"), // demo login links to this profile via handle_new_user
       bio: "hostel room minimalist in progress",
     },
     // NOTE: rating / sold / reply_time are deliberately NOT written here. They're
@@ -89,7 +122,8 @@ async function main() {
       color: s.color,
       // Rohan is the other side of the demo guitar chat — give him a login too so the
       // two-party flow (message → offer → accept, live over Realtime) is demoable.
-      email: s.name === "Rohan T." ? "rohan@bechde.local" : null,
+      // Only sellers a buyer can actually message get an address.
+      email: s.name === "Rohan T." ? sellerAddress("rohan") : null,
     })),
   ];
   await write("profiles", db.from("profiles").upsert(profiles, { onConflict: "id" }));

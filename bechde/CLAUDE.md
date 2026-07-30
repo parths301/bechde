@@ -116,16 +116,23 @@ plus `createAdminClient()` (service role, bypasses RLS) for the seed and privile
 ### 4.3 Routes
 
 ```
-/                       landing + email sign-in
+/                       landing + email sign-in (link, or a 6-digit code)
 /auth/confirm           magic-link callback (route handler)
-/api/geocode            Nominatim proxy (?q= forward, ?lat=&lng= reverse)
+/unsubscribe            one-click, token in the URL, no sign-in
+/api/geocode            Nominatim proxy — session required, rate limited
+/api/health             liveness incl. a real DB read
+/api/account/{export,delete}   DPDP access + closure
+/api/auth/verify-code   redeems the 6-digit code server-side (not PKCE-bound)
+/api/cron/{messages,saved-searches}   scheduled digests, CRON_SECRET gated
 /home                   radar + nearby feed
 /search                 ranked search, filters, saved searches
 /map                    Leaflet map + radius/category/price filters
 /product/[id]           listing detail, like, report/block, mark sold
 /chat                   threads, live messages, offers, reviews
 /sell                   photo upload → geocoded listing
-/profile                my listings/sold/saved/reviews, blocked list, edit
+/profile                my listings/sold/saved/reviews, blocked list, edit,
+                        email preferences, data export + account closure
+/admin                  console: reports, listings, people, taxonomy, audit log
 /legal/{terms,privacy,prohibited}
 /opengraph-image        generated OG card (next/og)
 ```
@@ -159,6 +166,18 @@ Migrations, in order:
 **Never change an applied migration.** Editing `0001_init.sql` to add `public_spot` is
 why posting a listing failed with *"Could not find the 'public_spot' column"*: the file
 only runs on a database built from scratch. New column → new migration file.
+
+**Admin writes go through functions, not policies.** Widening a policy with
+`or is_admin()` lets an admin change a row through plain PostgREST with nothing
+recorded. Every admin mutation is a `SECURITY DEFINER` RPC that makes the change and
+writes its `admin_actions` row in the same transaction, so the audit cannot be skipped.
+`profiles_update` is deliberately *not* widened. Caveat: the service-role key still
+bypasses all of it — the log covers admins in the app, not everything.
+
+**A credential does not belong on a world-readable table.** `profiles` is
+`select using (true)`, so the unsubscribe token lives in `notification_tokens` (RLS on,
+no policies, no grants). Hiding it with column grants instead breaks every
+`profiles(*)` embed, `LISTING_SELECT` included.
 
 **RLS is the security model.** There is no server-side authorization layer — the browser
 holds an anon key and Postgres decides what it may see. Never "fix" a permissions problem
@@ -247,7 +266,10 @@ Read these. Each one was found the hard way.
 - **`/login` is invisible to most E2E specs.** The suite shares one signed-in
   `storageState` and `src/proxy.ts` redirects authenticated visitors away from it, so the
   first page every new user sees needs a guest `test.use({ storageState: … })` block or it
-  goes unchecked. That is exactly how it shipped 960px wide.
+  goes unchecked. That is exactly how it shipped 960px wide — and, separately, how
+  `PillButton` ("Email me a link", the only way into the app) stayed a `<div onClick>`
+  through an entire accessibility pass, unreachable by keyboard. Both the axe sweep and
+  the overflow guard now cover `/login` as a guest.
 
 ### Silent failures — the ones that cost the most
 These all shared a shape: something reported success while doing nothing.
@@ -270,6 +292,15 @@ These all shared a shape: something reported success while doing nothing.
 - **An RLS-denied `UPDATE` returns no error.** The `USING` clause filters the row out, so
   PostgREST reports success on zero rows. A test asserting `42501` passes vacuously when
   the row simply doesn't exist. Assert the value is *unchanged* instead.
+- **A notifier that logs `[EMAIL]` is the same bug as a seed that ignores `error`.**
+  `notify-saved-searches` printed the message it would have sent and then stamped
+  `last_notified_at`, so the feature read as done for months. The sender in
+  `src/lib/email/send.ts` has no log-instead mode on purpose: no key, no send, loud
+  failure. Its regression test runs with `RESEND_API_KEY` genuinely unset.
+- **A client component cannot produce a 404.** `notFound()` in `ProductClient` ran
+  after the response had started, so a dead listing answered **200 OK** with a page
+  saying "Nothing here" — a soft 404, which search engines index and keep serving.
+  Existence has to be decided in the server component.
 - **`legalIsDraft` guards against exactly this.** It once checked only for `[` brackets,
   so replacing the placeholders with `grievance@bechde.local` cleared the launch banner
   while leaving an unreachable DPDP contact. It now rejects `.local`, `example.com` and
@@ -280,16 +311,19 @@ These all shared a shape: something reported success while doing nothing.
 ## 6. Tests
 
 ```bash
-npm test              # 60 unit tests (pure logic) — no DB needed
-npm run test:db       # 25 RLS tests — needs the local stack, seeded
-npx playwright test   # 18 E2E incl. an axe pass on 7 routes; needs a dev server + seed
+npm test              # 66 unit tests (pure logic) — no DB needed
+npm run test:db       # 51 RLS tests — needs the local stack, seeded
+npx playwright test   # 62 E2E incl. an axe pass on 8 routes; needs a dev server + seed
 npm run lint          # currently ZERO errors and warnings — keep it there
 npx tsc --noEmit
 npm run build
 ```
 
-- Unit: `src/lib/*.test.ts` (geo, search, time, legal).
-- RLS: `supabase/tests/` — signs in for real via Mailpit. **This suite has caught
+- Unit: `src/lib/*.test.ts` (geo, search, time, legal, image, queries).
+- RLS: `supabase/tests/` — `rls`, `admin` (audit trail), `account` (closure),
+  `notifications` (unsubscribe tokens). Signs in for real via Mailpit. **Sign in once
+  per file in `beforeAll` and reuse the client** — the helper clears Mailpit on every
+  call, so a `signIn()` inside a test races the others and trips the rate limit. **This suite has caught
   genuine security bugs.** It is mutation-tested: reintroducing the `is_blocked_by` bug
   makes it fail.
 - E2E: `e2e/` — one shared sign-in via `storageState` (signing in per test trips the
@@ -358,17 +392,12 @@ badge while thread A is open.
 
 ---
 
-### [DONE] P1-2 · Saved-search notifications
-**Why:** saved searches count new matches in-app only. The copy is honest ("no emails
-yet"), but the feature is half a loop — this is the retention mechanic.
-
-**Do:** a Supabase scheduled function (pg_cron + Edge Function) that runs
-`search_listings` per saved search for rows newer than `created_at`, and emails digests
-through the SMTP provider from §7. Store `last_notified_at` so nobody gets the same
-listing twice. Add an unsubscribe path — required, not optional.
-
-**Done when:** creating a matching listing produces one email, and a second run sends
-nothing new.
+### [DONE — for real, this time] P1-2 · Saved-search notifications
+It was marked done once while sending nothing: the Edge Function `console.log`ed
+`[EMAIL] To: …` and then advanced `last_notified_at` as though it had. Now
+`src/app/api/cron/saved-searches` with a real Resend sender that **throws** without a
+key, plus a message digest (`/api/cron/messages`), notification preferences, and an
+unsubscribe link that works signed out. Scheduled from `vercel.json`.
 
 ---
 

@@ -164,3 +164,87 @@ since it needs an account and a DSN.
 - **Saved searches don't notify.** New matches are counted in-app; there's no email or
   push sender, and the copy says so.
 - **Magic links are single-browser** (PKCE) — see step 3.
+
+
+---
+
+## Phase 12 additions — what else the hosted project needs
+
+These arrived with the launch-readiness work. Nothing below is optional if you want the
+corresponding feature to work; each one fails loudly rather than silently if missed.
+
+### Migrations
+
+`0016`–`0020` are new. Push them with the rest:
+
+```bash
+npx supabase migration list --linked   # see where prod actually is
+npx supabase db push
+```
+
+`0017` inserts the categories. That matters more than it sounds: before it, the
+`categories` rows existed only because the *demo seed* created them, so a production
+database that correctly skipped the seed would have rejected every listing on the
+`listings.category` foreign key.
+
+### Re-seeding a hosted database
+
+```bash
+SEED_SELLER_EMAIL=you@yourdomain.com npm run seed
+```
+
+The seed refuses to run against a non-local URL without it. The seeded listings are
+staying up as real inventory, so a buyer who messages the guitar seller has to reach a
+human — `rohan@bechde.local` cannot receive mail. Sellers get plus-addressed off your
+inbox (`you+rohan@…`), so you can tell which listing the mail came from.
+
+### Auth template
+
+Re-paste `supabase/templates/magic_link.html` into **Auth → Email Templates → Magic
+Link**. It now carries `{{ .Token }}` alongside the link. Without it the 6-digit code
+field on `/login` accepts input and can never succeed — and that field is the only
+thing that works when someone opens the email on a different device, which on a
+phone-first marketplace is most people.
+
+### Environment variables
+
+| Variable | Where | What breaks without it |
+|---|---|---|
+| `RESEND_API_KEY` | Vercel | Both cron routes return 503. **Nothing is sent and nothing is marked sent** — deliberate. |
+| `EMAIL_FROM` | Vercel | Falls back to `hello@bechde.app`, which will fail SPF unless you own it. |
+| `CRON_SECRET` | Vercel | Cron routes refuse everyone, including Vercel. They fail closed. |
+| `NEXT_PUBLIC_SENTRY_DSN` | Vercel | Errors go to the console only; the SDK never loads. |
+| `SEED_SELLER_EMAIL` | your shell | The seed refuses to touch a hosted database. |
+
+Generate the cron secret with `openssl rand -hex 32`.
+
+### Resend
+
+1. Create the account, add and verify your domain (DKIM + SPF records).
+2. Use it for **Supabase Auth custom SMTP** too — the shared sender is rate-limited and
+   sign-in is the front door.
+3. `vercel.json` already declares the schedules: messages every 10 minutes, saved
+   searches daily at 09:00 UTC. Vercel picks them up on deploy.
+
+### After deploying
+
+```bash
+curl https://your-domain/api/health          # {"ok":true,"db":"up"}
+curl -I https://your-domain/                 # X-Frame-Options: DENY
+curl -o /dev/null -w '%{http_code}\n' https://your-domain/product/nope   # 404, not 200
+```
+
+The CSP ships **report-only**. Watch the violation reports for a week before switching
+it to enforcing — the app is inline-styled throughout, so a blocking policy needs
+evidence rather than a guess.
+
+### Making yourself an admin
+
+There's no self-service path, on purpose:
+
+```sql
+update profiles set is_admin = true where email = 'you@yourdomain.com';
+```
+
+Then `/admin` appears in the header. Every edit you make there is recorded in
+`admin_actions` with your name and the reason you typed — including yours.
