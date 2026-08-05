@@ -1,0 +1,10 @@
+.vercel
+
+# Local AI-tool configs — not shared with collaborators
+.claude/
+.clinerules/
+.cursor/
+.opencode/
+.windsurf/
+.github/copilot-instructions.md
+AGENTS.md
