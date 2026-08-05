@@ -11,14 +11,21 @@ import {
   type Report,
 } from "@/lib/queries";
 import { listedAgo } from "@/lib/time";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { H1, MiniButton, Pill, card, useReasonPrompt } from "../_shared";
 
 export default function AdminReportsPage() {
+  const { t } = useTranslation();
   const reports = useReports();
   const [ask, dialog] = useReasonPrompt(() => reports.reload());
   const items = reports.data ?? [];
 
-  const reasonLabel = (reason: string) => reportReasons.find((r) => r.value === reason)?.label ?? reason;
+  // The console is otherwise English; the reason labels follow the admin's own toggle
+  // because they're the same strings the reporter picked from.
+  const reasonLabel = (reason: string) => {
+    const match = reportReasons.find((r) => r.value === reason);
+    return match ? t(match.labelKey) : reason;
+  };
   const open = items.filter((r) => r.status === "open");
   const resolved = items.filter((r) => r.status !== "open");
 

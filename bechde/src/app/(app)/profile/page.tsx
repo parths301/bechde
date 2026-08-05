@@ -24,6 +24,7 @@ import type { Item } from "@/lib/data";
 import Stripe from "@/components/Stripe";
 import LocationChip from "@/components/LocationChip";
 import ReportDialog from "@/components/ReportDialog";
+import { formatKm } from "@/lib/geo";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 interface GridCard {
@@ -39,7 +40,7 @@ interface GridCard {
 }
 
 export default function ProfilePage() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { profTab, setProfTab } = useAppState();
   const saved = useSavedListings().data ?? [];
   const mine = useMyListings().data ?? [];
@@ -80,7 +81,7 @@ export default function ProfilePage() {
   const grids: Record<ProfileTab, GridCard[]> = {
     listings: active.map((i) => card(i, t("profile.tagActive"), colors.sage, colors.pine, i.listedAgo || "listed")),
     sold: sold.map((i) => card(i, t("profile.tagSold"), colors.ink, colors.bg, t("profile.soldCelebrate"))),
-    saved: saved.map((i) => card(i, t("profile.tagSaved"), colors.savedBg, colors.savedText, t("profile.distAway", { dist: i.dist }))),
+    saved: saved.map((i) => card(i, t("profile.tagSaved"), colors.savedBg, colors.savedText, t("profile.distAway", { dist: formatKm(i.km, t) }))),
     // Reviews aren't listings — rendered separately below.
     reviews: [],
   };
@@ -97,13 +98,15 @@ export default function ProfilePage() {
   // flaked" is gone: there's no no-show data anywhere to base it on.
   const replyMins = parseReplyMinutes(myProfile?.reply_time);
   const profBadges = [
-    replyMins != null && replyMins <= 15 ? "⚡ Fast replier" : null,
-    (myProfile?.sold ?? 0) > 0 ? `🌱 Gave ${myProfile!.sold} thing${myProfile!.sold === 1 ? "" : "s"} a second life` : null,
-    (myProfile?.rating_count ?? 0) >= 3 && Number(myProfile?.rating_avg) >= 4.5 ? "⭐ Consistently well rated" : null,
+    replyMins != null && replyMins <= 15 ? t("profile.badgeFastReplier") : null,
+    (myProfile?.sold ?? 0) > 0 ? t("profile.badgeSecondLife", { count: myProfile!.sold }) : null,
+    (myProfile?.rating_count ?? 0) >= 3 && Number(myProfile?.rating_avg) >= 4.5 ? t("profile.badgeWellRated") : null,
   ].filter((b): b is string => !!b);
 
+  // `[]` means the *browser's* locale, so a Hindi reader on an en-US phone got
+  // "Jul 2026" inside an otherwise Hindi sentence.
   const joined = myProfile?.created_at
-    ? new Date(myProfile.created_at).toLocaleDateString([], { month: "short", year: "numeric" })
+    ? new Date(myProfile.created_at).toLocaleDateString(locale, { month: "short", year: "numeric" })
     : null;
 
   return (
@@ -146,9 +149,11 @@ export default function ProfilePage() {
             )}
           </div>
           <div style={{ fontSize: 13.5, color: colors.textMuted, fontWeight: 600, marginTop: 3 }}>
-            {[where, joined ? `${t("profile.joined", { when: joined })}` : null, myProfile?.bio ? `“${myProfile.bio}”` : null]
-              .filter(Boolean)
-              .join(" · ")}
+            {/* The neighbourhood and the bio are the person's own words; only the
+                "joined" phrasing around the date is ours. */}
+            <span data-user-content>{where}</span>
+            {joined ? <> · {t("profile.joined", { when: joined })}</> : null}
+            {myProfile?.bio ? <> · <span data-user-content>&ldquo;{myProfile.bio}&rdquo;</span></> : null}
           </div>
           <div style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <LocationChip />
@@ -279,7 +284,7 @@ export default function ProfilePage() {
                         textDecoration: "underline"
                       }}
                     >
-                      Report
+                      {t("profile.report")}
                     </button>
                   </div>
                 </div>
@@ -287,7 +292,7 @@ export default function ProfilePage() {
               {reportingReview && (
                 <ReportDialog
                   reviewId={reportingReview.id}
-                  targetName={`Review by ${reportingReview.reviewerName}`}
+                  targetName={t("profile.reviewBy", { name: reportingReview.reviewerName })}
                   onClose={() => setReportingReview(null)}
                 />
               )}
@@ -521,7 +526,7 @@ function EditProfile({ name, bio, disabled }: { name: string; bio: string; disab
           whiteSpace: "nowrap",
         }}
       >
-        ✎ Edit profile
+        ✎ {t("profile.editProfile")}
       </button>
     );
   }
@@ -606,7 +611,7 @@ function BlockedList() {
               onClick={() => undo(id)}
               style={{ fontFamily: "inherit", background: "none", border: "none", padding: 0, fontSize: 12.5, fontWeight: 800, color: colors.clay, cursor: "pointer", whiteSpace: "nowrap" }}
             >
-              {busy === id ? "…" : "Unblock"}
+              {busy === id ? "…" : t("profile.unblock")}
             </button>
           </div>
         ))}

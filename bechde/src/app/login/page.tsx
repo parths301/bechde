@@ -37,7 +37,12 @@ export default function SignupPage() {
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
       setVerifying(false);
-      setError(body.error ?? "That code didn't work.");
+      // The route answers with a `reason`; the wording comes from the active language.
+      const byReason: Record<string, string> = {
+        missing: t("login.codeMissing"),
+        format: t("login.codeFormat"),
+      };
+      setError(byReason[body.reason as string] ?? t("login.codeFailed"));
       return;
     }
     window.location.href = "/home";

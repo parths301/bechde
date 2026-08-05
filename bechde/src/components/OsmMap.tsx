@@ -56,7 +56,7 @@ function bubbleHtml(mk: MapMarker, size: number) {
   // The name only goes inside the placeholder — over a photo it would be unreadable.
   const caption = mk.image
     ? ""
-    : `<span style="font:11px/1.15 ui-monospace,Menlo,monospace;color:${colors.textMuted};text-align:center;padding:0 6px;overflow:hidden">${label}</span>`;
+    : `<span data-user-content style="font:11px/1.15 ui-monospace,Menlo,monospace;color:${colors.textMuted};text-align:center;padding:0 6px;overflow:hidden">${label}</span>`;
   const pill = mk.price
     ? `<div class="bd-pin-pill" style="margin-top:4px;background:#fff;border:1.5px solid ${colors.sand};border-radius:999px;padding:2px 9px;font:700 11.5px/1.35 var(--font-karla,system-ui);color:${colors.ink};white-space:nowrap;box-shadow:0 2px 6px rgba(60,45,20,.1)">${escapeHtml(mk.price)}</div>`
     : "";

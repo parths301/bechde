@@ -101,7 +101,7 @@ export default function HomePage() {
               whiteSpace: "nowrap",
             }}
           >
-            ✦ {nearbyCount} {nearbyCount === 1 ? "thing" : "things"} for sale within {radiusKm} km
+            {t("home.forSaleWithin", { count: nearbyCount, radius: radiusKm })}
           </div>
           {/* Phones only — the header's copy is inside .bd-desktop-nav, which is
               hidden under the breakpoint. Showing both would be the duplication. */}
@@ -250,7 +250,7 @@ export default function HomePage() {
               boxShadow: "0 6px 18px rgba(60,45,20,.08)",
             }}
           >
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: colors.textBody, whiteSpace: "nowrap" }}>Radius</span>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: colors.textBody, whiteSpace: "nowrap" }}>{t("home.radius")}</span>
             <input
               type="range"
               aria-label={t("home.radiusLabel")}
@@ -270,8 +270,8 @@ export default function HomePage() {
         {/* mobile-only: the radius control that sits inside the radar on desktop */}
         <div className="bd-hero-mobilemap" style={{ flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", border: `1.5px solid ${colors.sand}`, borderRadius: 999, padding: "10px 18px" }}>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: colors.textBody, whiteSpace: "nowrap" }}>Radius</span>
-            <input type="range" aria-label="Search radius in kilometres" min={1} max={10} value={radiusKm} onChange={(e) => setRadiusKm(Number(e.target.value))} style={{ flex: 1, cursor: "pointer" }} />
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: colors.textBody, whiteSpace: "nowrap" }}>{t("home.radius")}</span>
+            <input type="range" aria-label={t("home.radiusLabel")} min={1} max={10} value={radiusKm} onChange={(e) => setRadiusKm(Number(e.target.value))} style={{ flex: 1, cursor: "pointer" }} />
             <span style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 15, color: colors.clay, whiteSpace: "nowrap", minWidth: 44 }}>{radiusKm} km</span>
           </div>
         </div>
@@ -280,7 +280,7 @@ export default function HomePage() {
       <div className="bd-feed-sec" style={{ padding: "10px 36px 44px", maxWidth: 1240, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 12, margin: "0 0 18px" }}>
           <h2 className="bd-feed-h2" style={{ margin: 0, fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 26, letterSpacing: "-.5px" }}>
-            Fresh within {radiusKm} km
+            {t("home.freshWithin", { km: radiusKm })}
           </h2>
           <Link href="/map" style={{ fontSize: 13.5, fontWeight: 700, color: colors.clay, cursor: "pointer" }}>
             {t("home.seeAllOnMap")}

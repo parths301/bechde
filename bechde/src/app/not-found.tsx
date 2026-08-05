@@ -1,14 +1,22 @@
 import Link from "next/link";
 import { colors } from "@/lib/colors";
+import { getServerT } from "@/lib/i18n/server";
 
 /**
  * The 404. Without this file `notFound()` in ProductClient rendered Next's default
  * black-and-white page — which is where a stale WhatsApp link to a sold listing lands,
  * so it's a page real buyers see rather than an edge case.
+ *
+ * Server-rendered, so the language comes from the cookie the toggle mirrors, not from
+ * localStorage. `metadata` is static because Next resolves it before the request's
+ * cookies are available to this file — an English tab title on a Hindi page is a small
+ * enough cost not to force this into a client component.
  */
 export const metadata = { title: "Not here · Bech De" };
 
-export default function NotFound() {
+export default async function NotFound() {
+  const t = await getServerT();
+
   return (
     <div
       style={{
@@ -46,11 +54,10 @@ export default function NotFound() {
             letterSpacing: "-.8px",
           }}
         >
-          Nothing here
+          {t("notFound.title")}
         </h1>
         <p style={{ margin: "0 0 22px", fontSize: 14.5, lineHeight: 1.6, color: colors.textBody, fontWeight: 600 }}>
-          This page doesn&apos;t exist, or the listing behind it was sold or withdrawn. Both happen fast around
-          here.
+          {t("notFound.body")}
         </p>
         <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
           <Link
@@ -65,7 +72,7 @@ export default function NotFound() {
               textDecoration: "none",
             }}
           >
-            Back to the radar
+            {t("notFound.radar")}
           </Link>
           <Link
             href="/search"
@@ -80,7 +87,7 @@ export default function NotFound() {
               textDecoration: "none",
             }}
           >
-            Search instead
+            {t("notFound.search")}
           </Link>
         </div>
       </div>

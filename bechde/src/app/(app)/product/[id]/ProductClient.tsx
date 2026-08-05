@@ -12,11 +12,13 @@ import {
   blockProfile,
   setListingStatus,
   useCategoryAttributes,
+  useCategories,
 } from "@/lib/queries";
 import Stripe from "@/components/Stripe";
 import Button from "@/components/Button";
 import OsmMap from "@/components/OsmMap";
 import ReportDialog from "@/components/ReportDialog";
+import { formatKm } from "@/lib/geo";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { localised, localisedOption } from "@/lib/i18n/localised";
 
@@ -30,14 +32,15 @@ const categoryIcons: Record<string, string> = {
 };
 
 const thumbLabels = [
-  { label: "front", angle: "45deg" },
-  { label: "back", angle: "60deg" },
-  { label: "close-up", angle: "30deg" },
-  { label: "in context", angle: "75deg" },
+  { labelKey: "product.thumbFront", angle: "45deg" },
+  { labelKey: "product.thumbBack", angle: "60deg" },
+  { labelKey: "product.thumbCloseUp", angle: "30deg" },
+  { labelKey: "product.thumbInContext", angle: "75deg" },
 ];
 
 export default function ProductPage() {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
+  const categories = useCategories();
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { data: item, loading } = useItem(params.id);
@@ -100,14 +103,20 @@ export default function ProductPage() {
   };
 
   const storyTitle = item.id === "yamaha-f310" ? t("product.guitarStoryTitle") : t("product.storyTitle");
+  // The breadcrumb's category comes from the categories table, so it carries name_hi.
+  const categoryRow = (categories.data ?? []).find((c) => c.name === item.category);
+  const categoryLabel = categoryRow ? localised(lang, categoryRow.name, categoryRow.name_hi) : item.category;
 
   return (
     <div style={{ maxWidth: 1240, margin: "0 auto", width: "100%" }}>
       <div className="bd-product-crumb" style={{ padding: "16px 36px 8px", fontSize: 13, color: colors.textFaint, fontWeight: 600 }}>
         <Link href="/home" style={{ cursor: "pointer", color: colors.clay, textDecoration: "underline" }}>
-          ← Browse
+          ← {t("product.browse")}
         </Link>{" "}
-        → {categoryIcons[item.category]} {item.category} → <span style={{ color: colors.ink }}>{item.name}</span>
+        → {categoryIcons[item.category]} {categoryLabel} →{" "}
+        <span style={{ color: colors.ink }} data-user-content>
+          {item.name}
+        </span>
       </div>
 
       <div className="bd-product-grid" style={{ display: "grid", gridTemplateColumns: "560px 1fr", gap: 34, padding: "14px 36px 40px" }}>
@@ -127,7 +136,7 @@ export default function ProductPage() {
                 whiteSpace: "nowrap",
               }}
             >
-              📍 {item.dist} · {item.neighbourhood.split(",")[0]}
+              📍 {formatKm(item.km, t)} · {item.neighbourhood.split(",")[0]}
             </div>
             <LikeButton liked={liked} onClick={() => toggleLike(item.id)} />
           </Stripe>
@@ -140,8 +149,8 @@ export default function ProductPage() {
             {(item.images ?? []).slice(0, 4).map((url) => (
               <Thumb key={url} src={url} />
             ))}
-            {thumbLabels.slice((item.images ?? []).length, 4).map((t) => (
-              <Thumb key={t.label} label={t.label} angle={t.angle} />
+            {thumbLabels.slice((item.images ?? []).length, 4).map((th) => (
+              <Thumb key={th.labelKey} label={t(th.labelKey)} angle={th.angle} />
             ))}
           </div>
           <div style={{ marginTop: 10, background: "#fff", border: `1.5px solid ${colors.cardBorder}`, borderRadius: 18, padding: "20px 22px" }}>
@@ -155,9 +164,11 @@ export default function ProductPage() {
                   </div>
                   <div style={{ paddingBottom: 16 }}>
                     <div style={{ fontWeight: 700, fontSize: 13.5 }}>
-                      {tl.title} <span style={{ color: colors.textFaint, fontWeight: 600, fontSize: 12 }}>· {tl.when}</span>
+                      <span data-user-content>{tl.title}</span> <span style={{ color: colors.textFaint, fontWeight: 600, fontSize: 12 }}>· {tl.when}</span>
                     </div>
-                    <div style={{ fontSize: 13, color: colors.textBody, lineHeight: 1.5 }}>{tl.text}</div>
+                    <div style={{ fontSize: 13, color: colors.textBody, lineHeight: 1.5 }} data-user-content>
+                      {tl.text}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -167,7 +178,7 @@ export default function ProductPage() {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div>
-            <h1 className="bd-product-h1" style={{ margin: "0 0 6px", fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 32, lineHeight: 1.15, letterSpacing: "-.8px" }}>
+            <h1 className="bd-product-h1" style={{ margin: "0 0 6px", fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 32, lineHeight: 1.15, letterSpacing: "-.8px" }} data-user-content>
               {item.name}
             </h1>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -181,7 +192,7 @@ export default function ProductPage() {
             </div>
           </div>
 
-          <div style={{ background: colors.offerBg, borderRadius: "4px 18px 18px 18px", padding: "16px 20px", fontSize: 14.5, lineHeight: 1.65, color: "#6B5320", fontStyle: "italic" }}>
+          <div style={{ background: colors.offerBg, borderRadius: "4px 18px 18px 18px", padding: "16px 20px", fontSize: 14.5, lineHeight: 1.65, color: "#6B5320", fontStyle: "italic" }} data-user-content>
             &ldquo;{item.note}&rdquo;
           </div>
 
@@ -207,7 +218,7 @@ export default function ProductPage() {
                 {item.seller.name} <span style={{ color: colors.offerText }}>{item.seller.rating}</span>
               </div>
               <div style={{ fontSize: 12.5, color: colors.textFaint, fontWeight: 600 }}>
-                {item.seller.sold} items sold · usually replies in {item.seller.replyTime}
+                {t("product.itemsSold", { count: item.seller.sold })} · {t("product.repliesIn", { time: item.seller.replyTime })}
               </div>
             </div>
             <ViewProfileLink />
@@ -282,7 +293,13 @@ export default function ProductPage() {
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ fontSize: 22, flex: "none" }}>📍</div>
               <div>
-                <div style={{ fontWeight: 800, fontSize: 14.5, color: colors.pine }}>{item.pickup}</div>
+                {/* Derived from `neighbourhood`, not from the stored `pickup` prose. The
+                    place name is data; the sentence around it is UI, and a sentence written
+                    into the row at posting time would show the seller's language to every
+                    reader. Same reasoning as options_hi in 0021. */}
+                <div style={{ fontWeight: 800, fontSize: 14.5, color: colors.pine }}>
+                  {item.neighbourhood ? t("product.pickupNear", { place: item.neighbourhood }) : t("product.pickupNearby")}
+                </div>
                 <div style={{ fontSize: 13, color: colors.pineMuted, lineHeight: 1.5 }}>
                   {item.publicSpot ? t("product.publicSpotNote") : t("product.pickupNote")}
                 </div>

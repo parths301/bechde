@@ -321,8 +321,45 @@ Hindi plurals use i18next's `_one` / `_other` suffixes. Prices and distances go 
 `Intl` under the active locale (`en-IN` / `hi-IN`), so digit grouping follows Indian
 conventions in both.
 
-Adding a string: add it to `en`, add it to `hi`, use the key. A unit test fails if a key
-exists in one and not the other, so a half-translated screen can't ship.
+Adding a string: add it to `en`, add it to `hi`, use the key. Three tests guard this:
+
+- **keys match** between `en` and `hi`, so a half-translated screen can't ship;
+- **every key is used by a screen.** This is the one that matters. Parity proves the two
+  files agree; it says nothing about whether any component asks for the key. The first
+  Hindi pass wrote all the keys and wired only some of the screens — 72 orphans, a dozen
+  screens still hardcoding the English the resource file already held, and a green suite.
+  **An orphaned key is treated as a missing call site, not as dead weight to delete.**
+- **an E2E sweep** (`e2e/hindi.spec.ts`) switches to Hindi and walks every main screen
+  looking for two or more consecutive English words. It used to look only at `nav a, nav
+  button` — which is exactly why it passed while most of the app was English. Scoping a
+  leak test to the code you just wrote is how you get a green suite and an English app.
+
+Real user text — listing titles, notes, seller names, bios, map pin labels — must be
+wrapped in `data-user-content` so that sweep skips it. It stays in whatever language it
+was typed in.
+
+### Strings that hide from a translation pass
+
+Four places where text isn't in a component and a screen-by-screen pass misses it:
+
+- **Pure modules.** `describeFilters` (`search.ts`) and `formatKm` (`geo.ts`) each built
+  an English sentence. Both now take `t` as a parameter with an English default, so the
+  module stays pure and unit-testable while the app passes the real translator.
+- **Data modules.** `reportReasons` in `queries.ts` carried English `label`s; it holds
+  `labelKey`s now. `value` is what the database stores and never changes with language.
+- **API responses.** `/api/auth/verify-code` returned prose. It returns a `reason` code
+  alongside, and the browser picks the wording — an English error in a Hindi app.
+- **`toLocaleDateString([])` / `toLocaleTimeString([])`.** The empty array means the
+  *browser's* locale, not the app's, so a Hindi reader on an en-US phone got English month
+  names inside Hindi sentences. Pass `locale` from `useTranslation()`.
+
+### Server-rendered pages
+
+`/not-found`, `/unsubscribe` and the `(app)` skip link render on the server, where there
+is no `localStorage`. `setLang` mirrors the choice into a cookie of the same name;
+`getServerT()` (`i18n/server.ts`) reads it. `global-error.tsx` replaces the root layout,
+so the provider is gone and `useTranslation` would throw inside an error boundary — it
+uses `resolve()` against `localStorage` directly.
 
 ### Text that isn't in the resource files
 

@@ -85,26 +85,23 @@ function SearchScreen() {
     <div className="bd-map-grid" style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 320px", minHeight: "calc(100vh - 76px)" }}>
       <div style={{ padding: "26px 36px 44px", maxWidth: 1240 }}>
         <h1 style={{ margin: "0 0 4px", fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 28, letterSpacing: "-.7px" }}>
-          {filters.q.trim() ? `“${filters.q.trim()}”` : "Everything nearby"}
+          {filters.q.trim() ? `“${filters.q.trim()}”` : t("search.everythingNearby")}
         </h1>
         <div style={{ fontSize: 13.5, color: colors.textMuted, fontWeight: 600, marginBottom: 20 }}>
-          {loading ? "Looking…" : describeFilters(filters, results.length)}
+          {loading ? t("search.looking") : describeFilters(filters, results.length, t)}
         </div>
 
         {!loading && results.length === 0 && (
           <div style={{ background: "#fff", border: `1.5px dashed ${colors.cardBorder}`, borderRadius: 18, padding: "28px 26px", maxWidth: 520 }}>
             <div style={{ fontSize: 30, marginBottom: 8 }}>🔍</div>
             <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 19, marginBottom: 6 }}>{t("search.noMatchesTitle")}</div>
-            <div style={{ fontSize: 13.5, color: colors.textBody, lineHeight: 1.6 }}>
-              Try a wider radius, drop the price bound, or search a broader word. You can also save this search and we&apos;ll
-              count new matches here as people list things.
-            </div>
+            <div style={{ fontSize: 13.5, color: colors.textBody, lineHeight: 1.6 }}>{t("search.noMatchesBody")}</div>
             <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
               {filters.radiusKm < 10 && <MiniButton label={t("search.widenTo10")} onClick={() => apply({ radiusKm: 10 })} />}
               {(filters.minPrice != null || filters.maxPrice != null) && (
                 <MiniButton label={t("search.clearPrice")} onClick={() => apply({ minPrice: null, maxPrice: null })} />
               )}
-              {filters.category !== ANY_CATEGORY && <MiniButton label="Any category" onClick={() => apply({ category: ANY_CATEGORY })} />}
+              {filters.category !== ANY_CATEGORY && <MiniButton label={t("common.anyCategory")} onClick={() => apply({ category: ANY_CATEGORY })} />}
             </div>
           </div>
         )}
@@ -136,7 +133,7 @@ function SearchScreen() {
               {t("search.loadMore")}
             </button>
             <div style={{ fontSize: 12.5, color: colors.textMuted, fontWeight: 600, marginTop: 8 }}>
-              Showing {total} results
+              {t("search.showing", { count: total })}
             </div>
           </div>
         )}
@@ -216,7 +213,7 @@ function SearchScreen() {
             cursor: saveState === "saved" ? "default" : "pointer",
           }}
         >
-          {saveState === "saving" ? "Saving…" : saveState === "saved" ? "✓ Search saved" : "♡ Save this search"}
+          {saveState === "saving" ? t("common.saving") : saveState === "saved" ? t("search.searchSaved") : t("search.saveThisSearch")}
         </button>
 
         {error && <div style={{ fontSize: 12, fontWeight: 700, color: colors.terracotta }}>{error}</div>}
@@ -249,7 +246,7 @@ function SavedRow({ search, onOpen, onForget }: { search: SavedSearch; onOpen: (
   const { t } = useTranslation();
   const [hover, setHover] = useState(false);
   const bits = [
-    search.q.trim() || "everything",
+    search.q.trim() || t("search.savedEverything"),
     search.category !== ANY_CATEGORY ? search.category : null,
     `${search.radiusKm} km`,
     search.maxPrice != null ? `≤ ₹${search.maxPrice}` : null,
@@ -274,7 +271,7 @@ function SavedRow({ search, onOpen, onForget }: { search: SavedSearch; onOpen: (
         </div>
         {search.newCount > 0 && (
           <div style={{ fontSize: 11.5, fontWeight: 700, color: colors.clay }}>
-            {search.newCount} new since saved
+            {t("search.newSinceSaved", { count: search.newCount })}
           </div>
         )}
       </button>

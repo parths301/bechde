@@ -21,9 +21,10 @@ import {
   type ChatOffer,
 } from "@/lib/queries";
 import Stripe from "@/components/Stripe";
+import { formatKm } from "@/lib/geo";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 
-const quickReplyTexts = ["Is it available?", "Last price?", "Can I see it today?"];
+const quickReplyKeys = ["chat.quickAvailable", "chat.quickLastPrice", "chat.quickSeeToday"];
 
 type Entry = { at: string; msg: ChatMessage } | { at: string; offer: ChatOffer };
 
@@ -45,7 +46,7 @@ function ChatFallback({ children }: { children: React.ReactNode }) {
 }
 
 function ChatScreen() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { draft, setDraft } = useAppState();
   const me = useProfile().data;
   const chatThreads = useChatThreads().data ?? [];
@@ -76,7 +77,7 @@ function ChatScreen() {
   if (!activeThread || !activeItem) {
     return (
       <div style={{ flex: 1, display: "grid", placeItems: "center", minHeight: "calc(100vh - 76px)", color: colors.textFaint, fontWeight: 700 }}>
-        {me ? "No chats yet — say hello on a listing you like 👋" : "Loading chats…"}
+        {me ? t("chat.emptyGreeting") : t("chat.loadingChats")}
       </div>
     );
   }
@@ -88,7 +89,7 @@ function ChatScreen() {
     try {
       convo.push(await sendMessage(activeThread.id, body));
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Message didn't send.");
+      setError(e instanceof Error ? e.message : t("chat.sendFailed"));
     }
   };
 
@@ -107,7 +108,7 @@ function ChatScreen() {
     try {
       convo.push(await makeOffer(activeThread.id, activeThread.itemId, `₹${Number(raw).toLocaleString("en-IN")}`));
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Offer didn't go through.");
+      setError(e instanceof Error ? e.message : t("chat.offerFailed"));
     }
   };
 
@@ -116,7 +117,7 @@ function ChatScreen() {
     try {
       convo.push(await setOfferStatus(offer.id, status));
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Couldn't update the offer.");
+      setError(e instanceof Error ? e.message : t("chat.offerUpdateFailed"));
     }
   };
 
@@ -129,7 +130,7 @@ function ChatScreen() {
   return (
     <div className={`bd-chat-grid${openId ? " bd-chat-open" : ""}`} style={{ flex: 1, display: "grid", gridTemplateColumns: "340px 1fr", minHeight: "calc(100vh - 76px)" }}>
       <div className="bd-chat-list" style={{ borderRight: `1.5px dashed ${colors.divider}`, padding: "22px 0", display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: "0 22px 16px", fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 22, letterSpacing: "-.5px" }}>Chats</div>
+        <div style={{ padding: "0 22px 16px", fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 22, letterSpacing: "-.5px" }}>{t("chat.title")}</div>
         {chatThreads.map((cl) => (
           <ChatListRow key={cl.id} thread={cl} cover={cl.cover} active={activeThread.id === cl.id} onOpen={() => setOpenId(cl.id)} />
         ))}
@@ -152,7 +153,11 @@ function ChatScreen() {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 800, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{activeItem.name}</div>
             <div style={{ fontSize: 12.5, color: colors.textFaint, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              with {activeThread.otherName} · {activeItem.seller.rating} · {activeItem.dist} away
+              {t("chat.threadSubtitle", {
+                name: activeThread.otherName,
+                rating: activeItem.seller.rating,
+                dist: formatKm(activeItem.km, t),
+              })}
             </div>
           </div>
           <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 20, color: colors.clay, flex: "none" }}>{activeItem.price}</div>
@@ -168,7 +173,7 @@ function ChatScreen() {
           )}
 
           {timeline.map((e, i) => {
-            const dayPill = dayLabel(e.at, timeline[i - 1]?.at);
+            const dayPill = dayLabel(e.at, locale, t("chat.today"), timeline[i - 1]?.at);
             return (
               <div key={"msg" in e ? e.msg.id : e.offer.id} style={{ display: "contents" }}>
                 {dayPill && (
@@ -192,8 +197,8 @@ function ChatScreen() {
 
           {latestOffer?.status === "accepted" && (
             <div style={{ alignSelf: "flex-start", background: colors.sage, borderRadius: 16, padding: "14px 18px", maxWidth: 400, animation: "bd-pop .35s ease-out" }}>
-              <div style={{ fontSize: 11, fontWeight: 800, color: colors.pine, textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 6 }}>📍 Meet-up suggestion</div>
-              <div style={{ fontWeight: 800, fontSize: 14.5, color: colors.pineDark }}>{activeItem.pickup || "A public spot nearby"}</div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: colors.pine, textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 6 }}>📍 {t("chat.meetupSuggestion")}</div>
+              <div style={{ fontWeight: 800, fontSize: 14.5, color: colors.pineDark }}>{activeItem.neighbourhood ? t("product.pickupNear", { place: activeItem.neighbourhood }) : t("product.pickupNearby")}</div>
               <div style={{ fontSize: 12.5, color: colors.pineMuted, margin: "2px 0 10px" }}>{t("chat.quickTime")}</div>
               <div style={{ display: "flex", gap: 8 }}>
                 <MeetupChip label={t("chat.quickWorks")} primary onClick={() => send("That meet-up spot works for me ✓")} />
@@ -230,8 +235,9 @@ function ChatScreen() {
 
         <div className="bd-chat-input" style={{ padding: "16px 26px", borderTop: `1.5px dashed ${colors.divider}`, background: colors.bg }}>
           <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
-            {quickReplyTexts.map((t) => (
-              <QuickReplyChip key={t} text={t} onSend={() => send(t)} />
+            {/* Not `.map((t) => …)`: that shadowed the translator inside the callback. */}
+            {quickReplyKeys.map((key) => (
+              <QuickReplyChip key={key} text={t(key)} onSend={() => send(t(key))} />
             ))}
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto" }}>
               <input
@@ -253,7 +259,7 @@ function ChatScreen() {
                   outline: "none",
                 }}
               />
-              <QuickReplyChip text="Make offer" onSend={submitOffer} />
+              <QuickReplyChip text={t("chat.quickMakeOffer")} onSend={submitOffer} />
             </div>
           </div>
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
@@ -283,13 +289,18 @@ function ChatScreen() {
   );
 }
 
-/** A "Today"/"Mon, 4:12 PM" separator, only when the day changes. */
-function dayLabel(at: string, prev?: string): string | null {
+/**
+ * A "Today"/"Mon, 4:12 PM" separator, only when the day changes.
+ *
+ * Takes the locale rather than reading `[]`: the empty array means *the browser's*
+ * locale, so a Hindi reader on an en-US phone got "Mon, 4 Aug" beside Hindi text.
+ */
+function dayLabel(at: string, locale: string, todayLabel: string, prev?: string): string | null {
   const d = new Date(at);
   if (prev && new Date(prev).toDateString() === d.toDateString()) return null;
   const today = new Date().toDateString() === d.toDateString();
-  const day = today ? "Today" : d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" });
-  return `${day}, ${d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+  const day = today ? todayLabel : d.toLocaleDateString(locale, { weekday: "short", day: "numeric", month: "short" });
+  return `${day}, ${d.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" })}`;
 }
 
 /** Appears once a deal is accepted — the only way a rating ever gets created. */
@@ -327,7 +338,7 @@ function ReviewCard({ otherName, onSubmit }: { otherName: string; onSubmit: (rat
       }}
     >
       <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 16, marginBottom: 2 }}>
-        How did it go with {otherName}?
+        {t("chat.howDidItGo", { name: otherName })}
       </div>
       <div style={{ fontSize: 12.5, color: colors.textFaint, fontWeight: 600, marginBottom: 10 }}>
         {t("chat.reviewNote")}
@@ -337,7 +348,7 @@ function ReviewCard({ otherName, onSubmit }: { otherName: string; onSubmit: (rat
           <button
             type="button"
             key={n}
-            aria-label={`${n} star${n > 1 ? "s" : ""}`}
+            aria-label={t("chat.reviewStars", { count: n })}
             onClick={() => setRating(n)}
             onMouseEnter={() => setHover(n)}
             onMouseLeave={() => setHover(0)}
@@ -384,7 +395,7 @@ function ReviewCard({ otherName, onSubmit }: { otherName: string; onSubmit: (rat
           cursor: rating ? "pointer" : "default",
         }}
       >
-        {busy ? "Saving…" : "Leave rating"}
+        {busy ? t("common.saving") : t("chat.submitReview")}
       </button>
     </div>
   );
@@ -448,9 +459,11 @@ function OfferCard({
         }}
       >
         <div style={{ fontSize: 22, marginBottom: 4 }}>🤝</div>
-        <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 18, color: colors.pine }}>Deal at {offer.amount}!</div>
+        <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 18, color: colors.pine }}>
+          {t("chat.dealAt", { amount: offer.amount })}
+        </div>
         <div style={{ fontSize: 12.5, color: colors.pineMuted, fontWeight: 600 }}>
-          {offer.mine ? `${otherName} accepted your offer` : `You accepted ${otherName}'s offer`}
+          {offer.mine ? t("chat.theyAccepted", { name: otherName }) : t("chat.youAccepted", { name: otherName })}
         </div>
       </div>
     );
@@ -459,7 +472,7 @@ function OfferCard({
   if (offer.status === "declined") {
     return (
       <div style={{ alignSelf: "center", background: "#EFE7DA", color: colors.textMuted, fontSize: 12, fontWeight: 700, borderRadius: 999, padding: "5px 14px" }}>
-        Offer of {offer.amount} declined
+        {t("chat.offerDeclinedOf", { amount: offer.amount })}
       </div>
     );
   }
@@ -480,7 +493,7 @@ function OfferCard({
     >
       <div>
         <div style={{ fontSize: 11, fontWeight: 800, color: colors.offerText, textTransform: "uppercase", letterSpacing: ".5px" }}>
-          {offer.mine ? "Your offer" : `${otherName}'s offer`}
+          {offer.mine ? t("chat.offerYours") : t("chat.offerTheirs", { name: otherName })}
         </div>
         <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 22, color: colors.clay }}>{offer.amount}</div>
       </div>
@@ -628,10 +641,13 @@ function QuickReplyChip({ text, onSend }: { text: string; onSend: () => void }) 
 }
 
 function SendButton({ onClick }: { onClick: () => void }) {
+  const { t } = useTranslation();
   const [hover, setHover] = useState(false);
   return (
     <button
       type="button"
+      // The label is a "➤" glyph, which a screen reader announces as nothing useful.
+      aria-label={t("chat.send")}
       onClick={onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}

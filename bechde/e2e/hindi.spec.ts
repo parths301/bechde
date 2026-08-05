@@ -69,19 +69,59 @@ test("the sign-in page translates too, as a guest", async ({ browser }) => {
   await ctx.close();
 });
 
-test("no English leaks into the main screens once switched", async ({ page }) => {
+/**
+ * The leak sweep.
+ *
+ * It used to look at `nav a, nav button` only, and passed while home, search, chat,
+ * profile, the error pages and the report sheet were still rendering English — the nav
+ * was simply the part that had been converted. Scoping a leak test to the code you just
+ * wrote is how you get a green suite and an English app.
+ *
+ * So: every leaf element with its own text, on every main screen. Listing titles, seller
+ * names and free text are user data and stay in whatever language they were typed in,
+ * which is why the sweep skips anything inside `[data-user-content]` and ignores strings
+ * that look like data rather than a label.
+ */
+const SCREENS = ["/home", "/search", "/map", "/sell", "/chat", "/profile"];
+
+for (const path of SCREENS) {
+  test(`no English leaks on ${path}`, async ({ page }) => {
+    await page.goto("/home");
+    await switchToHindi(page);
+    await page.goto(path);
+    // Not networkidle: /chat holds a realtime subscription open, so it never fires.
+    // The header rendering in Hindi is the signal that the page is up and switched.
+    await expect(page.getByRole("link", { name: /रडार/ })).toBeVisible();
+
+    const english = await page.evaluate(() => {
+      const out: string[] = [];
+      for (const el of Array.from(document.querySelectorAll("body *"))) {
+        if (el.closest("[data-user-content]")) continue;
+        // Leaf text only, so a container isn't reported for its children's words.
+        const own = Array.from(el.childNodes)
+          .filter((n) => n.nodeType === Node.TEXT_NODE)
+          .map((n) => (n.textContent || "").trim())
+          .join(" ")
+          .trim();
+        if (!own) continue;
+        const rect = (el as HTMLElement).getBoundingClientRect();
+        if (rect.width === 0 && rect.height === 0) continue;
+        // Two or more English words: a label or a sentence, not a brand or a unit.
+        if (/[A-Za-z]{3,}(\s+|\s*[.,?!—]\s*)[A-Za-z]{3,}/.test(own)) out.push(own);
+      }
+      return out;
+    });
+
+    // Brands, model names and things that are the same word in both languages.
+    const ALLOWED = /Bech De|iPhone|OpenStreetMap|km|Wi-?Fi/i;
+    const leaks = english.filter((s) => !ALLOWED.test(s));
+    expect(leaks, `untranslated on ${path}:\n  ${leaks.join("\n  ")}`).toEqual([]);
+  });
+}
+
+test("the switched page renders Devanagari at all", async ({ page }) => {
   await page.goto("/home");
   await switchToHindi(page);
-
-  // Sweep the visible chrome for English sentences. Listing names, seller names and
-  // prices are user data — they stay in whatever language they were written in, which
-  // is why this looks at labelled controls rather than all text.
-  const labels = await page.evaluate(() =>
-    Array.from(document.querySelectorAll("nav a, nav button"))
-      .map((el) => (el.textContent || "").trim())
-      .filter(Boolean)
-  );
-  const english = labels.filter((l) => /^[A-Za-z][A-Za-z\s!+]{3,}$/.test(l));
-  expect(english, `untranslated nav labels: ${english.join(", ")}`).toEqual([]);
-  expect(labels.some((l) => DEVANAGARI.test(l))).toBe(true);
+  const text = (await page.locator("body").textContent()) ?? "";
+  expect(DEVANAGARI.test(text)).toBe(true);
 });

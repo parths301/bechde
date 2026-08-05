@@ -91,7 +91,7 @@ export default function ReportDialog({
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label={`Report ${targetName}`}
+        aria-label={t("report.title", { name: targetName })}
         onClick={(e) => e.stopPropagation()}
         style={{
           background: colors.bg,
@@ -108,9 +108,7 @@ export default function ReportDialog({
           <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
             <div style={{ fontSize: 34 }}>🛡️</div>
             <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 21 }}>{t("report.sentTitle")}</div>
-            <div style={{ fontSize: 13.5, color: colors.textBody, lineHeight: 1.6 }}>
-              We&apos;ve logged it. If it breaks the rules it comes down. You can also block this user so you stop seeing them.
-            </div>
+            <div style={{ fontSize: 13.5, color: colors.textBody, lineHeight: 1.6 }}>{t("report.sentBody")}</div>
             <button
               type="button"
               onClick={onClose}
@@ -124,7 +122,7 @@ export default function ReportDialog({
             <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 21, letterSpacing: "-.5px" }}>
-                  {reviewId ? "Report this review" : "Report this listing"}
+                  {reviewId ? t("report.reportReview") : t("report.reportListing")}
                 </div>
                 <div style={{ fontSize: 13, color: colors.textFaint, fontWeight: 600, marginTop: 2 }}>{targetName}</div>
               </div>
@@ -158,7 +156,7 @@ export default function ReportDialog({
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {r.label}
+                  {t(r.labelKey)}
                 </button>
               ))}
             </div>
@@ -184,9 +182,9 @@ export default function ReportDialog({
             />
 
             <div style={{ fontSize: 12, color: colors.textFaint, fontWeight: 600, margin: "10px 0 16px", lineHeight: 1.5 }}>
-              Not sure? See what&apos;s{" "}
+              {t("report.prohibitedIntro")}
               <Link href="/legal/prohibited" style={{ color: colors.clay, fontWeight: 700 }}>
-                not allowed on Bech De
+                {t("report.prohibitedNote")}
               </Link>
               .
             </div>

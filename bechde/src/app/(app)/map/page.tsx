@@ -120,15 +120,21 @@ export default function MapPage() {
 
         <div style={{ background: colors.sage, borderRadius: 16, padding: "16px 18px", fontSize: 13, color: colors.pine, lineHeight: 1.55, fontWeight: 600 }}>
           <div style={{ marginBottom: 10 }}>
-            💡 Save these filters and new matches get counted for you under{" "}
+            {t("map.saveHintBefore")}
             <Link href="/search" style={{ color: colors.pineDark, fontWeight: 800 }}>
-              search
+              {t("map.saveHintLink")}
             </Link>
             .
           </div>
-          <div
+          {/* A real <button>: this was a styled <div onClick>, so saving a search from
+              the map was mouse-only. */}
+          <button
+            type="button"
+            disabled={saveState === "saved"}
             onClick={saveState === "saved" ? undefined : onSaveSearch}
             style={{
+              width: "100%",
+              fontFamily: "inherit",
               textAlign: "center",
               background: saveState === "saved" ? colors.pine : "#fff",
               color: saveState === "saved" ? "#fff" : colors.pine,
@@ -141,13 +147,13 @@ export default function MapPage() {
             }}
           >
             {saveState === "saving"
-              ? "Saving…"
+              ? t("common.saving")
               : saveState === "saved"
-                ? "✓ Search saved"
+                ? t("search.searchSaved")
                 : saveState === "error"
                   ? t("map.saveFailed")
-                  : "♡ Save this search"}
-          </div>
+                  : t("search.saveThisSearch")}
+          </button>
         </div>
 
         <BackToHome />

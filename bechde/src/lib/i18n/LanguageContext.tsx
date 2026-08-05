@@ -47,6 +47,13 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     } catch {
       /* private mode — the switch still works for this page view */
     }
+    // Mirrored into a cookie because localStorage doesn't exist on the server, and
+    // three surfaces render there: the 404, /unsubscribe (reached from an email, so
+    // never by a client navigation), and anything else added later. Without this the
+    // rest of the app is Hindi and those pages are stubbornly English.
+    // Lax, not Strict: /unsubscribe is a cross-site click out of a mail client, and
+    // Strict would withhold the cookie on exactly that navigation.
+    document.cookie = `${STORAGE_KEY}=${next}; path=/; max-age=31536000; samesite=lax`;
     for (const notify of listeners) notify();
   }, []);
 

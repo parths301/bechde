@@ -55,7 +55,7 @@ export default function LocationModal({ isOpen, onClose }: LocationModalProps) {
       await saveUserLocation({ lat, lng, label }, "manual");
       onClose();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Error saving location.");
+      setError(e instanceof Error ? e.message : t("location.saveFailed"));
     }
   };
 
@@ -67,7 +67,7 @@ export default function LocationModal({ isOpen, onClose }: LocationModalProps) {
       await saveUserLocation(pos, "gps");
       onClose();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Permission denied or unavailable.");
+      setError(e instanceof Error ? e.message : t("location.denied"));
     } finally {
       setLocating(false);
     }
@@ -157,7 +157,7 @@ export default function LocationModal({ isOpen, onClose }: LocationModalProps) {
           }}
         >
           <span>📍</span>
-          {locating ? "Detecting GPS location..." : "Use Current GPS Location"}
+          {locating ? t("location.locating") : t("location.useCurrent")}
         </button>
 
         {error && <div style={{ fontSize: 12.5, color: colors.terracotta, fontWeight: 700 }}>{error}</div>}

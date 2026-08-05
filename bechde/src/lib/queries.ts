@@ -1468,13 +1468,19 @@ export function useMatchingSavedSearchCount(text: string, category: string) {
 // ---------------------------------------------------------------------------
 export type ReportReason = "prohibited" | "scam" | "counterfeit" | "offensive" | "wrong-category" | "other";
 
-export const reportReasons: { value: ReportReason; label: string }[] = [
-  { value: "prohibited", label: "Prohibited item" },
-  { value: "counterfeit", label: "Fake or counterfeit" },
-  { value: "scam", label: "Scam or fraud" },
-  { value: "offensive", label: "Offensive content" },
-  { value: "wrong-category", label: "Wrong category" },
-  { value: "other", label: "Something else" },
+/**
+ * `value` is what the database stores and must never change with the language;
+ * `labelKey` is what the reader sees. Carrying an English `label` here is what made
+ * the report sheet the last English screen in Hindi mode — the strings lived in a data
+ * module no translation pass thinks to look at.
+ */
+export const reportReasons: { value: ReportReason; labelKey: string }[] = [
+  { value: "prohibited", labelKey: "report.reasonProhibited" },
+  { value: "counterfeit", labelKey: "report.reasonCounterfeit" },
+  { value: "scam", labelKey: "report.reasonScam" },
+  { value: "offensive", labelKey: "report.reasonOffensive" },
+  { value: "wrong-category", labelKey: "report.reasonWrongCategory" },
+  { value: "other", labelKey: "report.reasonOther" },
 ];
 
 /** Flag a listing (and implicitly its seller) for review. */

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { colors } from "@/lib/colors";
 import { reportError } from "@/lib/observability";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 export default function Error({
   error,
@@ -12,6 +13,8 @@ export default function Error({
   error: Error & { digest?: string };
   unstable_retry: () => void;
 }) {
+  const { t } = useTranslation();
+
   useEffect(() => {
     // `digest` is the id Next puts in the server logs for the same failure, so it's
     // what ties a user saying "reference 3f9a…" to the stack trace.
@@ -23,27 +26,41 @@ export default function Error({
       <div style={{ textAlign: "center", maxWidth: 420, display: "flex", flexDirection: "column", gap: 12, alignItems: "center" }}>
         <div style={{ fontSize: 44 }}>🫠</div>
         <div style={{ fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 26, letterSpacing: "-.7px", color: colors.ink }}>
-          That didn&apos;t load
+          {t("errorPage.title")}
         </div>
-        <div style={{ fontSize: 14.5, color: colors.textBody, lineHeight: 1.6 }}>
-          Something broke on our side, not yours. Try again — if it keeps happening, head back home and give it a minute.
-        </div>
+        <div style={{ fontSize: 14.5, color: colors.textBody, lineHeight: 1.6 }}>{t("errorPage.body")}</div>
         <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
-          <div
+          {/* A real <button>: this was a styled <div onClick>, so the retry on the
+              error page — the one screen where a keyboard user is already stuck — was
+              unreachable without a mouse. */}
+          <button
+            type="button"
             onClick={() => unstable_retry()}
-            style={{ background: colors.ink, color: colors.bg, borderRadius: 999, padding: "11px 24px", fontWeight: 800, fontSize: 14, cursor: "pointer" }}
+            style={{
+              background: colors.ink,
+              color: colors.bg,
+              border: "none",
+              borderRadius: 999,
+              padding: "11px 24px",
+              fontWeight: 800,
+              fontSize: 14,
+              fontFamily: "inherit",
+              cursor: "pointer",
+            }}
           >
-            Try again
-          </div>
+            {t("common.tryAgain")}
+          </button>
           <Link
             href="/home"
             style={{ background: "#fff", border: `2px solid ${colors.ink}`, color: colors.ink, borderRadius: 999, padding: "9px 22px", fontWeight: 800, fontSize: 14 }}
           >
-            Back home
+            {t("common.backHome")}
           </Link>
         </div>
         {error.digest && (
-          <div style={{ fontSize: 11.5, color: colors.textFaint, fontWeight: 600, marginTop: 4 }}>reference: {error.digest}</div>
+          <div style={{ fontSize: 11.5, color: colors.textFaint, fontWeight: 600, marginTop: 4 }}>
+            {t("errorPage.reference", { digest: error.digest })}
+          </div>
         )}
       </div>
     </div>

@@ -23,17 +23,20 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "bad request" }, { status: 400 });
+    return NextResponse.json({ error: "bad request", reason: "malformed" }, { status: 400 });
   }
 
   const email = body.email?.trim().toLowerCase();
   const token = body.token?.replace(/\s/g, "");
 
+  // `reason` is the machine-readable half. The browser picks the wording from the
+  // active language; `error` stays English for logs and for anything calling this
+  // without a UI. Returning only prose here is what leaked English into Hindi mode.
   if (!email || !token) {
-    return NextResponse.json({ error: "email and code are both needed" }, { status: 400 });
+    return NextResponse.json({ error: "email and code are both needed", reason: "missing" }, { status: 400 });
   }
   if (!/^\d{6}$/.test(token)) {
-    return NextResponse.json({ error: "that code should be six digits" }, { status: 400 });
+    return NextResponse.json({ error: "that code should be six digits", reason: "format" }, { status: 400 });
   }
 
   const supabase = await createClient();
@@ -42,7 +45,10 @@ export async function POST(request: NextRequest) {
   if (error) {
     // GoTrue distinguishes wrong from expired; both read the same to a person retyping
     // a code, so keep the message plain and don't leak whether the address exists.
-    return NextResponse.json({ error: "That code didn't work. It may have expired — send a new one." }, { status: 400 });
+    return NextResponse.json(
+      { error: "That code didn't work. It may have expired — send a new one.", reason: "invalid" },
+      { status: 400 },
+    );
   }
 
   return NextResponse.json({ signedIn: true });

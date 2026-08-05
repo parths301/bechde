@@ -42,10 +42,14 @@ interface Chapter {
 export default function SellPage() {
   const { t, lang } = useTranslation();
   const router = useRouter();
-  const [sellTitle, setSellTitle] = useState("Yamaha F310 acoustic guitar");
-  const [sellPrice, setSellPrice] = useState("3,200");
-  const [sellCat, setSellCat] = useState("Music");
-  const [sellNote, setSellNote] = useState("This guitar got me through 3 years of hostel life. Selling because I finally upgraded — it deserves someone who'll actually play it.");
+  // Empty, not prefilled. These used to open with a complete guitar listing already
+  // typed in — a prototype leftover that made a real seller delete someone else's words
+  // before writing their own, and that a Hindi speaker met as a screen of English. The
+  // placeholders carry the same guidance without putting anything in the field.
+  const [sellTitle, setSellTitle] = useState("");
+  const [sellPrice, setSellPrice] = useState("");
+  const [sellCat, setSellCat] = useState("Everything");
+  const [sellNote, setSellNote] = useState("");
   
   // Restoring the draft has to happen after mount, not in a lazy useState initialiser:
   // sessionStorage doesn't exist during the server render, so seeding the fields up
@@ -222,9 +226,9 @@ export default function SellPage() {
             })),
           {
             dot: "#E86A4F",
-            title: "Listed on Bech De",
-            when: "just now",
-            text: sellNote.trim() || "Just listed — ask me anything.",
+            title: t("sell.storyListedTitle"),
+            when: t("sell.storyJustNow"),
+            text: sellNote.trim() || t("sell.storyDefault"),
           },
         ],
         // Only what the seller actually answered. An unanswered question is absent
@@ -330,6 +334,7 @@ export default function SellPage() {
             <input
               aria-label={t("sell.nameAria")}
               value={sellTitle}
+              placeholder={t("sell.namePlaceholder")}
               onChange={(e) => { setSellTitle(e.target.value); saveDraft("sellTitle", e.target.value); }}
               style={{
                 width: "100%",
@@ -418,6 +423,7 @@ export default function SellPage() {
                 className="bd-sell-price-input"
                 aria-label={t("sell.priceAria")}
                 value={sellPrice}
+                placeholder={t("sell.pricePlaceholder")}
                 onChange={(e) => { setSellPrice(e.target.value); saveDraft("sellPrice", e.target.value); }}
                 style={{
                   background: "#fff",
@@ -458,6 +464,7 @@ export default function SellPage() {
             <textarea
               aria-label={t("sell.storyLabel")}
               value={sellNote}
+              placeholder={t("sell.storyPlaceholder")}
               onChange={(e) => { setSellNote(e.target.value); saveDraft("sellNote", e.target.value); }}
               rows={3}
               style={{
@@ -705,8 +712,8 @@ function AttributeField({
           ))}
         </select>
       ) : attr.type === "boolean" ? (
-        <select aria-label={attr.label} value={value} onChange={(e) => onChange(e.target.value)} style={common}>
-          <option value="">Choose…</option>
+        <select aria-label={label} value={value} onChange={(e) => onChange(e.target.value)} style={common}>
+          <option value="">{t("sell.choose")}</option>
           <option value="Yes">{t("sell.yes")}</option>
           <option value="No">{t("sell.no")}</option>
         </select>

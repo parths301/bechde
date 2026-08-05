@@ -25,13 +25,21 @@ export function offsetKm(origin: LatLng, point: LatLng): { east: number; north: 
   return { east, north };
 }
 
-/** "0.4 km" / "1.1 km" / "12 km" — matches the prototype's pill copy. */
-export function formatKm(km: number): string {
+/**
+ * "0.4 km" / "1.1 km" / "12 km" — matches the prototype's pill copy.
+ *
+ * Takes `t` for the same reason `describeFilters` does: distance is derived per viewer,
+ * so it has to follow *their* language, but this module is pure and is also called from
+ * `rowToItem`, which has no React context. The default keeps the unit tests honest.
+ */
+export function formatKm(km: number, t: (key: string, vars?: Record<string, string | number>) => string = englishKm): string {
   if (!isFinite(km)) return "";
-  if (km < 0.1) return "right here";
-  if (km < 10) return `${Math.round(km * 10) / 10} km`;
-  return `${Math.round(km)} km`;
+  if (km < 0.1) return t("common.rightHere");
+  return t("common.kmValue", { n: km < 10 ? Math.round(km * 10) / 10 : Math.round(km) });
 }
+
+const englishKm = (key: string, vars: Record<string, string | number> = {}) =>
+  key === "common.rightHere" ? "right here" : `${vars.n} km`;
 
 // ---------------------------------------------------------------------------
 // Radar placement — projects a real coordinate onto the home radar's px box, so

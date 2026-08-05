@@ -81,14 +81,40 @@ export function matchesFilters(item: Item, f: Filters): boolean {
   return true;
 }
 
-/** Human summary for the results header. */
-export function describeFilters(f: Filters, count: number): string {
-  const thing = count === 1 ? "thing" : "things";
+/**
+ * Human summary for the results header.
+ *
+ * Takes `t` rather than reaching for it: this module is pure and unit-tested, and it
+ * is imported by code that has no React context. Passing the translator in keeps both
+ * true — and stops the busiest sentence on the search page from being the one place
+ * that's still English. The default keeps the pure-function tests readable.
+ */
+export function describeFilters(f: Filters, count: number, t: Translate = englishFallback): string {
   const bits: string[] = [];
-  if (f.q.trim()) bits.push(`matching “${f.q.trim()}”`);
-  if (f.category !== ANY_CATEGORY) bits.push(`in ${f.category}`);
+  if (f.q.trim()) bits.push(t("search.describeMatching", { q: f.q.trim() }));
+  if (f.category !== ANY_CATEGORY) bits.push(t("search.describeIn", { category: f.category }));
   if (f.minPrice != null && f.maxPrice != null) bits.push(`₹${f.minPrice}–₹${f.maxPrice}`);
-  else if (f.maxPrice != null) bits.push(`under ₹${f.maxPrice}`);
-  else if (f.minPrice != null) bits.push(`over ₹${f.minPrice}`);
-  return `${count} ${thing} ${bits.length ? bits.join(" · ") + " " : ""}within ${f.radiusKm} km`;
+  else if (f.maxPrice != null) bits.push(t("search.describeUnder", { price: f.maxPrice }));
+  else if (f.minPrice != null) bits.push(t("search.describeOver", { price: f.minPrice }));
+
+  return t("search.describeCount", { count, radius: f.radiusKm, bits: bits.length ? bits.join(" · ") + " " : "" });
 }
+
+type Translate = (key: string, vars?: Record<string, string | number>) => string;
+
+/** Only reached by the pure tests; the app always passes the real translator. */
+const englishFallback: Translate = (key, vars = {}) => {
+  const { q, category, price, count, radius, bits } = vars as Record<string, string | number>;
+  switch (key) {
+    case "search.describeMatching":
+      return `matching “${q}”`;
+    case "search.describeIn":
+      return `in ${category}`;
+    case "search.describeUnder":
+      return `under ₹${price}`;
+    case "search.describeOver":
+      return `over ₹${price}`;
+    default:
+      return `${count} ${count === 1 ? "thing" : "things"} ${bits}within ${radius} km`;
+  }
+};
