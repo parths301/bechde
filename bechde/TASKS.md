@@ -128,8 +128,13 @@ Import the repo with **root directory `bechde`**. Then set the environment varia
 
 Generate the cron secret with `openssl rand -hex 32`.
 
-`vercel.json` already declares the schedules — messages every 10 minutes, saved searches
-daily at 09:00 UTC. Vercel picks them up on deploy.
+`vercel.json` already declares the schedules — messages daily at 13:00 UTC, saved searches
+daily at 09:00 UTC. Vercel picks them up on deploy. Both are once-daily because Hobby
+plans reject any cron more frequent than that at deploy time — a `*/10 * * * *` schedule
+here failed every deploy silently until this was caught. If you're on Pro, you can safely
+tighten the messages schedule (e.g. `*/10 * * * *`) for near-real-time notifications; just
+also shrink `LOOKBACK_HOURS` back down in `src/app/api/cron/messages/route.ts` — it was
+padded to 26h specifically to survive Hobby's ±59min daily scheduling slop.
 
 - [ ] Project imported, root directory `bechde`
 - [ ] All variables set
@@ -160,7 +165,9 @@ Then by hand:
 
 - [ ] Sign in **on a phone** with the 6-digit code, from a different device than requested
 - [ ] Post a listing with photos and category questions
-- [ ] Message it from a second account; the email digest arrives within ~10 minutes
+- [ ] Message it from a second account; don't wait a day for the cron — trigger it directly:
+      `curl -H "Authorization: Bearer $CRON_SECRET" https://your-domain/api/cron/messages`
+      and confirm the digest email arrives
 - [ ] Click the unsubscribe link in that email while signed out — it works
 - [ ] `/profile` → Download my data returns your JSON
 - [ ] Make yourself an admin and confirm `/admin` loads:

@@ -19,7 +19,11 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const QUIET_MINUTES = 5;
-const LOOKBACK_HOURS = 24;
+// Cron runs daily (Vercel Hobby caps schedules at once/day). Hobby's scheduling
+// precision is only per-hour — a "0 13 * * *" run can fire anywhere from 13:00 to
+// 13:59, so consecutive runs can be up to ~25 hours apart. 24h exactly would let
+// that slop silently drop messages from the window forever; pad past it.
+const LOOKBACK_HOURS = 26;
 
 export async function GET(request: NextRequest) {
   const denied = denyIfNotCron(request);
