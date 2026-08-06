@@ -316,3 +316,45 @@ describe("rate limits", () => {
     await admin.from("listings").delete().eq("seller_id", outsiderId);
   });
 });
+
+describe("profile column privacy (0022)", () => {
+  // Proved live against production before this migration: an anon request for
+  // id,name,email returned every real user's email address, no session required.
+  // profiles_read using (true) makes every ROW visible by design (profile cards are
+  // public); nothing restricted which COLUMNS of a visible row were readable.
+  it("hides private columns from a signed-out visitor", async () => {
+    const { error } = await anon().from("profiles").select("id,name,email").limit(1);
+    expect(error).toBeTruthy();
+  });
+
+  it("hides private columns from a signed-in user reading someone else's row", async () => {
+    const { error } = await outsider.from("profiles").select("id,is_admin,suspended_reason").eq("id", aishaId).limit(1);
+    expect(error).toBeTruthy();
+  });
+
+  it("still exposes the public columns listings and profile cards need", async () => {
+    const { data, error } = await anon().from("profiles").select("id,name,initial,color,rating_avg,rating_count,sold,reply_time").limit(1);
+    expect(error).toBeNull();
+    expect((data ?? []).length).toBeGreaterThan(0);
+  });
+
+  it("lets a signed-in user read their own private columns via my_profile()", async () => {
+    const { data, error } = await aisha.rpc("my_profile");
+    expect(error).toBeNull();
+    expect(data?.email).toBe(AISHA);
+    // Takes no argument — there's nothing to forge, unlike a `get_profile(id)` shape would be.
+  });
+
+  it("returns nothing for a signed-out caller of my_profile()", async () => {
+    const { data, error } = await anon().rpc("my_profile");
+    expect(error).toBeTruthy();
+    expect(data).toBeFalsy();
+  });
+
+  it("rejects admin_list_profiles and admin_profile_counts for a non-admin", async () => {
+    const list = await outsider.rpc("admin_list_profiles", { p_query: null });
+    expect(list.error?.code).toBe("42501");
+    const counts = await outsider.rpc("admin_profile_counts");
+    expect(counts.error?.code).toBe("42501");
+  });
+});

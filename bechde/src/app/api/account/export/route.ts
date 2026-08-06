@@ -20,7 +20,10 @@ export async function GET() {
     return NextResponse.json({ error: "not signed in" }, { status: 401 });
   }
 
-  const { data: profile } = await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle();
+  // Private columns (email, notify_*, ...) aren't in the public column grant (0022) — a
+  // plain select would come back missing them. my_profile() runs as the table owner and
+  // resolves from auth.uid(), same as loadProfile() on the client.
+  const { data: profile } = await supabase.rpc("my_profile");
   if (!profile) {
     return NextResponse.json({ error: "no profile" }, { status: 404 });
   }

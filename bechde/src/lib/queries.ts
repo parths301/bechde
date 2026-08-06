@@ -51,8 +51,11 @@ interface ListingRow {
   listing_images: { url: string; sort: number }[] | null;
 }
 
+// seller: only the public-safe columns (0022's grant) — matches ProfileRow exactly.
+// `profiles!listings_seller_id_fkey(*)` used to embed the seller's full row, email
+// included, into every listing fetch on the site. Never widen this back to `*`.
 const LISTING_SELECT =
-  "*, seller:profiles!listings_seller_id_fkey(*), listing_images(url,sort)";
+  "*, seller:profiles!listings_seller_id_fkey(id,name,initial,color,rating_avg,rating_count,sold,reply_time), listing_images(url,sort)";
 
 export function rowToItem(r: ListingRow): Item {
   const s = r.seller;
@@ -462,9 +465,6 @@ export interface MyProfile {
   notify_saved_searches: boolean;
 }
 
-const PROFILE_COLS =
-  "id,name,initial,email,lat,lng,neighbourhood,bio,created_at,rating_avg,rating_count,sold,reply_time,is_admin,suspended_at,notify_messages,notify_saved_searches";
-
 // The signed-in profile is read by several screens at once (Header, sell, profile,
 // plus every distance calculation) — so it lives in one tiny module store instead of
 // one request per hook.
@@ -487,7 +487,10 @@ async function loadProfile() {
       setProfileState({ data: null, loading: false, error: null });
       return;
     }
-    const { data, error } = await sb.from("profiles").select(PROFILE_COLS).eq("user_id", user.id).maybeSingle();
+    // Private columns (email, notify_*, is_admin, ...) aren't in the public column grant
+    // (0022) — a direct select would 42501. my_profile() runs as the table owner and
+    // resolves from auth.uid(), so there's nothing to forge.
+    const { data, error } = await sb.rpc("my_profile");
     if (error) throw error;
     const profile = (data as MyProfile) ?? null;
     setProfileState({ data: profile, loading: false, error: null });
@@ -2049,13 +2052,10 @@ export function useAdminProfiles(query: string) {
   const [version, setVersion] = useState(0);
   const state = useAsync<AdminProfileRow[]>(async () => {
     if (!isAdmin) return [];
-    let req = getSupabaseBrowser()
-      .from("profiles")
-      .select("id,name,email,bio,sold,rating_avg,rating_count,is_admin,suspended_at,suspended_reason,created_at")
-      .order("created_at", { ascending: false })
-      .limit(60);
-    if (q) req = req.or(`name.ilike.%${q}%,email.ilike.%${q}%`);
-    const { data, error } = await req;
+    // email/is_admin/suspended_* aren't in the public column grant (0022) — an admin-gated
+    // RPC reads them instead of a direct select, same is_admin() check the RPC repeats
+    // server-side (this client check only avoids firing the request, it isn't the guard).
+    const { data, error } = await getSupabaseBrowser().rpc("admin_list_profiles", { p_query: q || null });
     if (error) throw error;
     return (data ?? []).map((r: Record<string, unknown>) => ({
       id: r.id as string,
@@ -2089,21 +2089,24 @@ export function useAdminStats(): AsyncState<AdminStats | null> {
     if (!isAdmin) return null;
     const sb = getSupabaseBrowser();
     const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
-    const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
     const head = { count: "exact" as const, head: true };
-    const [reports, today, active, suspended, newbies] = await Promise.all([
+    // suspended_at isn't in the public column grant (0022) — filtering on it needs SELECT
+    // on the column even for a head-only count, so this one goes through the admin RPC
+    // instead of a plain filtered select.
+    const [reports, today, active, profileCounts] = await Promise.all([
       sb.from("reports").select("id", head).eq("status", "open"),
       sb.from("listings").select("id", head).gte("created_at", dayAgo),
       sb.from("listings").select("id", head).eq("status", "active"),
-      sb.from("profiles").select("id", head).not("suspended_at", "is", null),
-      sb.from("profiles").select("id", head).gte("created_at", weekAgo),
+      sb.rpc("admin_profile_counts").single(),
     ]);
+    if (profileCounts.error) throw profileCounts.error;
+    const counts = profileCounts.data as { suspended: number; newbies: number } | null;
     return {
       openReports: reports.count ?? 0,
       listingsToday: today.count ?? 0,
       activeListings: active.count ?? 0,
-      suspended: suspended.count ?? 0,
-      newProfilesWeek: newbies.count ?? 0,
+      suspended: Number(counts?.suspended ?? 0),
+      newProfilesWeek: Number(counts?.newbies ?? 0),
     };
   }, [isAdmin]);
 }
