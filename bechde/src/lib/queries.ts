@@ -135,7 +135,11 @@ function useAsync<T>(run: () => Promise<T>, deps: unknown[]): AsyncState<T> {
 
   const fresh = state.key === key;
   return {
-    data: fresh ? state.data : null,
+    // Keep the last-good data visible during a refetch (e.g. a deps change
+    // triggered by bumpUnread()) instead of flashing to null. A hook whose
+    // result briefly reads empty can cascade into effects that key off
+    // "became defined" — see the /chat mark-as-read loop this was fixing.
+    data: state.data,
     loading: !fresh,
     error: fresh ? state.error : null,
   };
