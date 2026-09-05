@@ -42,6 +42,10 @@ export default function Stripe({ angle = "45deg", band = 9, c1 = colors.stripe1,
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           style={{ objectFit: "cover", zIndex: 0 }}
+          // A blob: URL (the sell form's instant local preview, before its own upload
+          // resolves) is page-local — next/image's optimizer can't fetch it server-side
+          // and errors if asked to try. Serve it directly instead, same as a plain <img>.
+          unoptimized={src.startsWith("blob:")}
         />
       )}
       <div style={{ position: "relative", zIndex: 1, display: "contents" }}>

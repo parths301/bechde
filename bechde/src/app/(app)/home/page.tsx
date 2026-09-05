@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { colors } from "@/lib/colors";
@@ -54,22 +54,28 @@ export default function HomePage() {
   // Everything on this screen is driven by real distances from `origin`.
   const nearby = nearbyAll.filter((i) => i.km <= radiusKm);
   const nearbyCount = nearby.length;
-  // The radar shows the closest few, positioned by their actual coordinates.
-  const shown = nearby.slice(0, 7);
-  const sizes = shown.map((_, i) => Math.max(54, 78 - i * 3));
   // Placed as a set, not one at a time — bubbles need to know about each other to
-  // avoid piling up when several listings sit within the same kilometre.
-  const placements = radarPlacements(
-    shown.map((item, i) => ({ seed: item.id, point: { lat: item.lat, lng: item.lng }, size: sizes[i] })),
-    { origin, radiusKm, ringPx, box: RADAR_BOX }
-  );
-  const homeBubbles = shown.map((item, i) => ({
-    item,
-    size: sizes[i],
-    dur: `${3 + (i % 5) * 0.2}s`,
-    delay: `${(i % 4) * 0.25}s`,
-    ...placements[i],
-  }));
+  // avoid piling up when several listings sit within the same kilometre. Keyed on the
+  // underlying query result rather than `nearby`/`shown` (both fresh array references
+  // every render): the relaxation only needs to redo its work when the actual nearby
+  // set, the radius or the viewer's position changes.
+  const homeBubbles = useMemo(() => {
+    // The radar shows the closest few, positioned by their actual coordinates.
+    const shown = nearbyAll.filter((i) => i.km <= radiusKm).slice(0, 7);
+    const sizes = shown.map((_, i) => Math.max(54, 78 - i * 3));
+    const placements = radarPlacements(
+      shown.map((item, i) => ({ seed: item.id, point: { lat: item.lat, lng: item.lng }, size: sizes[i] })),
+      { origin, radiusKm, ringPx, box: RADAR_BOX }
+    );
+    return shown.map((item, i) => ({
+      item,
+      size: sizes[i],
+      dur: `${3 + (i % 5) * 0.2}s`,
+      delay: `${(i % 4) * 0.25}s`,
+      ...placements[i],
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nearbyAll, radiusKm, origin.lat, origin.lng, ringPx]);
   const feedItems = [...nearby]
     .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""))
     .slice(0, 8);

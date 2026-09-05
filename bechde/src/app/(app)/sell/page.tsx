@@ -39,6 +39,18 @@ interface Chapter {
   text: string;
 }
 
+/**
+ * One photo in the sell form. `url` starts as a local object URL the instant a file
+ * is picked — the photo shows immediately, not after its own upload finishes — and
+ * gets swapped for the real storage URL once that upload resolves. Uploads run
+ * concurrently (see onFiles), so `uploading` is tracked per photo, not globally.
+ */
+interface PhotoSlot {
+  id: string;
+  url: string;
+  uploading: boolean;
+}
+
 export default function SellPage() {
   const { t, lang } = useTranslation();
   const router = useRouter();
@@ -88,9 +100,8 @@ export default function SellPage() {
   const [place, setPlace] = useState("");
   const placeValue = place || profile?.neighbourhood || "";
   const [isPublicSpot, setIsPublicSpot] = useState(false);
-  const [photos, setPhotos] = useState<string[]>([]);
-  const [uploadingState, setUploadingState] = useState<string | null>(null);
-  const uploading = uploadingState !== null;
+  const [photos, setPhotos] = useState<PhotoSlot[]>([]);
+  const uploading = photos.some((p) => p.uploading);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newId, setNewId] = useState<string | null>(null);
@@ -112,7 +123,7 @@ export default function SellPage() {
 
   const noteTrim = sellNote.length > 70 ? sellNote.slice(0, 70) + "…" : sellNote;
   const sellPingWord = (sellTitle.split(" ").pop() || "item").toLowerCase();
-  const cover = photos[0];
+  const cover = photos[0]?.url;
 
   // Both of these used to be invented ("~40 people nearby", "₹2,800–3,500"). They're
   // now real, and each hides itself when there isn't enough data to say anything.
@@ -122,7 +133,7 @@ export default function SellPage() {
 
   const onFiles = async (files: FileList | null) => {
     if (!files || !files.length || !profile) return;
-    
+
     const toUpload = Array.from(files).slice(0, 6 - photos.length);
     for (const file of toUpload) {
       const err = validateImage(file);
@@ -132,27 +143,43 @@ export default function SellPage() {
       }
     }
 
-    setUploadingState(t("sell.uploading", { current: 1, total: toUpload.length }));
     setError(null);
     const sb = getSupabaseBrowser();
-    const uploaded: string[] = [];
-    try {
-      for (let i = 0; i < toUpload.length; i++) {
-        const file = toUpload[i];
-        if (i > 0) setUploadingState(t("sell.uploading", { current: i + 1, total: toUpload.length }));
-        
+
+    // Show every photo the instant it's picked, not after its own upload finishes —
+    // and run the uploads concurrently instead of one at a time. A slot's local
+    // object URL is swapped for the real storage URL as its own upload resolves.
+    const slots: PhotoSlot[] = toUpload.map((file) => ({
+      id: crypto.randomUUID(),
+      url: URL.createObjectURL(file),
+      uploading: true,
+    }));
+    setPhotos((p) => [...p, ...slots]);
+
+    const results = await Promise.allSettled(
+      toUpload.map(async (file) => {
         const { blob, ext } = await compressImage(file);
         const path = `${profile.id}/${crypto.randomUUID()}.${ext}`;
         const { error: upErr } = await sb.storage.from("listing-images").upload(path, blob, { contentType: blob.type });
         if (upErr) throw upErr;
-        uploaded.push(sb.storage.from("listing-images").getPublicUrl(path).data.publicUrl);
-      }
-      setPhotos((p) => [...p, ...uploaded]);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Upload failed");
-    } finally {
-      setUploadingState(null);
-    }
+        return sb.storage.from("listing-images").getPublicUrl(path).data.publicUrl;
+      })
+    );
+
+    setPhotos((p) =>
+      p.flatMap((slot) => {
+        const i = slots.findIndex((s) => s.id === slot.id);
+        if (i === -1) return [slot]; // not from this batch — leave it alone
+        const result = results[i];
+        URL.revokeObjectURL(slot.url);
+        // A failed upload is dropped rather than left showing a broken local preview
+        // that would otherwise get submitted as a listing photo.
+        return result.status === "fulfilled" ? [{ ...slot, url: result.value, uploading: false }] : [];
+      })
+    );
+
+    const failed = results.filter((r) => r.status === "rejected").length;
+    if (failed) setError(t("sell.uploadFailed", { count: failed }));
   };
 
   const submit = async () => {
@@ -249,7 +276,9 @@ export default function SellPage() {
     }
 
     if (photos.length) {
-      const rows = photos.map((url, i) => ({ listing_id: data.id, url, sort: i }));
+      // uploading is checked at the top of submit() and blocks this point from being
+      // reached at all — every slot here already has its real storage URL.
+      const rows = photos.map((slot, i) => ({ listing_id: data.id, url: slot.url, sort: i }));
       const { error: imgErr } = await sb.from("listing_images").insert(rows);
       if (imgErr) {
         setSubmitting(false);
@@ -310,12 +339,17 @@ export default function SellPage() {
           <h1 className="bd-sell-h1" style={{ margin: 0, fontFamily: "var(--font-bricolage)", fontWeight: 800, fontSize: 36, letterSpacing: "-1px" }}>{t("sell.title")}</h1>
 
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <PhotoDropzone onClick={() => fileRef.current?.click()} uploadingState={uploadingState} />
-            {photos.map((url, i) => (
-              <Stripe key={url} src={url} style={{ width: 120, height: 170, borderRadius: 16 }}>
+            <PhotoDropzone onClick={() => fileRef.current?.click()} pendingCount={photos.filter((p) => p.uploading).length} />
+            {photos.map((slot, i) => (
+              <Stripe key={slot.id} src={slot.url} style={{ width: 120, height: 170, borderRadius: 16 }}>
                 {i === 0 && (
                   <div style={{ position: "absolute", top: 8, left: 8, background: colors.ink, color: colors.bg, fontSize: 10, fontWeight: 800, borderRadius: 6, padding: "2px 7px" }}>
                     {t("sell.cover")}
+                  </div>
+                )}
+                {slot.uploading && (
+                  <div style={{ position: "absolute", inset: 0, background: "rgba(46,42,36,.45)", display: "grid", placeItems: "center" }}>
+                    <div style={{ fontSize: 20 }}>⏳</div>
                   </div>
                 )}
               </Stripe>
@@ -735,10 +769,10 @@ function AttributeField({
   );
 }
 
-function PhotoDropzone({ onClick, uploadingState }: { onClick: () => void; uploadingState: string | null }) {
+function PhotoDropzone({ onClick, pendingCount }: { onClick: () => void; pendingCount: number }) {
   const { t } = useTranslation();
   const [hover, setHover] = useState(false);
-  const uploading = uploadingState !== null;
+  const uploading = pendingCount > 0;
   return (
     <div
       onClick={onClick}
@@ -759,7 +793,7 @@ function PhotoDropzone({ onClick, uploadingState }: { onClick: () => void; uploa
     >
       <div>
         <div style={{ fontSize: 26, marginBottom: 6 }}>{uploading ? "⏳" : "📸"}</div>
-        <div style={{ fontWeight: 800, fontSize: 15 }}>{uploadingState ?? t("sell.addPhotos")}</div>
+        <div style={{ fontWeight: 800, fontSize: 15 }}>{uploading ? t("sell.uploadingPhotos", { count: pendingCount }) : t("sell.addPhotos")}</div>
         <div style={{ fontSize: 12.5, color: colors.textFaint, fontWeight: 600 }}>{t("sell.photoHint")}</div>
       </div>
     </div>

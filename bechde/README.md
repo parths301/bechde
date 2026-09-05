@@ -387,8 +387,6 @@ Two traps that cost time here:
 
 ## 8. Post-launch work worth doing
 
-- **`next/image` coverage.** `Stripe.tsx` uses it; photos elsewhere are CSS
-  `background-image`, so no optimization or lazy loading.
 - **Blocking CSP.** It ships report-only (see `next.config.ts`) because the app is
   inline-styled throughout. Tighten from real violation reports.
 - **Distributed rate limiting.** `/api/geocode`'s token bucket is per-instance; a shared
